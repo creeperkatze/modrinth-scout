@@ -23,7 +23,7 @@ import {
 	SEARCH_LIMIT,
 } from '../commands/search.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildProjectCard } from './cards.js'
+import { buildProjectCard } from './embeds.js'
 
 type CooldownKey = `${string}:${string}`
 
