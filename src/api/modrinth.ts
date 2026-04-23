@@ -41,12 +41,34 @@ export interface ModrinthUser {
 	role: string
 }
 
-async function get<T>(path: string): Promise<T> {
+const CACHE_TTL = 10 * 60 * 1000
+
+const cache = new Map<string, { data: unknown; expires: number }>()
+
+setInterval(
+	() => {
+		const now = Date.now()
+		for (const [key, entry] of cache) {
+			if (now > entry.expires) cache.delete(key)
+		}
+	},
+	10 * 60 * 1000,
+).unref()
+
+async function get<T>(path: string, ttl = CACHE_TTL): Promise<T> {
+	if (ttl > 0) {
+		const entry = cache.get(path)
+		if (entry && Date.now() < entry.expires) return entry.data as T
+	}
+
 	const res = await fetch(`${BASE_URL}${path}`, {
 		headers: { 'User-Agent': USER_AGENT },
 	})
 	if (!res.ok) throw new Error(`Modrinth API error: ${res.status} ${res.statusText}`)
-	return res.json() as Promise<T>
+	const data = (await res.json()) as T
+
+	if (ttl > 0) cache.set(path, { data, expires: Date.now() + ttl })
+	return data
 }
 
 export interface ModrinthSearchHit {

@@ -29,8 +29,6 @@ const SORT_OPTIONS: { name: string; value: SearchIndex }[] = [
 
 export const SEARCH_LIMIT = 5
 
-// Format: search:{action}:{offset}:{type}:{index}:{...query}
-// Query is always last so colons within it don't break parsing.
 export function buildSearchId(
 	action: string,
 	offset: number,
