@@ -124,7 +124,9 @@ export type SearchIndex = 'relevance' | 'downloads' | 'follows' | 'newest' | 'up
 
 export const modrinth = {
 	randomProject: () =>
-		get<ModrinthProject[]>('/projects_random?count=1', 0).then(([project]) => project),
+		get<ModrinthProject[]>(`/projects_random?count=1&_t=${Date.now()}`, 0).then(
+			([project]) => project,
+		),
 
 	search: (
 		query: string,
