@@ -1,4 +1,11 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	EmbedBuilder,
+	SlashCommandBuilder,
+	StringSelectMenuBuilder,
+} from 'discord.js'
 
 import { modrinth, ProjectType, SearchIndex } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
@@ -19,6 +26,100 @@ const SORT_OPTIONS: { name: string; value: SearchIndex }[] = [
 	{ name: 'Newest', value: 'newest' },
 	{ name: 'Recently Updated', value: 'updated' },
 ]
+
+export const SEARCH_LIMIT = 5
+
+// Format: search:{action}:{offset}:{type}:{index}:{...query}
+// Query is always last so colons within it don't break parsing.
+export function buildSearchId(
+	action: string,
+	offset: number,
+	query: string,
+	type?: string,
+	index?: string,
+): string {
+	return `search:${action}:${offset}:${type ?? ''}:${index ?? ''}:${query}`
+}
+
+export function parseSearchId(customId: string) {
+	const [, action, offsetStr, type, index, ...queryParts] = customId.split(':')
+	return {
+		action,
+		offset: parseInt(offsetStr) || 0,
+		type: (type || undefined) as ProjectType | undefined,
+		index: (index || undefined) as SearchIndex | undefined,
+		query: queryParts.join(':'),
+	}
+}
+
+export async function buildSearchPayload(
+	query: string,
+	type: ProjectType | undefined,
+	index: SearchIndex | undefined,
+	offset: number,
+) {
+	const { hits, total_hits } = await modrinth.search(query, {
+		type,
+		index,
+		limit: SEARCH_LIMIT,
+		offset,
+	})
+
+	if (hits.length === 0) return null
+
+	const totalPages = Math.ceil(total_hits / SEARCH_LIMIT)
+	const currentPage = Math.floor(offset / SEARCH_LIMIT) + 1
+
+	const header = `🔎 Results for "${query}", ${total_hits.toLocaleString('en-US')} total results`
+
+	const resultEmbeds = hits.map((hit) => {
+		const hitType = hit.project_types[0] ?? 'project'
+		const desc = hit.summary.length > 80 ? hit.summary.slice(0, 79) + '…' : hit.summary
+		return new EmbedBuilder()
+			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined })
+			.setDescription(
+				`${desc}\n\`${hitType}\` • ${hit.downloads.toLocaleString('en-US')} downloads`,
+			)
+			.setColor(hit.color ?? 0x1bd96a)
+	})
+
+	const menu = new StringSelectMenuBuilder()
+		.setCustomId('search_result')
+		.setPlaceholder(`View a project... (Page ${currentPage} / ${totalPages})`)
+		.addOptions(
+			hits.map((hit) => ({
+				label: hit.name.slice(0, 100),
+				value: `project:${hit.slug}`,
+			})),
+		)
+
+	const prevButton = new ButtonBuilder()
+		.setCustomId(buildSearchId('prev', Math.max(0, offset - SEARCH_LIMIT), query, type, index))
+		.setLabel('◀ Prev')
+		.setStyle(ButtonStyle.Secondary)
+		.setDisabled(offset === 0)
+
+	const nextButton = new ButtonBuilder()
+		.setCustomId(buildSearchId('next', offset + SEARCH_LIMIT, query, type, index))
+		.setLabel('Next ▶')
+		.setStyle(ButtonStyle.Secondary)
+		.setDisabled(currentPage >= totalPages)
+
+	const jumpButton = new ButtonBuilder()
+		.setCustomId(buildSearchId('jump', offset, query, type, index))
+		.setLabel('Jump to page')
+		.setStyle(ButtonStyle.Secondary)
+		.setDisabled(totalPages <= 1)
+
+	return {
+		content: header,
+		embeds: resultEmbeds,
+		components: [
+			new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu),
+			new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton, jumpButton),
+		],
+	}
+}
 
 export const searchCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -47,29 +148,13 @@ export const searchCommand: ChatInputCommand = {
 		const type = (interaction.options.getString('type') ?? undefined) as ProjectType | undefined
 		const index = (interaction.options.getString('sort') ?? undefined) as SearchIndex | undefined
 
-		const { hits, total_hits } = await modrinth.search(query, { type, index })
+		const payload = await buildSearchPayload(query, type, index, 0)
 
-		if (hits.length === 0) {
+		if (!payload) {
 			await interaction.editReply({ content: `No results found for **${query}**.` })
 			return
 		}
 
-		const description = hits
-			.map((hit, i) => {
-				const url = `https://modrinth.com/${hit.project_type}/${hit.slug}`
-				const desc =
-					hit.description.length > 80 ? hit.description.slice(0, 79) + '…' : hit.description
-				return `**${i + 1}. [${hit.title}](${url})**\n${desc}\n> \`${hit.project_type}\` • ${hit.downloads.toLocaleString('en-US')} downloads`
-			})
-			.join('\n\n')
-
-		const embed = new EmbedBuilder()
-			.setTitle(`Results for "${query}"`)
-			.setURL(`https://modrinth.com/mods?q=${encodeURIComponent(query)}${type ? `&t=${type}` : ''}`)
-			.setDescription(description)
-			.setColor(0x1bd96a)
-			.setFooter({ text: `${total_hits.toLocaleString('en-US')} total results • Modrinth` })
-
-		await interaction.editReply({ embeds: [embed] })
+		await interaction.editReply(payload)
 	},
 }

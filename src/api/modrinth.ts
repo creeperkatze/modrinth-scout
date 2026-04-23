@@ -1,28 +1,34 @@
-const BASE_URL = 'https://api.modrinth.com/v2'
-const USER_AGENT = `creeperkatze/modrinth-scout/${process.env.npm_package_version} (contact@creeperkatze.dev)`
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../../package.json') as { version: string }
+
+const BASE_URL = 'https://api.modrinth.com/v3'
+const USER_AGENT = `creeperkatze/modrinth-scout/${version} (contact@creeperkatze.dev)`
+
+export interface ModrinthProjectLink {
+	platform: string
+	donation: boolean
+	url: string
+}
 
 export interface ModrinthProject {
 	id: string
 	slug: string
-	title: string
-	description: string
-	project_type: string
+	name: string
+	summary: string
+	project_types: string[]
 	icon_url: string | null
 	color: number | null
 	downloads: number
 	followers: number
 	categories: string[]
-	additional_categories: string[]
+	additional_categories?: string[]
 	game_versions: string[]
 	loaders: string[]
 	updated: string
 	published: string
-	source_url: string | null
-	issues_url: string | null
-	wiki_url: string | null
-	discord_url: string | null
-	client_side: 'required' | 'optional' | 'unsupported'
-	server_side: 'required' | 'optional' | 'unsupported'
+	link_urls: Record<string, ModrinthProjectLink>
 }
 
 export interface ModrinthUser {
@@ -46,21 +52,42 @@ async function get<T>(path: string): Promise<T> {
 export interface ModrinthSearchHit {
 	project_id: string
 	slug: string
-	title: string
-	description: string
-	project_type: string
+	name: string
+	summary: string
+	project_types: string[]
 	icon_url: string | null
 	color: number | null
 	downloads: number
 	follows: number
 	author: string
 	categories: string[]
-	latest_version: string
 }
 
 export interface ModrinthSearchResponse {
 	hits: ModrinthSearchHit[]
 	total_hits: number
+}
+
+export interface ModrinthOrganization {
+	id: string
+	slug: string
+	name: string
+	description: string
+	icon_url: string | null
+	color: number | null
+}
+
+export interface ModrinthCollection {
+	id: string
+	user: string
+	name: string
+	description: string | null
+	icon_url: string | null
+	color: number | null
+	status: string
+	created: string
+	updated: string
+	projects: string[]
 }
 
 export type ProjectType =
@@ -79,12 +106,13 @@ export const modrinth = {
 
 	search: (
 		query: string,
-		options?: { type?: ProjectType; index?: SearchIndex; limit?: number },
+		options?: { type?: ProjectType; index?: SearchIndex; limit?: number; offset?: number },
 	) => {
 		const params = new URLSearchParams({
 			query,
 			limit: String(options?.limit ?? 5),
 			index: options?.index ?? 'relevance',
+			offset: String(options?.offset ?? 0),
 		})
 		if (options?.type) params.set('facets', JSON.stringify([[`project_type:${options.type}`]]))
 		return get<ModrinthSearchResponse>(`/search?${params}`)
@@ -96,4 +124,16 @@ export const modrinth = {
 
 	getUserProjects: (idOrUsername: string) =>
 		get<ModrinthProject[]>(`/user/${idOrUsername}/projects`),
+
+	getOrganization: (idOrSlug: string) => get<ModrinthOrganization>(`/organization/${idOrSlug}`),
+
+	getOrganizationProjects: (idOrSlug: string) =>
+		get<ModrinthProject[]>(`/organization/${idOrSlug}/projects`),
+
+	getCollection: (id: string) => get<ModrinthCollection>(`/collection/${id}`),
+
+	getProjects: (ids: string[]) =>
+		ids.length === 0
+			? Promise.resolve([] as ModrinthProject[])
+			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`),
 }

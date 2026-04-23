@@ -1,6 +1,29 @@
-import { Collection, Interaction, REST, Routes, SlashCommandBuilder } from 'discord.js'
+import {
+	ActionRowBuilder,
+	ButtonInteraction,
+	Collection,
+	Interaction,
+	InteractionContextType,
+	ModalBuilder,
+	ModalSubmitInteraction,
+	PermissionsBitField,
+	REST,
+	Routes,
+	SlashCommandBuilder,
+	StringSelectMenuInteraction,
+	TextInputBuilder,
+	TextInputStyle,
+} from 'discord.js'
 
+import { modrinth } from '../api/modrinth.js'
+import {
+	buildSearchId,
+	buildSearchPayload,
+	parseSearchId,
+	SEARCH_LIMIT,
+} from '../commands/search.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { buildProjectCard } from './cards.js'
 
 type CooldownKey = `${string}:${string}`
 
@@ -21,7 +44,106 @@ export function createCommandRegistry(
 		return 0
 	}
 
+	async function showProjectCard(
+		interaction: ButtonInteraction | StringSelectMenuInteraction,
+		id: string,
+	) {
+		await interaction.deferReply()
+		try {
+			const project = await modrinth.getProject(id)
+			await interaction.editReply(buildProjectCard(project))
+		} catch {
+			await interaction.editReply({ content: `No project found for \`${id}\`.` })
+		}
+	}
+
+	async function handleButton(interaction: ButtonInteraction) {
+		const { customId } = interaction
+
+		if (customId.startsWith('search:')) {
+			const { action, offset, query, type, index } = parseSearchId(customId)
+
+			if (action === 'jump') {
+				const modal = new ModalBuilder()
+					.setCustomId(buildSearchId('modal', offset, query, type, index))
+					.setTitle('Jump to Page')
+					.addComponents(
+						new ActionRowBuilder<TextInputBuilder>().addComponents(
+							new TextInputBuilder()
+								.setCustomId('page')
+								.setLabel('Page number')
+								.setStyle(TextInputStyle.Short)
+								.setRequired(true)
+								.setMinLength(1)
+								.setMaxLength(4),
+						),
+					)
+				await interaction.showModal(modal)
+				return
+			}
+
+			await interaction.deferUpdate()
+			const payload = await buildSearchPayload(query, type, index, offset)
+			if (!payload) {
+				await interaction.followUp({ content: 'No results on that page.', flags: 'Ephemeral' })
+				return
+			}
+			await interaction.editReply(payload)
+			return
+		}
+
+		const colon = customId.indexOf(':')
+		if (colon === -1) return
+		if (customId.slice(0, colon) === 'project')
+			await showProjectCard(interaction, customId.slice(colon + 1))
+	}
+
+	async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
+		const value = interaction.values[0]
+		const colon = value.indexOf(':')
+		if (colon === -1) return
+		if (value.slice(0, colon) === 'project')
+			await showProjectCard(interaction, value.slice(colon + 1))
+	}
+
+	async function handleModal(interaction: ModalSubmitInteraction) {
+		if (!interaction.customId.startsWith('search:modal:')) return
+
+		const { query, type, index } = parseSearchId(interaction.customId)
+		const pageStr = interaction.fields.getTextInputValue('page')
+		const page = parseInt(pageStr)
+
+		if (isNaN(page) || page < 1) {
+			await interaction.reply({ content: 'Please enter a valid page number.', flags: 'Ephemeral' })
+			return
+		}
+
+		const offset = (page - 1) * SEARCH_LIMIT
+		await interaction.deferUpdate()
+		const payload = await buildSearchPayload(query, type, index, offset)
+		if (!payload) {
+			await interaction.followUp({ content: `Page ${page} is out of range.`, flags: 'Ephemeral' })
+			return
+		}
+		await interaction.editReply(payload)
+	}
+
 	async function onInteractionCreate(interaction: Interaction) {
+		if (interaction.isButton()) {
+			await handleButton(interaction)
+			return
+		}
+
+		if (interaction.isStringSelectMenu()) {
+			await handleSelectMenu(interaction)
+			return
+		}
+
+		if (interaction.isModalSubmit()) {
+			await handleModal(interaction)
+			return
+		}
+
 		if (!interaction.isChatInputCommand()) return
 
 		const cmd = map.get(interaction.commandName)
@@ -62,11 +184,11 @@ export function createCommandRegistry(
 		return Array.from(map.values()).map((c) => {
 			const builder = c.data as SlashCommandBuilder
 			if (c.meta.defaultMemberPermissions !== undefined) {
-				builder.setDefaultMemberPermissions(c.meta.defaultMemberPermissions)
+				builder.setDefaultMemberPermissions(
+					PermissionsBitField.resolve(c.meta.defaultMemberPermissions),
+				)
 			}
-			if (c.meta.dmPermission !== undefined) {
-				builder.setDMPermission(c.meta.dmPermission)
-			}
+			builder.setContexts([InteractionContextType.Guild])
 			return builder.toJSON()
 		})
 	}

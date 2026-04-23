@@ -16,7 +16,6 @@ export interface CommandMeta {
 	allowedUsers?: string[]
 	cooldownSeconds?: number
 	defaultMemberPermissions?: PermissionResolvable
-	dmPermission?: boolean
 }
 
 export interface ChatInputCommand {
