@@ -1,29 +1,21 @@
-import { and, eq } from 'drizzle-orm'
-
-import { db } from './index.js'
-import { serverConfigs, trackedProjects } from './schema.js'
+import { ServerConfig, TrackedProject } from './schema.js'
+import type { ITrackedProjectWithChannel } from './schema.js'
 
 export const MAX_TRACKED_PER_GUILD = 25
 
 export const queries = {
-	getServerConfig: (guildId: string) =>
-		db.select().from(serverConfigs).where(eq(serverConfigs.guildId, guildId)).get(),
+	getServerConfig: (guildId: string) => ServerConfig.findById(guildId).lean(),
 
 	setServerConfig: (guildId: string, channelId: string, configuredBy: string) =>
-		db
-			.insert(serverConfigs)
-			.values({ guildId, channelId, configuredBy, configuredAt: Date.now() })
-			.onConflictDoUpdate({
-				target: serverConfigs.guildId,
-				set: { channelId, configuredBy, configuredAt: Date.now() },
-			})
-			.run(),
+		ServerConfig.findByIdAndUpdate(
+			guildId,
+			{ channelId, configuredBy, configuredAt: new Date() },
+			{ upsert: true, new: true },
+		),
 
-	getTrackedProjects: (guildId: string) =>
-		db.select().from(trackedProjects).where(eq(trackedProjects.guildId, guildId)).all(),
+	getTrackedProjects: (guildId: string) => TrackedProject.find({ guildId }).lean(),
 
-	countTrackedProjects: (guildId: string) =>
-		db.select().from(trackedProjects).where(eq(trackedProjects.guildId, guildId)).all().length,
+	countTrackedProjects: (guildId: string) => TrackedProject.countDocuments({ guildId }),
 
 	addTrackedProject: (
 		guildId: string,
@@ -32,36 +24,27 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) =>
-		db
-			.insert(trackedProjects)
-			.values({ guildId, projectId, slug, name, lastUpdated, addedBy, addedAt: Date.now() })
-			.run(),
+	) => TrackedProject.create({ guildId, projectId, slug, name, lastUpdated, addedBy, addedAt: new Date() }),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
-		db
-			.delete(trackedProjects)
-			.where(and(eq(trackedProjects.guildId, guildId), eq(trackedProjects.projectId, projectId)))
-			.run(),
+		TrackedProject.deleteOne({ guildId, projectId }),
 
+	// Mongoose lowercases and pluralises model names for collection lookups
 	getAllTrackedWithConfig: () =>
-		db
-			.select({
-				guildId: trackedProjects.guildId,
-				projectId: trackedProjects.projectId,
-				slug: trackedProjects.slug,
-				name: trackedProjects.name,
-				lastUpdated: trackedProjects.lastUpdated,
-				channelId: serverConfigs.channelId,
-			})
-			.from(trackedProjects)
-			.innerJoin(serverConfigs, eq(trackedProjects.guildId, serverConfigs.guildId))
-			.all(),
+		TrackedProject.aggregate<ITrackedProjectWithChannel>([
+			{
+				$lookup: {
+					from: 'serverconfigs',
+					localField: 'guildId',
+					foreignField: '_id',
+					as: 'config',
+				},
+			},
+			{ $unwind: '$config' },
+			{ $set: { channelId: '$config.channelId' } },
+			{ $unset: 'config' },
+		]),
 
 	updateLastUpdated: (projectId: string, lastUpdated: string) =>
-		db
-			.update(trackedProjects)
-			.set({ lastUpdated })
-			.where(eq(trackedProjects.projectId, projectId))
-			.run(),
+		TrackedProject.updateMany({ projectId }, { $set: { lastUpdated } }),
 }

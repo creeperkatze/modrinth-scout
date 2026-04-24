@@ -3,8 +3,11 @@ import 'dotenv/config'
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { commands } from './commands/index.js'
+import { connectDb } from './db/index.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { startPoller } from './utils/poller.js'
+
+await connectDb()
 
 if (process.argv.includes('--deploy-commands')) {
 	await deployCommands(commands)

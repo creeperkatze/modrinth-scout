@@ -1,23 +1,44 @@
-import { integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
+import { model, Schema } from 'mongoose'
 
-export const serverConfigs = sqliteTable('server_configs', {
-	guildId: text('guild_id').primaryKey(),
-	channelId: text('channel_id').notNull(),
-	configuredBy: text('configured_by').notNull(),
-	configuredAt: integer('configured_at').notNull(),
+export interface IServerConfig {
+	_id: string // guildId
+	channelId: string
+	configuredBy: string
+	configuredAt: Date
+}
+
+export interface ITrackedProject {
+	guildId: string
+	projectId: string
+	slug: string
+	name: string
+	lastUpdated: string
+	addedBy: string
+	addedAt: Date
+}
+
+export interface ITrackedProjectWithChannel extends ITrackedProject {
+	channelId: string
+}
+
+const serverConfigSchema = new Schema<IServerConfig>({
+	_id: { type: String },
+	channelId: { type: String, required: true },
+	configuredBy: { type: String, required: true },
+	configuredAt: { type: Date, required: true },
 })
 
-export const trackedProjects = sqliteTable(
-	'tracked_projects',
-	{
-		id: integer('id').primaryKey({ autoIncrement: true }),
-		guildId: text('guild_id').notNull(),
-		projectId: text('project_id').notNull(),
-		slug: text('slug').notNull(),
-		name: text('name').notNull(),
-		lastUpdated: text('last_updated').notNull(),
-		addedBy: text('added_by').notNull(),
-		addedAt: integer('added_at').notNull(),
-	},
-	(t) => [unique().on(t.guildId, t.projectId)],
-)
+const trackedProjectSchema = new Schema<ITrackedProject>({
+	guildId: { type: String, required: true },
+	projectId: { type: String, required: true },
+	slug: { type: String, required: true },
+	name: { type: String, required: true },
+	lastUpdated: { type: String, required: true },
+	addedBy: { type: String, required: true },
+	addedAt: { type: Date, required: true },
+})
+
+trackedProjectSchema.index({ guildId: 1, projectId: 1 }, { unique: true })
+
+export const ServerConfig = model<IServerConfig>('ServerConfig', serverConfigSchema)
+export const TrackedProject = model<ITrackedProject>('TrackedProject', trackedProjectSchema)

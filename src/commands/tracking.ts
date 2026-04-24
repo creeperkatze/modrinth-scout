@@ -57,7 +57,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		const guildId = interaction.guildId!
 		const focused = interaction.options.getFocused().toLowerCase()
-		const tracked = queries.getTrackedProjects(guildId)
+		const tracked = await queries.getTrackedProjects(guildId)
 
 		const choices = tracked
 			.filter((p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused))
@@ -73,7 +73,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
-			queries.setServerConfig(guildId, channel.id, interaction.user.id)
+			await queries.setServerConfig(guildId, channel.id, interaction.user.id)
 			await interaction.reply({
 				content: `Update notifications will be posted in <#${channel.id}>.`,
 				flags: 'Ephemeral',
@@ -82,7 +82,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'add') {
-			const config = queries.getServerConfig(guildId)
+			const config = await queries.getServerConfig(guildId)
 			if (!config) {
 				await interaction.reply({
 					content: 'Set a notification channel first with `/tracking setup`.',
@@ -91,7 +91,7 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const count = queries.countTrackedProjects(guildId)
+			const count = await queries.countTrackedProjects(guildId)
 			if (count >= MAX_TRACKED_PER_GUILD) {
 				await interaction.reply({
 					content: `This server is already tracking the maximum of ${MAX_TRACKED_PER_GUILD} projects.`,
@@ -111,13 +111,13 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const existing = queries.getTrackedProjects(guildId)
+			const existing = await queries.getTrackedProjects(guildId)
 			if (existing.some((p) => p.projectId === project.id)) {
 				await interaction.editReply(`**${project.name}** is already being tracked.`)
 				return
 			}
 
-			queries.addTrackedProject(
+			await queries.addTrackedProject(
 				guildId,
 				project.id,
 				project.slug,
@@ -134,7 +134,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'remove') {
 			const input = interaction.options.getString('project', true).trim()
-			const tracked = queries.getTrackedProjects(guildId)
+			const tracked = await queries.getTrackedProjects(guildId)
 			const entry = tracked.find((p) => p.slug === input || p.projectId === input)
 
 			if (!entry) {
@@ -145,7 +145,7 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			queries.removeTrackedProject(guildId, entry.projectId)
+			await queries.removeTrackedProject(guildId, entry.projectId)
 			await interaction.reply({
 				content: `Stopped tracking **${entry.name}**.`,
 				flags: 'Ephemeral',
@@ -154,8 +154,10 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'list') {
-			const tracked = queries.getTrackedProjects(guildId)
-			const config = queries.getServerConfig(guildId)
+			const [tracked, config] = await Promise.all([
+				queries.getTrackedProjects(guildId),
+				queries.getServerConfig(guildId),
+			])
 
 			if (tracked.length === 0) {
 				await interaction.reply({

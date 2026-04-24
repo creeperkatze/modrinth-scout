@@ -7,7 +7,7 @@ import { buildUpdateNotification } from './embeds.js'
 const POLL_INTERVAL_MS = 5 * 60 * 1000
 
 async function poll(client: Client) {
-	const rows = queries.getAllTrackedWithConfig()
+	const rows = await queries.getAllTrackedWithConfig()
 	if (rows.length === 0) return
 
 	// Deduplicate: one API call per unique project, track which channels to notify
