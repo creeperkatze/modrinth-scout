@@ -1,7 +1,7 @@
 import type { ITrackedProjectWithChannel } from './schema.js'
 import { ServerConfig, TrackedProject } from './schema.js'
 
-export const MAX_TRACKED_PER_GUILD = 25
+export const MAX_TRACKED_PER_GUILD = 100
 
 export const queries = {
 	getServerConfig: (guildId: string) => ServerConfig.findById(guildId).lean(),
@@ -9,7 +9,7 @@ export const queries = {
 	setServerConfig: (guildId: string, channelId: string, configuredBy: string) =>
 		ServerConfig.findByIdAndUpdate(
 			guildId,
-			{ channelId, configuredBy, configuredAt: new Date() },
+			{ channelId, configuredBy },
 			{ upsert: true, new: true },
 		),
 
@@ -24,26 +24,16 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) =>
-		TrackedProject.create({
-			guildId,
-			projectId,
-			slug,
-			name,
-			lastUpdated,
-			addedBy,
-			addedAt: new Date(),
-		}),
+	) => TrackedProject.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		TrackedProject.deleteOne({ guildId, projectId }),
 
-	// Mongoose lowercases and pluralises model names for collection lookups
 	getAllTrackedWithConfig: () =>
 		TrackedProject.aggregate<ITrackedProjectWithChannel>([
 			{
 				$lookup: {
-					from: 'serverconfigs',
+					from: 'servers',
 					localField: 'guildId',
 					foreignField: '_id',
 					as: 'config',
