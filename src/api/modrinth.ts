@@ -24,8 +24,8 @@ export interface ModrinthProject {
 	followers: number
 	categories: string[]
 	additional_categories?: string[]
-	game_versions: string[]
-	loaders: string[]
+	game_versions?: string[]
+	loaders?: string[]
 	updated: string
 	published: string
 	link_urls: Record<string, ModrinthProjectLink>
@@ -76,7 +76,7 @@ export interface ModrinthSearchHit {
 	slug: string
 	name: string
 	summary: string
-	project_types: string[]
+	project_types?: string[]
 	icon_url: string | null
 	color: number | null
 	downloads: number
@@ -138,7 +138,7 @@ export const modrinth = {
 			index: options?.index ?? 'relevance',
 			offset: String(options?.offset ?? 0),
 		})
-		if (options?.type) params.set('facets', JSON.stringify([[`project_type:${options.type}`]]))
+		if (options?.type) params.set('facets', JSON.stringify([[`project_types:${options.type}`]]))
 		return get<ModrinthSearchResponse>(`/search?${params}`)
 	},
 

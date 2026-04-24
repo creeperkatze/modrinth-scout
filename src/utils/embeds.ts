@@ -23,14 +23,20 @@ function topProjectsList(projects: ModrinthProject[]): string {
 		.join('\n')
 }
 
+export const TYPE_LABELS: Record<string, string> = {
+	minecraft_java_server: 'Server',
+}
+
 export function buildProjectCard(project: ModrinthProject): CardPayload {
 	const type = project.project_types[0] ?? 'project'
 	const url = `https://modrinth.com/${type}/${project.slug}`
-	const recentVersions = project.game_versions.slice(-3).reverse()
-	const extraVersions = project.game_versions.length - recentVersions.length
+	const gameVersions = project.game_versions ?? []
+	const recentVersions = gameVersions.slice(-3).reverse()
+	const extraVersions = gameVersions.length - recentVersions.length
 	const versionsText =
 		recentVersions.join(', ') + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
-	const loaders = project.loaders.filter((l) => l !== 'minecraft' || project.loaders.length === 1)
+	const rawLoaders = project.loaders ?? []
+	const loaders = rawLoaders.filter((l) => l !== 'minecraft' || rawLoaders.length === 1)
 
 	const embed = new EmbedBuilder()
 		.setTitle(project.name)
@@ -38,7 +44,11 @@ export function buildProjectCard(project: ModrinthProject): CardPayload {
 		.addFields(
 			{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true },
 			{ name: 'Followers', value: project.followers.toLocaleString('en-US'), inline: true },
-			{ name: 'Type', value: type.charAt(0).toUpperCase() + type.slice(1), inline: true },
+			{
+				name: 'Type',
+				value: TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1),
+				inline: true,
+			},
 		)
 		.setFooter({ text: 'Updated' })
 		.setTimestamp(new Date(project.updated))

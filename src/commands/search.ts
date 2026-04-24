@@ -9,6 +9,7 @@ import {
 
 import { modrinth, ProjectType, SearchIndex } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { TYPE_LABELS } from '../utils/embeds.js'
 
 const PROJECT_TYPES: { name: string; value: ProjectType }[] = [
 	{ name: 'Mod', value: 'mod' },
@@ -71,7 +72,8 @@ export async function buildSearchPayload(
 	const header = `🔎 Results for "${query}", ${total_hits.toLocaleString('en-US')} total results`
 
 	const resultEmbeds = hits.map((hit) => {
-		const hitType = hit.project_types[0] ?? 'project'
+		const rawType = (hit.project_types ?? [])[0] ?? 'project'
+		const hitType = TYPE_LABELS[rawType] ?? rawType.charAt(0).toUpperCase() + rawType.slice(1)
 		const desc = hit.summary.length > 80 ? hit.summary.slice(0, 79) + '…' : hit.summary
 		return new EmbedBuilder()
 			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined })
