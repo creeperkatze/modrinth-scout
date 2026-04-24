@@ -129,6 +129,12 @@ export function createCommandRegistry(
 	}
 
 	async function onInteractionCreate(interaction: Interaction) {
+		if (interaction.isAutocomplete()) {
+			const cmd = map.get(interaction.commandName)
+			await cmd?.autocomplete?.(interaction)
+			return
+		}
+
 		if (interaction.isButton()) {
 			await handleButton(interaction)
 			return

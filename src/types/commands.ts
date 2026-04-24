@@ -1,4 +1,5 @@
 import type {
+	AutocompleteInteraction,
 	ChatInputCommandInteraction,
 	PermissionResolvable,
 	SlashCommandBuilder,
@@ -22,6 +23,7 @@ export interface ChatInputCommand {
 	data: Pick<SlashCommandBuilder, 'name' | 'toJSON'>
 	meta: CommandMeta
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void> | void
+	autocomplete?: (interaction: AutocompleteInteraction) => Promise<void> | void
 }
 
 export type CommandMap = Map<string, ChatInputCommand>
