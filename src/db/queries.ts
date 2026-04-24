@@ -1,5 +1,5 @@
-import { ServerConfig, TrackedProject } from './schema.js'
 import type { ITrackedProjectWithChannel } from './schema.js'
+import { ServerConfig, TrackedProject } from './schema.js'
 
 export const MAX_TRACKED_PER_GUILD = 25
 
@@ -24,7 +24,16 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) => TrackedProject.create({ guildId, projectId, slug, name, lastUpdated, addedBy, addedAt: new Date() }),
+	) =>
+		TrackedProject.create({
+			guildId,
+			projectId,
+			slug,
+			name,
+			lastUpdated,
+			addedBy,
+			addedAt: new Date(),
+		}),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		TrackedProject.deleteOne({ guildId, projectId }),
