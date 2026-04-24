@@ -10,7 +10,7 @@ export const queries = {
 		ServerConfig.findByIdAndUpdate(
 			guildId,
 			{ channelId, configuredBy },
-			{ upsert: true, new: true },
+			{ upsert: true, returnDocument: 'after' },
 		),
 
 	getTrackedProjects: (guildId: string) => TrackedProject.find({ guildId }).lean(),
