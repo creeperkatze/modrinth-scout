@@ -1,12 +1,13 @@
 import { model, Schema } from 'mongoose'
 
-export interface IServerConfig {
-	_id: string // guildId
+export interface ServerConfig {
+	_id: string
 	channelId: string
 	configuredBy: string
+	roleId?: string | null
 }
 
-export interface ITrackedProject {
+export interface TrackedProject {
 	guildId: string
 	projectId: string
 	slug: string
@@ -15,20 +16,22 @@ export interface ITrackedProject {
 	addedBy: string
 }
 
-export interface ITrackedProjectWithChannel extends ITrackedProject {
+export interface TrackedProjectWithChannel extends TrackedProject {
 	channelId: string
+	roleId?: string | null
 }
 
-const serverConfigSchema = new Schema<IServerConfig>(
+const serverConfigSchema = new Schema<ServerConfig>(
 	{
 		_id: { type: String },
 		channelId: { type: String, required: true },
 		configuredBy: { type: String, required: true },
+		roleId: { type: String, default: null },
 	},
 	{ collection: 'servers', timestamps: true },
 )
 
-const trackedProjectSchema = new Schema<ITrackedProject>(
+const trackedProjectSchema = new Schema<TrackedProject>(
 	{
 		guildId: { type: String, required: true },
 		projectId: { type: String, required: true },
@@ -42,5 +45,5 @@ const trackedProjectSchema = new Schema<ITrackedProject>(
 
 trackedProjectSchema.index({ guildId: 1, projectId: 1 }, { unique: true })
 
-export const ServerConfig = model<IServerConfig>('ServerConfig', serverConfigSchema)
-export const TrackedProject = model<ITrackedProject>('TrackedProject', trackedProjectSchema)
+export const ServerConfigModel = model<ServerConfig>('ServerConfig', serverConfigSchema)
+export const TrackedProjectModel = model<TrackedProject>('TrackedProject', trackedProjectSchema)

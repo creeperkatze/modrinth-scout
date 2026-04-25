@@ -22,6 +22,12 @@ export const trackingCommand: ChatInputCommand = {
 						.setDescription('The channel to post notifications in')
 						.addChannelTypes(ChannelType.GuildText)
 						.setRequired(true),
+				)
+				.addRoleOption((opt) =>
+					opt
+						.setName('role')
+						.setDescription('Role to ping when an update is posted (leave empty to clear)')
+						.setRequired(false),
 				),
 		)
 		.addSubcommand((sub) =>
@@ -87,13 +93,15 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
-			await queries.setServerConfig(guildId, channel.id, interaction.user.id)
+			const role = interaction.options.getRole('role')
+			await queries.setServerConfig(guildId, channel.id, interaction.user.id, role?.id)
 			log.info(
-				{ guildId, channelId: channel.id, userId: interaction.user.id },
+				{ guildId, channelId: channel.id, roleId: role?.id, userId: interaction.user.id },
 				'Tracking channel configured',
 			)
+			const roleNote = role ? ` ${role.name} will be pinged on each update.` : ''
 			await interaction.reply({
-				content: `Update notifications will be posted in <#${channel.id}>.`,
+				content: `Update notifications will be posted in <#${channel.id}>.${roleNote}`,
 				flags: 'Ephemeral',
 			})
 			return
@@ -197,7 +205,9 @@ export const trackingCommand: ChatInputCommand = {
 				.map((p) => `• [${p.name}](https://modrinth.com/project/${p.slug})`)
 				.join('\n')
 
-			const channelLine = config ? `\nNotifications → <#${config.channelId}>` : ''
+			const channelLine = config
+				? `\nNotifications → <#${config.channelId}>${config.roleId ? ` · pings <@&${config.roleId}>` : ''}`
+				: ''
 
 			await interaction.reply({
 				content: `**Tracked projects (${tracked.length}/${MAX_TRACKED_PER_GUILD})**\n${list}${channelLine}`,

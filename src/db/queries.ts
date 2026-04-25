@@ -1,21 +1,26 @@
-import type { ITrackedProjectWithChannel } from './schema.js'
-import { ServerConfig, TrackedProject } from './schema.js'
+import type { TrackedProjectWithChannel } from './schema.js'
+import { ServerConfigModel, TrackedProjectModel } from './schema.js'
 
 export const MAX_TRACKED_PER_GUILD = 100
 
 export const queries = {
-	getServerConfig: (guildId: string) => ServerConfig.findById(guildId).lean(),
+	getServerConfig: (guildId: string) => ServerConfigModel.findById(guildId).lean(),
 
-	setServerConfig: (guildId: string, channelId: string, configuredBy: string) =>
-		ServerConfig.findByIdAndUpdate(
+	setServerConfig: (
+		guildId: string,
+		channelId: string,
+		configuredBy: string,
+		roleId?: string | null,
+	) =>
+		ServerConfigModel.findByIdAndUpdate(
 			guildId,
-			{ channelId, configuredBy },
+			{ channelId, configuredBy, roleId: roleId ?? null },
 			{ upsert: true, returnDocument: 'after' },
 		),
 
-	getTrackedProjects: (guildId: string) => TrackedProject.find({ guildId }).lean(),
+	getTrackedProjects: (guildId: string) => TrackedProjectModel.find({ guildId }).lean(),
 
-	countTrackedProjects: (guildId: string) => TrackedProject.countDocuments({ guildId }),
+	countTrackedProjects: (guildId: string) => TrackedProjectModel.countDocuments({ guildId }),
 
 	addTrackedProject: (
 		guildId: string,
@@ -24,13 +29,13 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) => TrackedProject.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
+	) => TrackedProjectModel.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
-		TrackedProject.deleteOne({ guildId, projectId }),
+		TrackedProjectModel.deleteOne({ guildId, projectId }),
 
 	getAllTrackedWithConfig: () =>
-		TrackedProject.aggregate<ITrackedProjectWithChannel>([
+		TrackedProjectModel.aggregate<TrackedProjectWithChannel>([
 			{
 				$lookup: {
 					from: 'servers',
@@ -40,16 +45,17 @@ export const queries = {
 				},
 			},
 			{ $unwind: '$config' },
-			{ $set: { channelId: '$config.channelId' } },
+			{ $set: { channelId: '$config.channelId', roleId: '$config.roleId' } },
 			{ $unset: 'config' },
 		]),
 
 	updateLastUpdated: (projectId: string, lastUpdated: string) =>
-		TrackedProject.updateMany({ projectId }, { $set: { lastUpdated } }),
+		TrackedProjectModel.updateMany({ projectId }, { $set: { lastUpdated } }),
 
-	countAllTrackedProjects: () => TrackedProject.countDocuments(),
+	countAllTrackedProjects: () => TrackedProjectModel.countDocuments(),
 
-	countUniqueTrackedProjects: () => TrackedProject.distinct('projectId').then((ids) => ids.length),
+	countUniqueTrackedProjects: () =>
+		TrackedProjectModel.distinct('projectId').then((ids) => ids.length),
 
-	countConfiguredServers: () => ServerConfig.countDocuments(),
+	countConfiguredServers: () => ServerConfigModel.countDocuments(),
 }

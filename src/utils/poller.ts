@@ -7,23 +7,26 @@ import { logger } from './logger.js'
 
 const log = logger.child({ module: 'poller' })
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000
+const POLL_INTERVAL_MS = 1 * 60 * 1000
 
 async function poll(client: Client) {
 	const rows = await queries.getAllTrackedWithConfig()
 	if (rows.length === 0) return
 
 	// Deduplicate: one API call per unique project, track which channels to notify
-	const byProject = new Map<string, { slug: string; lastUpdated: string; channelIds: string[] }>()
+	const byProject = new Map<
+		string,
+		{ slug: string; lastUpdated: string; channels: { channelId: string; roleId?: string | null }[] }
+	>()
 	for (const row of rows) {
 		const existing = byProject.get(row.projectId)
 		if (existing) {
-			existing.channelIds.push(row.channelId)
+			existing.channels.push({ channelId: row.channelId, roleId: row.roleId })
 		} else {
 			byProject.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
-				channelIds: [row.channelId],
+				channels: [{ channelId: row.channelId, roleId: row.roleId }],
 			})
 		}
 	}
@@ -39,10 +42,10 @@ async function poll(client: Client) {
 
 			const payload = buildUpdateNotification(project)
 			const notified: string[] = []
-			for (const channelId of info.channelIds) {
+			for (const { channelId, roleId } of info.channels) {
 				const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 				if (channel?.isTextBased()) {
-					await channel.send(payload)
+					await channel.send({ ...payload, content: roleId ? `<@&${roleId}>` : undefined })
 					notified.push(channelId)
 				} else {
 					log.warn({ projectId, channelId }, 'Channel not found or not text-based')

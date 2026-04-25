@@ -29,7 +29,6 @@ export const statisticsCommand: ChatInputCommand = {
 			'### Extension',
 			`**Servers** · ${servers.toLocaleString()}`,
 			`**Tracked projects** · ${trackedTotal.toLocaleString()}`,
-			'',
 			'### Modrinth',
 			`**Projects** · ${modrinthStats.projects.toLocaleString()}`,
 			`**Versions** · ${modrinthStats.versions.toLocaleString()}`,
