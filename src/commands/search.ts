@@ -57,12 +57,22 @@ export async function buildSearchPayload(
 	const resultEmbeds = hits.map((hit) => {
 		const rawType = (hit.project_types ?? [])[0] ?? 'project'
 		const hitType = TYPE_LABELS[rawType] ?? rawType.charAt(0).toUpperCase() + rawType.slice(1)
-		const desc = hit.summary.length > 80 ? hit.summary.slice(0, 79) + '…' : hit.summary
+		const url = `https://modrinth.com/${rawType}/${hit.slug}`
+		const desc = hit.summary.length > 120 ? hit.summary.slice(0, 119) + '…' : hit.summary
+		const downloads = hit.downloads.toLocaleString('en-US', {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		})
+		const follows = hit.follows.toLocaleString('en-US', {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		})
+		const tags = [hitType, ...hit.categories]
+			.map((t) => `\`${t.charAt(0).toUpperCase() + t.slice(1)}\``)
+			.join(' ')
 		return new EmbedBuilder()
-			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined })
-			.setDescription(
-				`${desc}\n\`${hitType}\` • ${hit.downloads.toLocaleString('en-US')} downloads`,
-			)
+			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined, url })
+			.setDescription(`by **${hit.author}**\n\n${desc}\n↓ ${downloads} · ♥ ${follows} · ${tags}`)
 			.setColor(hit.color ?? 0x1bd96a)
 	})
 
