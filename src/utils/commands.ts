@@ -211,7 +211,7 @@ export function createCommandRegistry(
 }
 
 export async function deployCommands(commands: ChatInputCommand[]) {
-	const { CLIENT_ID, DISCORD_TOKEN } = process.env
+	const { CLIENT_ID, DISCORD_TOKEN, DEV_GUILD_ID } = process.env
 
 	if (!CLIENT_ID || !DISCORD_TOKEN) {
 		throw new Error('Missing CLIENT_ID or DISCORD_TOKEN in environment')
@@ -221,5 +221,7 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 	const data = commands.map((c) => c.data.toJSON())
 
 	await rest.put(Routes.applicationCommands(CLIENT_ID), { body: data })
+	if (DEV_GUILD_ID)
+		await rest.put(Routes.applicationGuildCommands(CLIENT_ID, DEV_GUILD_ID), { body: data })
 	log.info({ count: data.length }, 'Application commands deployed')
 }
