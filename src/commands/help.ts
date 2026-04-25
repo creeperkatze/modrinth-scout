@@ -77,11 +77,10 @@ export const helpCommand: ChatInputCommand = {
 				iconURL: interaction.client.user.displayAvatarURL(),
 			})
 			.setDescription(
-				'Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.\n\n' +
-					description,
+				`Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.\n\n${description}`,
 			)
 			.setColor(0x1bd96a)
-			.setFooter({ text: `v${version}` })
+			.setFooter({ text: `v${version} · Made with ❤️ by Creeperkatze` })
 
 		const buttons = [
 			new ButtonBuilder()
