@@ -3,6 +3,9 @@ import type { Client, TextChannel } from 'discord.js'
 import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
 import { buildUpdateNotification } from './embeds.js'
+import { logger } from './logger.js'
+
+const log = logger.child({ module: 'poller' })
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000
 
@@ -38,13 +41,13 @@ async function poll(client: Client) {
 				if (channel?.isTextBased()) await channel.send(payload)
 			}
 		} catch (err) {
-			console.error(`[poller] Failed to check project ${projectId}:`, err)
+			log.error({ projectId, err }, 'Failed to check project')
 		}
 	}
 }
 
 export function startPoller(client: Client) {
-	const run = () => poll(client).catch((err) => console.error('[poller] Unhandled error:', err))
+	const run = () => poll(client).catch((err) => log.error({ err }, 'Unhandled error in poll'))
 	const timer = setInterval(run, POLL_INTERVAL_MS)
 	timer.unref()
 }

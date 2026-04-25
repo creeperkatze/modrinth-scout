@@ -4,6 +4,7 @@ import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { commands } from './commands/index.js'
 import { connectDb } from './db/index.js'
+import { logger } from './utils/logger.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { startPoller } from './utils/poller.js'
 
@@ -18,7 +19,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const { onInteractionCreate } = createCommandRegistry(commands)
 
 client.once(Events.ClientReady, (c) => {
-	console.log(`Ready! Logged in as ${c.user.tag}`)
+	logger.info({ tag: c.user.tag }, 'Bot ready')
 	startPoller(c)
 })
 

@@ -24,6 +24,9 @@ import {
 } from '../commands/search.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { buildProjectCard } from './embeds.js'
+import { logger } from './logger.js'
+
+const log = logger.child({ module: 'commands' })
 
 type CooldownKey = `${string}:${string}`
 
@@ -173,7 +176,7 @@ export function createCommandRegistry(
 		try {
 			await Promise.resolve(cmd.execute(interaction))
 		} catch (error) {
-			console.error(error)
+			log.error({ err: error, command: cmd.meta.name }, 'Command execution failed')
 			const reply = {
 				content: 'There was an error while executing this command!',
 				flags: 'Ephemeral' as const,
@@ -213,5 +216,5 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 	const data = commands.map((c) => c.data.toJSON())
 
 	await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: data })
-	console.log('Successfully registered application commands.')
+	log.info({ count: data.length }, 'Application commands deployed')
 }
