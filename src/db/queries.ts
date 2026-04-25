@@ -46,4 +46,10 @@ export const queries = {
 
 	updateLastUpdated: (projectId: string, lastUpdated: string) =>
 		TrackedProject.updateMany({ projectId }, { $set: { lastUpdated } }),
+
+	countAllTrackedProjects: () => TrackedProject.countDocuments(),
+
+	countUniqueTrackedProjects: () => TrackedProject.distinct('projectId').then((ids) => ids.length),
+
+	countConfiguredServers: () => ServerConfig.countDocuments(),
 }

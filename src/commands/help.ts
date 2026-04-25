@@ -16,6 +16,7 @@ import { pingCommand } from './ping.js'
 import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { searchCommand } from './search.js'
+import { statisticsCommand } from './statistics.js'
 import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
@@ -48,7 +49,7 @@ const sections: { heading: string; entries: Entry[] }[] = [
 	},
 	{
 		heading: 'Miscellaneous',
-		entries: [supportCommand, pingCommand].map((c) => ({
+		entries: [supportCommand, statisticsCommand, pingCommand].map((c) => ({
 			name: c.meta.name,
 			description: c.meta.description,
 		})),
