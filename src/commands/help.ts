@@ -92,15 +92,15 @@ export const helpCommand: ChatInputCommand = {
 				.setStyle(ButtonStyle.Link),
 
 			new ButtonBuilder()
-				.setLabel('Vote on top.gg')
-				.setEmoji('🔺')
-				.setURL(topggUrl)
-				.setStyle(ButtonStyle.Link),
-
-			new ButtonBuilder()
 				.setLabel('Support on Ko-fi')
 				.setEmoji('☕')
 				.setURL(KOFI_URL)
+				.setStyle(ButtonStyle.Link),
+
+			new ButtonBuilder()
+				.setLabel('Vote on top.gg')
+				.setEmoji('🔺')
+				.setURL(topggUrl)
 				.setStyle(ButtonStyle.Link),
 		].filter(Boolean) as ButtonBuilder[]
 
