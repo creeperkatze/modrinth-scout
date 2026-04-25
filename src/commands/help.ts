@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 
 import {
 	ActionRowBuilder,
+	ApplicationCommandOptionType,
 	ButtonBuilder,
 	ButtonStyle,
 	EmbedBuilder,
@@ -16,6 +17,7 @@ import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { searchCommand } from './search.js'
 import { supportCommand } from './support.js'
+import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
 
 const require = createRequire(import.meta.url)
@@ -24,15 +26,33 @@ const { version } = require('../../package.json') as { version: string }
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
 
-const listed = [
-	pingCommand,
-	randomCommand,
-	searchCommand,
-	projectCommand,
-	userCommand,
-	organizationCommand,
-	collectionCommand,
-	supportCommand,
+type Entry = { name: string; description: string }
+
+const sections: { heading: string; entries: Entry[] }[] = [
+	{
+		heading: 'General',
+		entries: [
+			searchCommand,
+			projectCommand,
+			randomCommand,
+			userCommand,
+			organizationCommand,
+			collectionCommand,
+		].map((c) => ({ name: c.meta.name, description: c.meta.description })),
+	},
+	{
+		heading: 'Tracking',
+		entries: (trackingCommand.data.toJSON().options ?? [])
+			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
+			.map((o) => ({ name: `${trackingCommand.meta.name} ${o.name}`, description: o.description })),
+	},
+	{
+		heading: 'Miscellaneous',
+		entries: [supportCommand, pingCommand].map((c) => ({
+			name: c.meta.name,
+			description: c.meta.description,
+		})),
+	},
 ]
 
 export const helpCommand: ChatInputCommand = {
@@ -43,9 +63,12 @@ export const helpCommand: ChatInputCommand = {
 		category: 'general',
 	},
 	async execute(interaction) {
-		const description = listed
-			.map((cmd) => `**/${cmd.meta.name}**: ${cmd.meta.description}`)
-			.join('\n')
+		const description = sections
+			.map(
+				({ heading, entries }) =>
+					`### ${heading}\n` + entries.map((e) => `**/${e.name}** · ${e.description}`).join('\n'),
+			)
+			.join('\n\n')
 
 		const embed = new EmbedBuilder()
 			.setAuthor({
@@ -53,7 +76,8 @@ export const helpCommand: ChatInputCommand = {
 				iconURL: interaction.client.user.displayAvatarURL(),
 			})
 			.setDescription(
-				'A Discord bot for discovering and exploring projects on Modrinth.\n\n' + description,
+				'Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.\n\n' +
+					description,
 			)
 			.setColor(0x1bd96a)
 			.setFooter({ text: `v${version}` })
@@ -61,7 +85,7 @@ export const helpCommand: ChatInputCommand = {
 		const buttons = [
 			new ButtonBuilder()
 				.setLabel('View GitHub')
-				.setEmoji('🌐')
+				.setEmoji('💻')
 				.setURL(GITHUB_URL)
 				.setStyle(ButtonStyle.Link),
 
