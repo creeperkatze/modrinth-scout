@@ -26,7 +26,7 @@ export const statisticsCommand: ChatInputCommand = {
 		const servers = interaction.client.guilds.cache.size
 
 		const lines = [
-			'### Extension',
+			'### Bot',
 			`**Servers** · ${servers.toLocaleString()}`,
 			`**Tracked projects** · ${trackedTotal.toLocaleString()}`,
 			'### Modrinth',
