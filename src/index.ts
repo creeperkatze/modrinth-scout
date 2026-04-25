@@ -4,8 +4,8 @@ import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { commands } from './commands/index.js'
 import { connectDb } from './db/index.js'
-import { logger } from './utils/logger.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
+import { logger } from './utils/logger.js'
 import { startPoller } from './utils/poller.js'
 
 await connectDb()
