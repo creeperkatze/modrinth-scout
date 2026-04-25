@@ -123,6 +123,13 @@ export interface ModrinthCollection {
 	projects: string[]
 }
 
+export interface ModrinthStatistics {
+	projects: number
+	versions: number
+	files: number
+	authors: number
+}
+
 export type ProjectType =
 	| 'mod'
 	| 'resourcepack'
@@ -142,8 +149,6 @@ export const PROJECT_TYPES: { name: string; value: ProjectType }[] = [
 	{ name: 'Server', value: 'minecraft_java_server' },
 ]
 
-export type SearchIndex = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
-
 export const SORT_OPTIONS: { name: string; value: SearchIndex }[] = [
 	{ name: 'Relevance', value: 'relevance' },
 	{ name: 'Downloads', value: 'downloads' },
@@ -151,6 +156,8 @@ export const SORT_OPTIONS: { name: string; value: SearchIndex }[] = [
 	{ name: 'Newest', value: 'newest' },
 	{ name: 'Recently Updated', value: 'updated' },
 ]
+
+export type SearchIndex = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated'
 
 export const modrinth = {
 	randomProject: (type?: ProjectType) => {
@@ -194,4 +201,6 @@ export const modrinth = {
 		ids.length === 0
 			? Promise.resolve([] as ModrinthProject[])
 			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`),
+
+	getStatistics: () => get<ModrinthStatistics>('/statistics'),
 }
