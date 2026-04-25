@@ -23,6 +23,21 @@ client.once(Events.ClientReady, (c) => {
 	startPoller(c)
 })
 
+client.on(Events.ShardError, (err) => logger.error({ err }, 'Discord shard error'))
+client.on(Events.ShardDisconnect, (event, id) =>
+	logger.warn({ shardId: id, code: event.code }, 'Discord shard disconnected'),
+)
+client.on(Events.ShardReconnecting, (id) =>
+	logger.info({ shardId: id }, 'Discord shard reconnecting'),
+)
+
 client.on(Events.InteractionCreate, onInteractionCreate)
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+	process.once(signal, () => {
+		logger.info({ signal }, 'Shutting down')
+		process.exit(0)
+	})
+}
 
 client.login(process.env.DISCORD_TOKEN)

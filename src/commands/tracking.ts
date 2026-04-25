@@ -4,6 +4,9 @@ import { modrinth } from '../api/modrinth.js'
 import { MAX_TRACKED_PER_GUILD, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
+import { logger } from '../utils/logger.js'
+
+const log = logger.child({ module: 'tracking' })
 
 export const trackingCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -85,6 +88,10 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
 			await queries.setServerConfig(guildId, channel.id, interaction.user.id)
+			log.info(
+				{ guildId, channelId: channel.id, userId: interaction.user.id },
+				'Tracking channel configured',
+			)
 			await interaction.reply({
 				content: `Update notifications will be posted in <#${channel.id}>.`,
 				flags: 'Ephemeral',
@@ -136,6 +143,10 @@ export const trackingCommand: ChatInputCommand = {
 				project.updated,
 				interaction.user.id,
 			)
+			log.info(
+				{ guildId, projectId: project.id, slug: project.slug, userId: interaction.user.id },
+				'Project tracked',
+			)
 
 			await interaction.editReply(
 				`Now tracking **${project.name}**. Notifications will go to <#${config.channelId}>.`,
@@ -157,6 +168,10 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			await queries.removeTrackedProject(guildId, entry.projectId)
+			log.info(
+				{ guildId, projectId: entry.projectId, slug: entry.slug, userId: interaction.user.id },
+				'Project untracked',
+			)
 			await interaction.reply({
 				content: `Stopped tracking **${entry.name}**.`,
 				flags: 'Ephemeral',
