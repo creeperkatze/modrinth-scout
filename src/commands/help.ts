@@ -82,11 +82,19 @@ export const helpCommand: ChatInputCommand = {
 			.setColor(0x1bd96a)
 			.setFooter({ text: `v${version} · Made with ❤️ by Creeperkatze` })
 
+		const topggUrl = `https://top.gg/bot/${interaction.client.user.id}/vote`
+
 		const buttons = [
 			new ButtonBuilder()
-				.setLabel('View GitHub')
-				.setEmoji('💻')
+				.setLabel('Star on GitHub')
+				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
+				.setStyle(ButtonStyle.Link),
+
+			new ButtonBuilder()
+				.setLabel('Vote on top.gg')
+				.setEmoji('🔺')
+				.setURL(topggUrl)
 				.setStyle(ButtonStyle.Link),
 
 			new ButtonBuilder()
