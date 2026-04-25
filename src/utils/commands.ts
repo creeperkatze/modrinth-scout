@@ -173,6 +173,11 @@ export function createCommandRegistry(
 			}
 		}
 
+		log.info(
+			{ command: cmd.meta.name, userId: interaction.user.id, guildId: interaction.guildId },
+			'Command invoked',
+		)
+
 		try {
 			await Promise.resolve(cmd.execute(interaction))
 		} catch (error) {

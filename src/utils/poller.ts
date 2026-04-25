@@ -28,6 +28,8 @@ async function poll(client: Client) {
 		}
 	}
 
+	log.debug({ uniqueProjects: byProject.size }, 'Poll tick')
+
 	for (const [projectId, info] of byProject) {
 		try {
 			const project = await modrinth.getProject(info.slug)
@@ -36,10 +38,20 @@ async function poll(client: Client) {
 			queries.updateLastUpdated(projectId, project.updated)
 
 			const payload = buildUpdateNotification(project)
+			const notified: string[] = []
 			for (const channelId of info.channelIds) {
 				const channel = client.channels.cache.get(channelId) as TextChannel | undefined
-				if (channel?.isTextBased()) await channel.send(payload)
+				if (channel?.isTextBased()) {
+					await channel.send(payload)
+					notified.push(channelId)
+				} else {
+					log.warn({ projectId, channelId }, 'Channel not found or not text-based')
+				}
 			}
+			log.info(
+				{ projectId, slug: info.slug, channels: notified.length },
+				'Update detected, notifications sent',
+			)
 		} catch (err) {
 			log.error({ projectId, err }, 'Failed to check project')
 		}
@@ -50,4 +62,5 @@ export function startPoller(client: Client) {
 	const run = () => poll(client).catch((err) => log.error({ err }, 'Unhandled error in poll'))
 	const timer = setInterval(run, POLL_INTERVAL_MS)
 	timer.unref()
+	log.info({ intervalMs: POLL_INTERVAL_MS }, 'Poller started')
 }
