@@ -1,7 +1,8 @@
 import { SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
+import { modrinth, PROJECT_TYPES } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { buildProjectCard } from '../utils/embeds.js'
 
 export const projectCommand: ChatInputCommand = {
@@ -9,7 +10,17 @@ export const projectCommand: ChatInputCommand = {
 		.setName('project')
 		.setDescription('Look up a Modrinth project')
 		.addStringOption((o) =>
-			o.setName('slug').setDescription('Project slug or ID').setRequired(true),
+			o
+				.setName('query')
+				.setDescription('Project name, slug, or ID')
+				.setRequired(true)
+				.setAutocomplete(true),
+		)
+		.addStringOption((o) =>
+			o
+				.setName('type')
+				.setDescription('Filter by project type')
+				.addChoices(PROJECT_TYPES.map((t) => ({ name: t.name, value: t.value }))),
 		),
 	meta: {
 		name: 'project',
@@ -17,10 +28,14 @@ export const projectCommand: ChatInputCommand = {
 		category: 'utility',
 		cooldownSeconds: 5,
 	},
+	async autocomplete(interaction) {
+		await respondWithProjectSearch(interaction)
+	},
+
 	async execute(interaction) {
 		await interaction.deferReply()
 
-		const slug = interaction.options.getString('slug', true)
+		const slug = interaction.options.getString('query', true)
 
 		let project
 		try {

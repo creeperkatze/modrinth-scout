@@ -3,6 +3,7 @@ import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from 'discord.j
 import { modrinth } from '../api/modrinth.js'
 import { MAX_TRACKED_PER_GUILD, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { respondWithProjectSearch } from '../utils/autocomplete.js'
 
 export const trackingCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -25,7 +26,11 @@ export const trackingCommand: ChatInputCommand = {
 				.setName('add')
 				.setDescription('Start tracking a Modrinth project')
 				.addStringOption((opt) =>
-					opt.setName('project').setDescription('Project slug or ID').setRequired(true),
+					opt
+						.setName('project')
+						.setDescription('Project name, slug, or ID')
+						.setRequired(true)
+						.setAutocomplete(true),
 				),
 		)
 		.addSubcommand((sub) =>
@@ -53,18 +58,24 @@ export const trackingCommand: ChatInputCommand = {
 
 	async autocomplete(interaction) {
 		const sub = interaction.options.getSubcommand()
-		if (sub !== 'remove') return
+		const focused = interaction.options.getFocused()
 
-		const guildId = interaction.guildId!
-		const focused = interaction.options.getFocused().toLowerCase()
-		const tracked = await queries.getTrackedProjects(guildId)
+		if (sub === 'add') {
+			await respondWithProjectSearch(interaction)
+			return
+		}
 
-		const choices = tracked
-			.filter((p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused))
-			.slice(0, 25)
-			.map((p) => ({ name: p.name, value: p.slug }))
-
-		await interaction.respond(choices)
+		if (sub === 'remove') {
+			const guildId = interaction.guildId!
+			const tracked = await queries.getTrackedProjects(guildId)
+			const choices = tracked
+				.filter(
+					(p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()),
+				)
+				.slice(0, 25)
+				.map((p) => ({ name: p.name, value: p.slug }))
+			await interaction.respond(choices)
+		}
 	},
 
 	async execute(interaction) {
