@@ -26,6 +26,7 @@ const { version } = require('../../package.json') as { version: string }
 
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
+const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
 
 type Entry = { name: string; description: string }
 
@@ -89,6 +90,11 @@ export const helpCommand: ChatInputCommand = {
 				.setLabel('Star on GitHub')
 				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
+				.setStyle(ButtonStyle.Link),
+			new ButtonBuilder()
+				.setLabel('Privacy Policy')
+				.setEmoji('🔒')
+				.setURL(PRIVACY_URL)
 				.setStyle(ButtonStyle.Link),
 
 			new ButtonBuilder()
