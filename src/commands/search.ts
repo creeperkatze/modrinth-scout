@@ -72,7 +72,7 @@ export async function buildSearchPayload(
 			.join(' ')
 		return new EmbedBuilder()
 			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined, url })
-			.setDescription(`by **${hit.author}**\n\n${desc}\n↓ ${downloads} · ♥ ${follows} · ${tags}`)
+			.setDescription(`by **${hit.author}**\n\n${desc}\n⬇️ ${downloads} · ♥️ ${follows} · ${tags}`)
 			.setColor(hit.color ?? 0x1bd96a)
 	})
 
