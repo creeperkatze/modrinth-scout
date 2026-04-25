@@ -5,10 +5,12 @@ import { queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 
 export const statisticsCommand: ChatInputCommand = {
-	data: new SlashCommandBuilder().setName('statistics').setDescription('Show bot statistics'),
+	data: new SlashCommandBuilder()
+		.setName('statistics')
+		.setDescription('Show Modrinth and bot statistics'),
 	meta: {
 		name: 'statistics',
-		description: 'Show bot statistics',
+		description: 'Show Modrinth and bot statistics',
 		category: 'general',
 		cooldownSeconds: 10,
 	},
