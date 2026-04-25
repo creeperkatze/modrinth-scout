@@ -52,6 +52,10 @@ export const queries = {
 	updateLastUpdated: (projectId: string, lastUpdated: string) =>
 		TrackedProjectModel.updateMany({ projectId }, { $set: { lastUpdated } }),
 
+	removeAllTrackedProjects: (guildId: string) => TrackedProjectModel.deleteMany({ guildId }),
+
+	removeServerConfig: (guildId: string) => ServerConfigModel.findByIdAndDelete(guildId),
+
 	countAllTrackedProjects: () => TrackedProjectModel.countDocuments(),
 
 	countUniqueTrackedProjects: () =>

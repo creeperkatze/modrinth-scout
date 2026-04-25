@@ -56,6 +56,11 @@ export const trackingCommand: ChatInputCommand = {
 		)
 		.addSubcommand((sub) =>
 			sub.setName('list').setDescription('Show all projects tracked in this server'),
+		)
+		.addSubcommand((sub) =>
+			sub
+				.setName('disable')
+				.setDescription('Disable tracking and remove all tracked projects for this server'),
 		),
 	meta: {
 		name: 'tracking',
@@ -211,6 +216,27 @@ export const trackingCommand: ChatInputCommand = {
 
 			await interaction.reply({
 				content: `**Tracked projects (${tracked.length}/${MAX_TRACKED_PER_GUILD})**\n${list}${channelLine}`,
+				flags: 'Ephemeral',
+			})
+		}
+
+		if (sub === 'disable') {
+			const config = await queries.getServerConfig(guildId)
+			if (!config) {
+				await interaction.reply({
+					content: 'Tracking is not set up in this server.',
+					flags: 'Ephemeral',
+				})
+				return
+			}
+
+			await Promise.all([
+				queries.removeAllTrackedProjects(guildId),
+				queries.removeServerConfig(guildId),
+			])
+			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
+			await interaction.reply({
+				content: 'Tracking has been disabled and all tracked projects have been removed.',
 				flags: 'Ephemeral',
 			})
 		}
