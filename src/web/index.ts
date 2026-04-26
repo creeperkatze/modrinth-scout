@@ -19,6 +19,7 @@ interface KofiPayload {
 
 export function startWebServer() {
 	const app = express()
+	app.disable('x-powered-by')
 	app.use(express.urlencoded({ extended: true }))
 
 	const port = process.env.PORT ? parseInt(process.env.PORT) : 3000
@@ -29,13 +30,13 @@ export function startWebServer() {
 		try {
 			payload = JSON.parse(req.body.data)
 		} catch {
-			res.status(400).send('Bad payload')
+			req.socket.destroy()
 			return
 		}
 
 		if (!verificationToken || payload.verification_token !== verificationToken) {
 			log.warn('Ko-fi webhook received with invalid verification token')
-			res.status(403).send('Forbidden')
+			req.socket.destroy()
 			return
 		}
 
@@ -46,13 +47,30 @@ export function startWebServer() {
 			'Ko-fi payment received',
 		)
 
-		await queries.createDonation({
-			discordUserId,
-			email: payload.email,
-			transactionId: payload.kofi_transaction_id,
-		})
+		try {
+			await queries.createDonation({
+				discordUserId,
+				email: payload.email,
+				transactionId: payload.kofi_transaction_id,
+			})
+		} catch (err) {
+			// Ko-fi retried a webhook we already processed, ignore
+			if ((err as { code?: number }).code === 11000) {
+				log.warn(
+					{ transactionId: payload.kofi_transaction_id },
+					'Duplicate Ko-fi transaction ignored',
+				)
+				res.status(200).send('OK')
+				return
+			}
+			throw err
+		}
 
 		res.status(200).send('OK')
+	})
+
+	app.use((req) => {
+		req.socket.destroy()
 	})
 
 	app.listen(port, () => {
