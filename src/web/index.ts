@@ -40,6 +40,8 @@ export function startWebServer() {
 			return
 		}
 
+		res.status(200).send('OK')
+
 		const discordUserId = payload.discord_userid ?? null
 
 		try {
@@ -55,7 +57,6 @@ export function startWebServer() {
 					{ transactionId: payload.kofi_transaction_id },
 					'Duplicate Ko-fi transaction ignored',
 				)
-				res.status(200).send('OK')
 				return
 			}
 			throw err
@@ -65,7 +66,6 @@ export function startWebServer() {
 			{ from: payload.from_name, amount: payload.amount, type: payload.type, discordUserId },
 			'Ko-fi payment received',
 		)
-		res.status(200).send('OK')
 	})
 
 	app.use((req) => {
