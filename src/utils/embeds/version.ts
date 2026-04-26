@@ -38,7 +38,11 @@ export function buildVersionNotification(
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
 
 	if (version.game_versions.length > 0)
-		embed.addFields({ name: 'MC Version', value: version.game_versions.join(', '), inline: true })
+		embed.addFields({
+			name: 'Game versions',
+			value: version.game_versions.join(', '),
+			inline: true,
+		})
 	if (loaders.length > 0)
 		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })
 	embed.addFields({ name: 'Type', value: typeValue, inline: true })
