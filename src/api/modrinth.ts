@@ -218,10 +218,10 @@ export const modrinth = {
 
 	getCollection: (id: string) => get<ModrinthCollection>(`/collection/${id}`),
 
-	getProjects: (ids: string[]) =>
+	getProjects: (ids: string[], ttl = CACHE_TTL) =>
 		ids.length === 0
 			? Promise.resolve([] as ModrinthProject[])
-			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`),
+			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`, ttl),
 
 	getProjectVersions: (idOrSlug: string) =>
 		get<ModrinthVersion[]>(`/project/${idOrSlug}/version`, 0),

@@ -33,14 +33,16 @@ async function poll(client: Client) {
 
 	log.debug({ uniqueProjects: byProject.size }, 'Poll tick')
 
-	for (const [projectId, info] of byProject) {
+	const projects = await modrinth.getProjects([...byProject.keys()], 0)
+
+	for (const project of projects) {
+		const info = byProject.get(project.id)
+		if (!info || project.updated === info.lastUpdated) continue
+
 		try {
-			const project = await modrinth.getProject(info.slug)
-			if (project.updated === info.lastUpdated) continue
+			await queries.updateLastUpdated(project.id, project.updated)
 
-			queries.updateLastUpdated(projectId, project.updated)
-
-			const versions = await modrinth.getProjectVersions(info.slug)
+			const versions = await modrinth.getProjectVersions(project.slug)
 			if (versions.length === 0) continue
 			const payload = buildVersionNotification(project, versions[0])
 			const notified: string[] = []
@@ -51,15 +53,15 @@ async function poll(client: Client) {
 					await channel.send({ ...payload, content: mention })
 					notified.push(channelId)
 				} else {
-					log.warn({ projectId, channelId }, 'Channel not found or not text-based')
+					log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
 				}
 			}
 			log.info(
-				{ projectId, slug: info.slug, channels: notified.length },
+				{ projectId: project.id, slug: project.slug, channels: notified.length },
 				'Update detected, notifications sent',
 			)
 		} catch (err) {
-			log.error({ projectId, err }, 'Failed to check project')
+			log.error({ projectId: project.id, err }, 'Failed to check project')
 		}
 	}
 }
