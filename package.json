@@ -11,7 +11,10 @@
         "deploy": "tsx src/index.ts --deploy-commands",
         "lint": "eslint src/ tests/",
         "lint:fix": "eslint src/ tests/ --fix",
-        "test": "vitest run"
+        "test": "vitest run",
+        "release:patch": "pnpm version patch && git push && git push --tags",
+        "release:minor": "pnpm version minor && git push && git push --tags",
+        "release:major": "pnpm version major && git push && git push --tags"
     },
     "packageManager": "pnpm@10.29.2",
     "dependencies": {
