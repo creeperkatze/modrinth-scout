@@ -2,7 +2,7 @@ import type { Client, TextChannel } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
-import { buildUpdateNotification } from './embeds.js'
+import { buildUpdateNotification, buildVersionNotification } from './embeds.js'
 import { logger } from './logger.js'
 
 const log = logger.child({ module: 'poller' })
@@ -40,7 +40,11 @@ async function poll(client: Client) {
 
 			queries.updateLastUpdated(projectId, project.updated)
 
-			const payload = buildUpdateNotification(project)
+			const versions = await modrinth.getProjectVersions(info.slug)
+			const payload =
+				versions.length > 0
+					? buildVersionNotification(project, versions[0])
+					: buildUpdateNotification(project)
 			const notified: string[] = []
 			for (const { channelId, roleId } of info.channels) {
 				const channel = client.channels.cache.get(channelId) as TextChannel | undefined

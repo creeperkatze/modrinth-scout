@@ -123,6 +123,27 @@ export interface ModrinthCollection {
 	projects: string[]
 }
 
+export interface ModrinthVersion {
+	id: string
+	project_id: string
+	author_id: string
+	name: string
+	version_number: string
+	changelog: string | null
+	date_published: string
+	downloads: number
+	version_type: 'release' | 'beta' | 'alpha'
+	status: string
+	game_versions: string[]
+	loaders: string[]
+	files: {
+		url: string
+		filename: string
+		primary: boolean
+		size: number
+	}[]
+}
+
 export interface ModrinthStatistics {
 	projects: number
 	versions: number
@@ -201,6 +222,9 @@ export const modrinth = {
 		ids.length === 0
 			? Promise.resolve([] as ModrinthProject[])
 			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`),
+
+	getProjectVersions: (idOrSlug: string) =>
+		get<ModrinthVersion[]>(`/project/${idOrSlug}/version`, 0),
 
 	getStatistics: () => get<ModrinthStatistics>('/statistics'),
 }
