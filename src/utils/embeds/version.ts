@@ -15,7 +15,7 @@ export function buildVersionNotification(
 
 	const loaders = version.loaders.filter((l) => l !== 'minecraft' || version.loaders.length === 1)
 
-	const MAX_CHANGELOG_LENGTH = 512
+	const MAX_CHANGELOG_LENGTH = 1024
 	let changelog = version.changelog?.trim() ?? null
 	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
 		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
