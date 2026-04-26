@@ -3,7 +3,7 @@ import { SlashCommandBuilder } from 'discord.js'
 import { modrinth, PROJECT_TYPES } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
-import { buildProjectCard } from '../utils/embeds.js'
+import { buildProjectCard } from '../utils/embeds/index.js'
 
 export const projectCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()

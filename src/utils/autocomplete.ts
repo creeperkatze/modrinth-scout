@@ -1,7 +1,7 @@
 import { AutocompleteInteraction } from 'discord.js'
 
 import { modrinth, ProjectType } from '../api/modrinth.js'
-import { TYPE_LABELS } from './embeds.js'
+import { TYPE_LABELS } from './embeds/index.js'
 
 type Hit = { name: string; project_types?: string[]; author: string; downloads: number }
 

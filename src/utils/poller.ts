@@ -2,7 +2,7 @@ import type { Client, TextChannel } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
-import { buildUpdateNotification, buildVersionNotification } from './embeds.js'
+import { buildUpdateNotification, buildVersionNotification } from './embeds/index.js'
 import { logger } from './logger.js'
 
 const log = logger.child({ module: 'poller' })

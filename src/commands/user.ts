@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildUserCard } from '../utils/embeds.js'
+import { buildUserCard } from '../utils/embeds/index.js'
 
 export const userCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()

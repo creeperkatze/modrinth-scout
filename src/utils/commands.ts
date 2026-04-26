@@ -23,7 +23,7 @@ import {
 	SEARCH_LIMIT,
 } from '../commands/search.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildProjectCard } from './embeds.js'
+import { buildProjectCard } from './embeds/index.js'
 import { logger } from './logger.js'
 
 const log = logger.child({ module: 'commands' })
