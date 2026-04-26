@@ -8,7 +8,6 @@
         "dev": "tsx watch src/index.ts",
         "build": "tsc && node --eval \"const{cpSync}=require('node:fs');cpSync('src/assets','dist/assets',{recursive:true})\"",
         "start": "node dist/index.js",
-        "deploy": "tsx src/index.ts --deploy-commands",
         "lint": "eslint src/ tests/",
         "lint:fix": "eslint src/ tests/ --fix",
         "test": "vitest run",

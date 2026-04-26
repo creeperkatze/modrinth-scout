@@ -9,17 +9,12 @@ import { syncEmojis } from './utils/emojis.js'
 import { logger } from './utils/logger.js'
 import { startPoller } from './utils/poller.js'
 
-await connectDb()
-
-if (process.argv.includes('--deploy-commands')) {
-	await deployCommands(commands)
-	process.exit(0)
-}
-
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const { onInteractionCreate } = createCommandRegistry(commands)
 
 client.once(Events.ClientReady, async (c) => {
+	await connectDb()
+	await deployCommands(commands)
 	await syncEmojis(c)
 	logger.info({ tag: c.user.tag }, 'Bot ready')
 	startPoller(c)
