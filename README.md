@@ -1,4 +1,4 @@
-# <img src="icon.png" alt="Modrinth Scout" height="100">
+# <img src=".github/assets/logo.png" alt="Modrinth Scout" height="100">
 
 A Discord bot for discovering, exploring, and tracking projects on Modrinth.
 
