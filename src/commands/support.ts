@@ -46,7 +46,7 @@ export const supportCommand: ChatInputCommand = {
 			const embed = new EmbedBuilder()
 				.setTitle('Support')
 				.setDescription(
-					`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n- Track up to **${MAX_TRACKED_SUPPORTER}** projects instead of **${MAX_TRACKED_PER_GUILD}**\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server.`,
+					`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server.`,
 				)
 				.setThumbnail('attachment://kofi.png')
 				.setColor(0xff5e5b)
