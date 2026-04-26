@@ -46,7 +46,7 @@ export const supportCommand: ChatInputCommand = {
 			const embed = new EmbedBuilder()
 				.setTitle('Support')
 				.setDescription(
-					`Modrinth Scout is free and will stay that way. If you find it useful, a coffee helps cover server costs and keeps development going — no pressure at all.\n### As a thank-you, supporters can track up to **${MAX_TRACKED_SUPPORTER}** projects.\n### How to activate:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server.`,
+					`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n- Track up to **${MAX_TRACKED_SUPPORTER}** projects instead of **${MAX_TRACKED_PER_GUILD}**\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server.`,
 				)
 				.setThumbnail('attachment://kofi.png')
 				.setColor(0xff5e5b)
@@ -94,7 +94,7 @@ export const supportCommand: ChatInputCommand = {
 			}
 
 			await interaction.reply({
-				content: `Thank you for your support! This server can now track up to **${MAX_TRACKED_SUPPORTER}** projects.`,
+				content: `Supporter perks activated! This server can now track up to **${MAX_TRACKED_SUPPORTER}** projects.`,
 				flags: 'Ephemeral',
 			})
 			return
