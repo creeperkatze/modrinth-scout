@@ -3,24 +3,12 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
-    environment:
-      MONGODB_URI: mongodb://mongo:27017/modrinth_scout
-    depends_on:
-      mongo:
-        condition: service_healthy
 
-  mongo:
+  mongodb:
     image: mongo:8
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - mongodb-data:/data/db
 
 volumes:
-  mongo-data:
+  mongodb-data:
