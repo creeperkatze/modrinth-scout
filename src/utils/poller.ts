@@ -13,7 +13,7 @@ async function poll(client: Client) {
 	const rows = await queries.getAllTrackedWithConfig()
 	if (rows.length === 0) return
 
-	// Deduplicate: one API call per unique project, track which channels to notify
+	// Group by project so each unique project needs only one API call
 	const byProject = new Map<
 		string,
 		{ slug: string; lastUpdated: string; channels: { channelId: string; roleId?: string | null }[] }
@@ -35,7 +35,8 @@ async function poll(client: Client) {
 
 	const allIds = [...byProject.keys()]
 	const chunks: string[][] = []
-	for (let i = 0; i < allIds.length; i += 500) chunks.push(allIds.slice(i, i + 500))
+	for (let i = 0; i < allIds.length; i += 512) chunks.push(allIds.slice(i, i + 512))
+	// Modrinth's /projects endpoint caps at ~810 IDs per request, 512 keeps us safe
 	const projects = (await Promise.all(chunks.map((ids) => modrinth.getProjects(ids, 0)))).flat()
 
 	for (const project of projects) {
@@ -52,9 +53,7 @@ async function poll(client: Client) {
 			if (newVersions.length === 0) continue
 
 			const embeds = newVersions.flatMap((v) => buildVersionNotification(project, v).embeds)
-			const components = newVersions
-				.flatMap((v) => buildVersionNotification(project, v).components)
-				.slice(0, 5)
+			const { components } = buildVersionNotification(project, newVersions.at(-1)!)
 
 			const notified: string[] = []
 			for (const { channelId, roleId } of info.channels) {
