@@ -42,11 +42,6 @@ export function startWebServer() {
 
 		const discordUserId = payload.discord_userid ?? null
 
-		log.info(
-			{ from: payload.from_name, amount: payload.amount, type: payload.type, discordUserId },
-			'Ko-fi payment received',
-		)
-
 		try {
 			await queries.createDonation({
 				discordUserId,
@@ -66,6 +61,10 @@ export function startWebServer() {
 			throw err
 		}
 
+		log.info(
+			{ from: payload.from_name, amount: payload.amount, type: payload.type, discordUserId },
+			'Ko-fi payment received',
+		)
 		res.status(200).send('OK')
 	})
 
