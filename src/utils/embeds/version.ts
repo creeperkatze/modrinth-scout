@@ -20,7 +20,13 @@ export function buildVersionNotification(
 	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
 		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
 
+	const CHANNEL_EMOJIS: Record<string, string> = {
+		release: '<:release:1497910225615716462>',
+		beta: '<:beta:1497910217684418631>',
+		alpha: '<:alpha:1497910209790611556>',
+	}
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
+	const typeValue = `${CHANNEL_EMOJIS[version.version_type] ?? ''} ${typeLabel}`.trim()
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${project.name} ${version.version_number}`)
@@ -35,7 +41,7 @@ export function buildVersionNotification(
 		embed.addFields({ name: 'MC Version', value: version.game_versions.join(', '), inline: true })
 	if (loaders.length > 0)
 		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })
-	embed.addFields({ name: 'Type', value: typeLabel, inline: true })
+	embed.addFields({ name: 'Type', value: typeValue, inline: true })
 
 	return {
 		embeds: [embed],

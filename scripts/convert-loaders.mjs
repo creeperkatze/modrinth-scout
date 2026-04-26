@@ -4,8 +4,10 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const OUT = join(__dirname, '..', 'assets', 'loaders')
-mkdirSync(OUT, { recursive: true })
+const OUT_LOADERS = join(__dirname, '..', 'src', 'assets', 'loaders')
+const OUT_CHANNELS = join(__dirname, '..', 'src', 'assets', 'channels')
+mkdirSync(OUT_LOADERS, { recursive: true })
+mkdirSync(OUT_CHANNELS, { recursive: true })
 
 const svgs = {
 	fabric: `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" clip-rule="evenodd" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path fill="none" stroke="currentColor" stroke-width="23" d="m820 761-85.6-87.6c-4.6-4.7-10.4-9.6-25.9 1-19.9 13.6-8.4 21.9-5.2 25.4 8.2 9 84.1 89 97.2 104 2.5 2.8-20.3-22.5-6.5-39.7 5.4-7 18-12 26-3 6.5 7.3 10.7 18-3.4 29.7-24.7 20.4-102 82.4-127 103-12.5 10.3-28.5 2.3-35.8-6-7.5-8.9-30.6-34.6-51.3-58.2-5.5-6.3-4.1-19.6 2.3-25 35-30.3 91.9-73.8 111.9-90.8" transform="matrix(.08671 0 0 .0867 -49.8 -56)"/></svg>`,
@@ -33,6 +35,10 @@ const svgs = {
 	quilt: `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="2" clip-rule="evenodd" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path fill="none" stroke="currentColor" stroke-width="65.6" d="M442.5 233.9c0-6.4-5.2-11.6-11.6-11.6h-197c-6.4 0-11.6 5.2-11.6 11.6v197c0 6.4 5.2 11.6 11.6 11.6h197c6.4 0 11.6-5.2 11.6-11.7v-197z" transform="matrix(.03053 0 0 .03046 -3.2 -3.2)"/><path fill="none" stroke="currentColor" stroke-width="65.6" d="M442.5 233.9c0-6.4-5.2-11.6-11.6-11.6h-197c-6.4 0-11.6 5.2-11.6 11.6v197c0 6.4 5.2 11.6 11.6 11.6h197c6.4 0 11.6-5.2 11.6-11.7v-197z" transform="matrix(.03053 0 0 .03046 -3.2 7)"/><path fill="none" stroke="currentColor" stroke-width="65.6" d="M442.5 233.9c0-6.4-5.2-11.6-11.6-11.6h-197c-6.4 0-11.6 5.2-11.6 11.6v197c0 6.4 5.2 11.6 11.6 11.6h197c6.4 0 11.6-5.2 11.6-11.7v-197z" transform="matrix(.03053 0 0 .03046 6.9 -3.2)"/><path fill="none" stroke="currentColor" stroke-width="70.4" d="M442.5 234.8c0-7-5.6-12.5-12.5-12.5H234.7c-6.8 0-12.4 5.6-12.4 12.5V430c0 6.9 5.6 12.5 12.4 12.5H430c6.9 0 12.5-5.6 12.5-12.5z" transform="rotate(45 3.5 24)scale(.02843 .02835)"/></svg>`,
 
 	rift: `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.7 6.6v10.8l9.3 5.3 9.3-5.3V6.6L12 1.3zm0 0L12 12m9.3-5.4L12 12m0 10.7V12"/></svg>`,
+
+	release: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>`,
+	beta: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>`,
+	alpha: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg>`,
 }
 
 // Light-theme colors from Modrinth's variables.scss; undefined loaders fall back to white
@@ -50,14 +56,21 @@ const colors = {
 	ornithe: '#87c7ff',
 	quilt: '#c796f9',
 	rift: '#ffffff',
+
+	release: '#00af5c',
+	beta: '#e08325',
+	alpha: '#cb2245',
 }
+
+const channels = new Set(['release', 'beta', 'alpha'])
 
 for (const [name, svg] of Object.entries(svgs)) {
 	const color = colors[name] ?? '#ffffff'
 	const colored = svg.replaceAll('currentColor', color)
 	const resvg = new Resvg(colored, { fitTo: { mode: 'width', value: 128 } })
 	const png = resvg.render().asPng()
-	const out = join(OUT, `${name}.png`)
+	const dir = channels.has(name) ? OUT_CHANNELS : OUT_LOADERS
+	const out = join(dir, `${name}.png`)
 	writeFileSync(out, png)
 	console.log(`✓ ${name}.png  (${color})`)
 }
