@@ -50,7 +50,7 @@ const sections: { heading: string; entries: Entry[] }[] = [
 	},
 	{
 		heading: 'Miscellaneous',
-		entries: [statisticsCommand, pingCommand, supportCommand].map((c) => ({
+		entries: [statisticsCommand, supportCommand, pingCommand].map((c) => ({
 			name: c.meta.name,
 			description: c.meta.description,
 		})),

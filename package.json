@@ -9,8 +9,9 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "deploy": "tsx src/index.ts --deploy-commands",
-        "lint": "eslint src/",
-        "lint:fix": "eslint src/ --fix"
+        "lint": "eslint src/ tests/",
+        "lint:fix": "eslint src/ tests/ --fix",
+        "test": "vitest run"
     },
     "packageManager": "pnpm@10.29.2",
     "dependencies": {
@@ -31,6 +32,7 @@
         "prettier": "^3.8.3",
         "tsx": "^4.21.0",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.59.0"
+        "typescript-eslint": "^8.59.0",
+        "vitest": "^4.1.5"
     }
 }
