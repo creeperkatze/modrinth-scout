@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import type { ModrinthProject, ModrinthVersion } from '../../api/modrinth.js'
+import { emojis } from '../emojis.js'
 import { formatTags } from '../loaders.js'
 import type { CardPayload } from './types.js'
 
@@ -20,13 +21,8 @@ export function buildVersionNotification(
 	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
 		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
 
-	const CHANNEL_EMOJIS: Record<string, string> = {
-		release: '<:release:1497910225615716462>',
-		beta: '<:beta:1497910217684418631>',
-		alpha: '<:alpha:1497910209790611556>',
-	}
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
-	const typeValue = `${CHANNEL_EMOJIS[version.version_type] ?? ''} ${typeLabel}`.trim()
+	const typeValue = `${emojis[version.version_type] ?? ''} ${typeLabel}`.trim()
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${project.name} ${version.version_number}`)

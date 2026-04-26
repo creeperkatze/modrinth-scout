@@ -5,6 +5,7 @@ import { Client, Events, GatewayIntentBits } from 'discord.js'
 import { commands } from './commands/index.js'
 import { connectDb } from './db/index.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
+import { syncEmojis } from './utils/emojis.js'
 import { logger } from './utils/logger.js'
 import { startPoller } from './utils/poller.js'
 
@@ -18,7 +19,8 @@ if (process.argv.includes('--deploy-commands')) {
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const { onInteractionCreate } = createCommandRegistry(commands)
 
-client.once(Events.ClientReady, (c) => {
+client.once(Events.ClientReady, async (c) => {
+	await syncEmojis(c)
 	logger.info({ tag: c.user.tag }, 'Bot ready')
 	startPoller(c)
 })
