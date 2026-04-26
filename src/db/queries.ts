@@ -1,11 +1,16 @@
-import type { TrackedProjectWithChannel } from './schema.js'
-import { ServerConfigModel, SupporterDonationModel, TrackedProjectModel } from './schema.js'
+import type { ProjectWithChannel } from './schemas/project.js'
+import { ProjectModel } from './schemas/project.js'
+import { ServerModel } from './schemas/server.js'
+import { SupporterModel } from './schemas/supporter.js'
 
 export const MAX_TRACKED_PER_GUILD = 5
 export const MAX_TRACKED_SUPPORTER = 100
 
 export const queries = {
-	getServerConfig: (guildId: string) => ServerConfigModel.findById(guildId).lean(),
+	getServerConfig: (guildId: string) => ServerModel.findById(guildId).lean(),
+
+	initServerConfig: (guildId: string) =>
+		ServerModel.updateOne({ _id: guildId }, { $setOnInsert: { _id: guildId } }, { upsert: true }),
 
 	setServerConfig: (
 		guildId: string,
@@ -13,15 +18,18 @@ export const queries = {
 		configuredBy: string,
 		roleId?: string | null,
 	) =>
-		ServerConfigModel.findByIdAndUpdate(
+		ServerModel.findByIdAndUpdate(
 			guildId,
-			{ channelId, configuredBy, roleId: roleId ?? null },
-			{ upsert: true, returnDocument: 'after' },
+			{ $set: { channelId, configuredBy, roleId: roleId ?? null } },
+			{ returnDocument: 'after' },
 		),
 
-	getTrackedProjects: (guildId: string) => TrackedProjectModel.find({ guildId }).lean(),
+	deleteServer: (guildId: string) =>
+		Promise.all([ServerModel.findByIdAndDelete(guildId), ProjectModel.deleteMany({ guildId })]),
 
-	countTrackedProjects: (guildId: string) => TrackedProjectModel.countDocuments({ guildId }),
+	getTrackedProjects: (guildId: string) => ProjectModel.find({ guildId }).lean(),
+
+	countTrackedProjects: (guildId: string) => ProjectModel.countDocuments({ guildId }),
 
 	addTrackedProject: (
 		guildId: string,
@@ -30,13 +38,13 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) => TrackedProjectModel.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
+	) => ProjectModel.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
-		TrackedProjectModel.deleteOne({ guildId, projectId }),
+		ProjectModel.deleteOne({ guildId, projectId }),
 
 	getAllTrackedWithConfig: () =>
-		TrackedProjectModel.aggregate<TrackedProjectWithChannel>([
+		ProjectModel.aggregate<ProjectWithChannel>([
 			{
 				$lookup: {
 					from: 'servers',
@@ -51,34 +59,33 @@ export const queries = {
 		]),
 
 	updateLastUpdated: (projectId: string, lastUpdated: string) =>
-		TrackedProjectModel.updateMany({ projectId }, { $set: { lastUpdated } }),
+		ProjectModel.updateMany({ projectId }, { $set: { lastUpdated } }),
 
-	removeAllTrackedProjects: (guildId: string) => TrackedProjectModel.deleteMany({ guildId }),
+	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
 
-	removeServerConfig: (guildId: string) => ServerConfigModel.findByIdAndDelete(guildId),
+	removeServerConfig: (guildId: string) => ServerModel.findByIdAndDelete(guildId),
 
-	countAllTrackedProjects: () => TrackedProjectModel.countDocuments(),
+	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 
-	countUniqueTrackedProjects: () =>
-		TrackedProjectModel.distinct('projectId').then((ids) => ids.length),
+	countUniqueTrackedProjects: () => ProjectModel.distinct('projectId').then((ids) => ids.length),
 
-	countConfiguredServers: () => ServerConfigModel.countDocuments(),
+	countConfiguredServers: () => ServerModel.countDocuments(),
 
 	createDonation: (data: { discordUserId: string | null; email: string; transactionId: string }) =>
-		SupporterDonationModel.create(data),
+		SupporterModel.create(data),
 
 	activateByUserId: async (
 		discordUserId: string,
 		guildId: string,
 	): Promise<'ok' | 'not_found' | 'already_used'> => {
-		const entry = await SupporterDonationModel.findOne({ discordUserId, usedByGuildId: null })
+		const entry = await SupporterModel.findOne({ discordUserId, usedByGuildId: null })
 		if (!entry) {
-			const used = await SupporterDonationModel.findOne({ discordUserId })
+			const used = await SupporterModel.findOne({ discordUserId })
 			return used ? 'already_used' : 'not_found'
 		}
 		await Promise.all([
-			SupporterDonationModel.updateOne({ _id: entry._id }, { usedByGuildId: guildId }),
-			ServerConfigModel.updateOne({ _id: guildId }, { isSupporter: true }),
+			SupporterModel.updateOne({ _id: entry._id }, { usedByGuildId: guildId }),
+			ServerModel.updateOne({ _id: guildId }, { $set: { isSupporter: true } }, { upsert: true }),
 		])
 		return 'ok'
 	},

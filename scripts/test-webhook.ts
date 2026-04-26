@@ -17,12 +17,12 @@ const payload = {
 	currency: 'USD',
 	is_subscription_payment: false,
 	is_first_subscription_payment: false,
-	kofi_transaction_id: '00000000-1111-2222-3333-444444444444',
+	kofi_transaction_id: '00000000-1111-2222-3333-44444444444422',
 	shop_items: null,
 	tier_name: null,
 	shipping: null,
 	discord_username: 'Jo#4105',
-	discord_userid: '0000000000000000000',
+	discord_userid: '1312465086295834656',
 }
 
 const body = new URLSearchParams({ data: JSON.stringify(payload) })

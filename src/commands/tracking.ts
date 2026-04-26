@@ -114,7 +114,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'add') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config) {
+			if (!config?.channelId) {
 				await interaction.reply({
 					content: 'Set a notification channel first with `/tracking setup`.',
 					flags: 'Ephemeral',
