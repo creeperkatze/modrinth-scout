@@ -1,6 +1,6 @@
 # <img src=".github/assets/logo.png" alt="Modrinth Scout" height="100">
 
-A Discord bot for discovering, exploring, and tracking projects on Modrinth.
+Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main?labelColor=0d143c)
 ![GitHub Issues](https://img.shields.io/github/issues/creeperkatze/modrinth-scout?labelColor=0d143c)
