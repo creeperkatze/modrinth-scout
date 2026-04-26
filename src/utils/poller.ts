@@ -47,7 +47,8 @@ async function poll(client: Client) {
 			for (const { channelId, roleId } of info.channels) {
 				const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 				if (channel?.isTextBased()) {
-					await channel.send({ ...payload, content: roleId ? `<@&${roleId}>` : undefined })
+					const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
+					await channel.send({ ...payload, content: mention })
 					notified.push(channelId)
 				} else {
 					log.warn({ projectId, channelId }, 'Channel not found or not text-based')

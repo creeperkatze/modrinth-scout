@@ -104,7 +104,7 @@ export const trackingCommand: ChatInputCommand = {
 				{ guildId, channelId: channel.id, roleId: role?.id, userId: interaction.user.id },
 				'Tracking channel configured',
 			)
-			const roleNote = role ? ` ${role.name} will be pinged on each update.` : ''
+			const roleNote = role ? ` ${role} will be pinged on each update.` : ''
 			await interaction.reply({
 				content: `Update notifications will be posted in <#${channel.id}>.${roleNote}`,
 				flags: 'Ephemeral',
