@@ -1,7 +1,9 @@
 import type { Client, TextChannel } from 'discord.js'
 
+import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
 import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
+import type { TrackedProjectWithChannel } from '../db/schema.js'
 import { buildVersionNotification } from './embeds/index.js'
 import { logger } from './logger.js'
 
@@ -9,66 +11,115 @@ const log = logger.child({ module: 'poller' })
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000
 
-async function poll(client: Client) {
-	const rows = await queries.getAllTrackedWithConfig()
-	if (rows.length === 0) return
+type ProjectEntry = {
+	slug: string
+	lastUpdated: string
+	channels: { channelId: string; roleId?: string | null }[]
+}
 
-	// Group by project so each unique project needs only one API call
-	const byProject = new Map<
-		string,
-		{ slug: string; lastUpdated: string; channels: { channelId: string; roleId?: string | null }[] }
-	>()
+function groupByProject(rows: TrackedProjectWithChannel[]): Map<string, ProjectEntry> {
+	const map = new Map<string, ProjectEntry>()
 	for (const row of rows) {
-		const existing = byProject.get(row.projectId)
-		if (existing) {
-			existing.channels.push({ channelId: row.channelId, roleId: row.roleId })
+		const entry = map.get(row.projectId)
+		if (entry) {
+			entry.channels.push({ channelId: row.channelId, roleId: row.roleId })
 		} else {
-			byProject.set(row.projectId, {
+			map.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
 				channels: [{ channelId: row.channelId, roleId: row.roleId }],
 			})
 		}
 	}
+	return map
+}
 
+async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
+	// Modrinth's endpoint caps at ~810 IDs per request, 512 keeps us safe
+	const chunks: string[][] = []
+	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
+	const t0 = Date.now()
+	const projects = (await Promise.all(chunks.map((chunk) => modrinth.getProjects(chunk, 0)))).flat()
+	log.debug({ ms: Date.now() - t0, returned: projects.length }, 'Batch project fetch done')
+	return projects
+}
+
+async function notifyChannels(
+	client: Client,
+	project: ModrinthProject,
+	newVersions: ModrinthVersion[],
+	channels: ProjectEntry['channels'],
+) {
+	// Split into messages of 10 embeds
+	const pages: ModrinthVersion[][] = []
+	for (let i = 0; i < newVersions.length; i += 10) pages.push(newVersions.slice(i, i + 10))
+
+	const versionLabel = newVersions.length > 1 ? 'View Newest Version' : 'View Version'
+	const { components } = buildVersionNotification(project, newVersions.at(-1)!, versionLabel)
+
+	const notified: string[] = []
+	for (const { channelId, roleId } of channels) {
+		const channel = client.channels.cache.get(channelId) as TextChannel | undefined
+		if (!channel?.isTextBased()) {
+			log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
+			continue
+		}
+		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
+		for (let i = 0; i < pages.length; i++) {
+			const embeds = pages[i].flatMap((v) => buildVersionNotification(project, v).embeds)
+			const isLast = i === pages.length - 1
+			await channel.send({
+				content: isLast ? mention : undefined,
+				embeds,
+				components: isLast ? components : [],
+			})
+		}
+		notified.push(channelId)
+	}
+	return notified
+}
+
+async function poll(client: Client) {
+	const rows = await queries.getAllTrackedWithConfig()
+	if (rows.length === 0) return
+
+	const byProject = groupByProject(rows)
 	log.debug({ uniqueProjects: byProject.size }, 'Poll tick')
 
-	const allIds = [...byProject.keys()]
-	const chunks: string[][] = []
-	for (let i = 0; i < allIds.length; i += 512) chunks.push(allIds.slice(i, i + 512))
-	// Modrinth's /projects endpoint caps at ~810 IDs per request, 512 keeps us safe
-	const projects = (await Promise.all(chunks.map((ids) => modrinth.getProjects(ids, 0)))).flat()
+	const projects = await fetchProjects([...byProject.keys()])
 
 	for (const project of projects) {
 		const info = byProject.get(project.id)
 		if (!info || project.updated === info.lastUpdated) continue
 
+		log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
 		try {
 			await queries.updateLastUpdated(project.id, project.updated)
 
+			const t0 = Date.now()
 			const versions = await modrinth.getProjectVersions(project.slug)
+			log.debug(
+				{ ms: Date.now() - t0, slug: project.slug, total: versions.length },
+				'Versions fetched',
+			)
+
 			const newVersions = versions
 				.filter((v) => new Date(v.date_published) > new Date(info.lastUpdated))
 				.reverse()
-			if (newVersions.length === 0) continue
-
-			const embeds = newVersions.flatMap((v) => buildVersionNotification(project, v).embeds)
-			const { components } = buildVersionNotification(project, newVersions.at(-1)!)
-
-			const notified: string[] = []
-			for (const { channelId, roleId } of info.channels) {
-				const channel = client.channels.cache.get(channelId) as TextChannel | undefined
-				if (channel?.isTextBased()) {
-					const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
-					await channel.send({ content: mention, embeds, components })
-					notified.push(channelId)
-				} else {
-					log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
-				}
+			if (newVersions.length === 0) {
+				log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
+				continue
 			}
+
+			const notified = await notifyChannels(client, project, newVersions, info.channels)
 			log.info(
-				{ projectId: project.id, slug: project.slug, channels: notified.length },
-				'Update detected, notifications sent',
+				{
+					projectId: project.id,
+					slug: project.slug,
+					newVersions: newVersions.length,
+					channels: notified.length,
+				},
+				'Notifications sent',
 			)
 		} catch (err) {
 			log.error({ projectId: project.id, err }, 'Failed to check project')
@@ -77,8 +128,10 @@ async function poll(client: Client) {
 }
 
 export function startPoller(client: Client) {
-	const run = () => poll(client).catch((err) => log.error({ err }, 'Unhandled error in poll'))
-	const timer = setInterval(run, POLL_INTERVAL_MS)
-	timer.unref()
+	const run = async () => {
+		await poll(client).catch((err) => log.error({ err }, 'Unhandled error in poll'))
+		setTimeout(run, POLL_INTERVAL_MS).unref()
+	}
+	setTimeout(run, POLL_INTERVAL_MS).unref()
 	log.info({ intervalMs: POLL_INTERVAL_MS }, 'Poller started')
 }

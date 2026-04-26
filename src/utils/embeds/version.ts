@@ -7,6 +7,7 @@ import type { CardPayload } from './types.js'
 export function buildVersionNotification(
 	project: ModrinthProject,
 	version: ModrinthVersion,
+	versionLabel = 'View Version',
 ): CardPayload {
 	const type = project.project_types[0] ?? 'project'
 	const projectUrl = `https://modrinth.com/${type}/${project.slug}`
@@ -14,10 +15,10 @@ export function buildVersionNotification(
 
 	const loaders = version.loaders.filter((l) => l !== 'minecraft' || version.loaders.length === 1)
 
-	const MAX_CHANGELOG = 4000
+	const MAX_CHANGELOG_LENGTH = 512
 	let changelog = version.changelog?.trim() ?? null
-	if (changelog && changelog.length > MAX_CHANGELOG)
-		changelog = changelog.slice(0, MAX_CHANGELOG) + '\n...'
+	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
+		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
 
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
 
@@ -40,7 +41,7 @@ export function buildVersionNotification(
 		embeds: [embed],
 		components: [
 			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				new ButtonBuilder().setLabel('View Version').setURL(versionUrl).setStyle(ButtonStyle.Link),
+				new ButtonBuilder().setLabel(versionLabel).setURL(versionUrl).setStyle(ButtonStyle.Link),
 				new ButtonBuilder().setLabel('View Project').setURL(projectUrl).setStyle(ButtonStyle.Link),
 			),
 		],
