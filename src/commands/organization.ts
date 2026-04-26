@@ -3,13 +3,14 @@ import { SlashCommandBuilder } from 'discord.js'
 import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { buildOrganizationCard } from '../utils/embeds/index.js'
+import { parseModrinthUrl } from '../utils/url.js'
 
 export const organizationCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('organization')
 		.setDescription('Look up a Modrinth organization')
 		.addStringOption((o) =>
-			o.setName('slug').setDescription('Organization slug or ID').setRequired(true),
+			o.setName('query').setDescription('Organization slug, ID, or URL').setRequired(true),
 		),
 	meta: {
 		name: 'organization',
@@ -20,7 +21,9 @@ export const organizationCommand: ChatInputCommand = {
 	async execute(interaction) {
 		await interaction.deferReply()
 
-		const slug = interaction.options.getString('slug', true)
+		const raw = interaction.options.getString('query', true)
+		const parsed = parseModrinthUrl(raw)
+		const slug = parsed?.type === 'organization' ? parsed.slug : raw
 
 		let org, projects
 		try {

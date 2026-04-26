@@ -4,6 +4,7 @@ import { modrinth, PROJECT_TYPES } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { buildProjectCard } from '../utils/embeds/index.js'
+import { parseModrinthUrl } from '../utils/url.js'
 
 export const projectCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -12,7 +13,7 @@ export const projectCommand: ChatInputCommand = {
 		.addStringOption((o) =>
 			o
 				.setName('query')
-				.setDescription('Project name, slug, or ID')
+				.setDescription('Project name, slug, ID, or URL')
 				.setRequired(true)
 				.setAutocomplete(true),
 		)
@@ -35,7 +36,9 @@ export const projectCommand: ChatInputCommand = {
 	async execute(interaction) {
 		await interaction.deferReply()
 
-		const slug = interaction.options.getString('query', true)
+		const raw = interaction.options.getString('query', true)
+		const parsed = parseModrinthUrl(raw)
+		const slug = parsed?.type === 'project' ? parsed.slug : raw
 
 		let project
 		try {
