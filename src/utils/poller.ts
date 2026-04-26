@@ -10,6 +10,7 @@ import { logger } from './logger.js'
 const log = logger.child({ module: 'poller' })
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000
+const HEARTBEAT_INTERVAL_MS = 60 * 1000
 
 type ProjectEntry = {
 	slug: string
@@ -134,4 +135,10 @@ export function startPoller(client: Client) {
 	}
 	setTimeout(run, POLL_INTERVAL_MS).unref()
 	log.info({ intervalMs: POLL_INTERVAL_MS }, 'Poller started')
+
+	if (process.env.BETTERSTACK_HEARTBEAT_URL) {
+		const url = process.env.BETTERSTACK_HEARTBEAT_URL
+		setInterval(() => fetch(url).catch(() => undefined), HEARTBEAT_INTERVAL_MS).unref()
+		log.info({ intervalMs: HEARTBEAT_INTERVAL_MS }, 'Heartbeat started')
+	}
 }
