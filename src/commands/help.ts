@@ -49,8 +49,14 @@ const sections: { heading: string; entries: Entry[] }[] = [
 			.map((o) => ({ name: `${trackingCommand.meta.name} ${o.name}`, description: o.description })),
 	},
 	{
+		heading: 'Support',
+		entries: (supportCommand.data.toJSON().options ?? [])
+			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
+			.map((o) => ({ name: `${supportCommand.meta.name} ${o.name}`, description: o.description })),
+	},
+	{
 		heading: 'Miscellaneous',
-		entries: [statisticsCommand, supportCommand, pingCommand].map((c) => ({
+		entries: [statisticsCommand, pingCommand].map((c) => ({
 			name: c.meta.name,
 			description: c.meta.description,
 		})),

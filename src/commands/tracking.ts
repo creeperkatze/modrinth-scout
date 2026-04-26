@@ -1,7 +1,7 @@
 import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
-import { MAX_TRACKED_PER_GUILD, queries } from '../db/queries.js'
+import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { logger } from '../utils/logger.js'
@@ -123,9 +123,10 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const count = await queries.countTrackedProjects(guildId)
-			if (count >= MAX_TRACKED_PER_GUILD) {
+			const limit = config.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
+			if (count >= limit) {
 				await interaction.reply({
-					content: `This server is already tracking the maximum of ${MAX_TRACKED_PER_GUILD} projects.`,
+					content: `This server is already tracking the maximum of ${limit} projects.${!config.isSupporter ? ' Support the bot on Ko-fi with `/support` to unlock a higher limit.' : ''}`,
 					flags: 'Ephemeral',
 				})
 				return
@@ -215,7 +216,7 @@ export const trackingCommand: ChatInputCommand = {
 				: ''
 
 			await interaction.reply({
-				content: `**Tracked projects (${tracked.length}/${MAX_TRACKED_PER_GUILD})**\n${list}${channelLine}`,
+				content: `**Tracked projects (${tracked.length}/${config?.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD})**\n${list}${channelLine}`,
 				flags: 'Ephemeral',
 			})
 		}

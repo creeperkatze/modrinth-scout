@@ -8,6 +8,7 @@ import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
 import { logger } from './utils/logger.js'
 import { startPoller } from './utils/poller.js'
+import { startWebServer } from './web/index.js'
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const { onInteractionCreate } = createCommandRegistry(commands)
@@ -18,6 +19,7 @@ client.once(Events.ClientReady, async (c) => {
 	await syncEmojis(c)
 	logger.info({ tag: c.user.tag }, 'Bot ready')
 	startPoller(c)
+	startWebServer()
 })
 
 client.on(Events.ShardError, (err) => logger.error({ err }, 'Discord shard error'))

@@ -1,7 +1,8 @@
 import type { TrackedProjectWithChannel } from './schema.js'
-import { ServerConfigModel, TrackedProjectModel } from './schema.js'
+import { ServerConfigModel, SupporterDonationModel, TrackedProjectModel } from './schema.js'
 
-export const MAX_TRACKED_PER_GUILD = 100
+export const MAX_TRACKED_PER_GUILD = 5
+export const MAX_TRACKED_SUPPORTER = 100
 
 export const queries = {
 	getServerConfig: (guildId: string) => ServerConfigModel.findById(guildId).lean(),
@@ -62,4 +63,23 @@ export const queries = {
 		TrackedProjectModel.distinct('projectId').then((ids) => ids.length),
 
 	countConfiguredServers: () => ServerConfigModel.countDocuments(),
+
+	createDonation: (data: { discordUserId: string | null; email: string; transactionId: string }) =>
+		SupporterDonationModel.create(data),
+
+	activateByUserId: async (
+		discordUserId: string,
+		guildId: string,
+	): Promise<'ok' | 'not_found' | 'already_used'> => {
+		const entry = await SupporterDonationModel.findOne({ discordUserId, usedByGuildId: null })
+		if (!entry) {
+			const used = await SupporterDonationModel.findOne({ discordUserId })
+			return used ? 'already_used' : 'not_found'
+		}
+		await Promise.all([
+			SupporterDonationModel.updateOne({ _id: entry._id }, { usedByGuildId: guildId }),
+			ServerConfigModel.updateOne({ _id: guildId }, { isSupporter: true }),
+		])
+		return 'ok'
+	},
 }
