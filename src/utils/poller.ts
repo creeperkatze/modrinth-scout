@@ -3,7 +3,7 @@ import type { Client, TextChannel } from 'discord.js'
 import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
 import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
-import type { TrackedProjectWithChannel } from '../db/schema.js'
+import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { buildVersionNotification } from './embeds/index.js'
 import { logger } from './logger.js'
 
@@ -18,7 +18,7 @@ type ProjectEntry = {
 	channels: { channelId: string; roleId?: string | null }[]
 }
 
-function groupByProject(rows: TrackedProjectWithChannel[]): Map<string, ProjectEntry> {
+function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 	const map = new Map<string, ProjectEntry>()
 	for (const row of rows) {
 		const entry = map.get(row.projectId)
