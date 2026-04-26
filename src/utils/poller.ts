@@ -7,7 +7,7 @@ import { logger } from './logger.js'
 
 const log = logger.child({ module: 'poller' })
 
-const POLL_INTERVAL_MS = 1 * 60 * 1000
+const POLL_INTERVAL_MS = 5 * 60 * 1000
 
 async function poll(client: Client) {
 	const rows = await queries.getAllTrackedWithConfig()
@@ -33,7 +33,10 @@ async function poll(client: Client) {
 
 	log.debug({ uniqueProjects: byProject.size }, 'Poll tick')
 
-	const projects = await modrinth.getProjects([...byProject.keys()], 0)
+	const allIds = [...byProject.keys()]
+	const chunks: string[][] = []
+	for (let i = 0; i < allIds.length; i += 500) chunks.push(allIds.slice(i, i + 500))
+	const projects = (await Promise.all(chunks.map((ids) => modrinth.getProjects(ids, 0)))).flat()
 
 	for (const project of projects) {
 		const info = byProject.get(project.id)
@@ -43,14 +46,22 @@ async function poll(client: Client) {
 			await queries.updateLastUpdated(project.id, project.updated)
 
 			const versions = await modrinth.getProjectVersions(project.slug)
-			if (versions.length === 0) continue
-			const payload = buildVersionNotification(project, versions[0])
+			const newVersions = versions
+				.filter((v) => new Date(v.date_published) > new Date(info.lastUpdated))
+				.reverse()
+			if (newVersions.length === 0) continue
+
+			const embeds = newVersions.flatMap((v) => buildVersionNotification(project, v).embeds)
+			const components = newVersions
+				.flatMap((v) => buildVersionNotification(project, v).components)
+				.slice(0, 5)
+
 			const notified: string[] = []
 			for (const { channelId, roleId } of info.channels) {
 				const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 				if (channel?.isTextBased()) {
 					const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
-					await channel.send({ ...payload, content: mention })
+					await channel.send({ content: mention, embeds, components })
 					notified.push(channelId)
 				} else {
 					log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
