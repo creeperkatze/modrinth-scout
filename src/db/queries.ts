@@ -54,6 +54,7 @@ export const queries = {
 				},
 			},
 			{ $unwind: '$config' },
+			{ $match: { 'config.paused': { $ne: true } } },
 			...(supporterOnly !== undefined ? [{ $match: { 'config.isSupporter': supporterOnly } }] : []),
 			{ $set: { channelId: '$config.channelId', roleId: '$config.roleId' } },
 			{ $unset: 'config' },
@@ -65,6 +66,12 @@ export const queries = {
 	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
 
 	removeServerConfig: (guildId: string) => ServerModel.findByIdAndDelete(guildId),
+
+	pauseTracking: (guildId: string) =>
+		ServerModel.updateOne({ _id: guildId }, { $set: { paused: true } }),
+
+	resumeTracking: (guildId: string) =>
+		ServerModel.updateOne({ _id: guildId }, { $set: { paused: false } }),
 
 	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 

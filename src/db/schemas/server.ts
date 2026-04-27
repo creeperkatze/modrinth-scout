@@ -7,6 +7,7 @@ const serverSchema = new Schema(
 		configuredBy: { type: String, default: null },
 		roleId: { type: String, default: null },
 		isSupporter: { type: Boolean, default: false },
+		paused: { type: Boolean, default: false },
 	},
 	{ collection: 'servers', timestamps: true },
 )

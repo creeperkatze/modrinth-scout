@@ -1,4 +1,4 @@
-import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
+import { ChannelType, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
@@ -59,8 +59,14 @@ export const trackingCommand: ChatInputCommand = {
 		)
 		.addSubcommand((sub) =>
 			sub
-				.setName('disable')
-				.setDescription('Disable tracking and remove all tracked projects for this server'),
+				.setName('pause')
+				.setDescription('Pause tracking notifications without removing tracked projects'),
+		)
+		.addSubcommand((sub) =>
+			sub.setName('resume').setDescription('Resume tracking notifications for this server'),
+		)
+		.addSubcommand((sub) =>
+			sub.setName('disable').setDescription('Disable tracking and remove all tracked projects'),
 		),
 	meta: {
 		name: 'tracking',
@@ -199,26 +205,78 @@ export const trackingCommand: ChatInputCommand = {
 				queries.getServerConfig(guildId),
 			])
 
+			const limit = config?.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
+
 			if (tracked.length === 0) {
+				const embed = new EmbedBuilder()
+					.setDescription('No projects are being tracked. Use `/tracking add` to start.')
+					.setColor(0x1bd96a)
+				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				return
+			}
+
+			const projectList = tracked
+				.map((p) => `• [${p.name}](https://modrinth.com/project/${p.slug})`)
+				.join('\n')
+
+			const notifValue = config?.channelId
+				? `<#${config.channelId}>${config.roleId ? ` · <@&${config.roleId}>` : ''}`
+				: 'Not configured — use `/tracking setup`'
+
+			const embed = new EmbedBuilder()
+				.setTitle(`Tracked Projects — ${tracked.length} / ${limit}`)
+				.setDescription(config?.paused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList)
+				.addFields({ name: 'Notifications', value: notifValue })
+				.setColor(0x1bd96a)
+
+			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+			return
+		}
+
+		if (sub === 'pause') {
+			const config = await queries.getServerConfig(guildId)
+			if (!config) {
 				await interaction.reply({
-					content: 'No projects are being tracked in this server. Use `/tracking add` to start.',
+					content: 'Tracking is not set up in this server.',
 					flags: 'Ephemeral',
 				})
 				return
 			}
-
-			const list = tracked
-				.map((p) => `• [${p.name}](https://modrinth.com/project/${p.slug})`)
-				.join('\n')
-
-			const channelLine = config
-				? `\nNotifications → <#${config.channelId}>${config.roleId ? ` · pings <@&${config.roleId}>` : ''}`
-				: ''
-
+			if (config.paused) {
+				await interaction.reply({ content: 'Tracking is already paused.', flags: 'Ephemeral' })
+				return
+			}
+			await queries.pauseTracking(guildId)
+			log.info({ guildId, userId: interaction.user.id }, 'Tracking paused')
 			await interaction.reply({
-				content: `**Tracked projects (${tracked.length}/${config?.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD})**\n${list}${channelLine}`,
+				content: 'Tracking paused. Your projects are preserved — use `/tracking resume` to resume.',
 				flags: 'Ephemeral',
 			})
+			return
+		}
+
+		if (sub === 'resume') {
+			const config = await queries.getServerConfig(guildId)
+			if (!config) {
+				await interaction.reply({
+					content: 'Tracking is not set up in this server.',
+					flags: 'Ephemeral',
+				})
+				return
+			}
+			if (!config.paused) {
+				await interaction.reply({ content: 'Tracking is already active.', flags: 'Ephemeral' })
+				return
+			}
+			await queries.resumeTracking(guildId)
+			log.info({ guildId, userId: interaction.user.id }, 'Tracking resumed')
+			await interaction.reply({
+				content: config.channelId
+					? `Tracking resumed. Notifications will go to <#${config.channelId}>.`
+					: 'Tracking resumed.',
+				flags: 'Ephemeral',
+			})
+			return
 		}
 
 		if (sub === 'disable') {
@@ -230,14 +288,13 @@ export const trackingCommand: ChatInputCommand = {
 				})
 				return
 			}
-
 			await Promise.all([
 				queries.removeAllTrackedProjects(guildId),
 				queries.removeServerConfig(guildId),
 			])
-			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
+			log.info({ guildId, userId: interaction.user.id }, 'Tracking reset')
 			await interaction.reply({
-				content: 'Tracking has been disabled and all tracked projects have been removed.',
+				content: 'All tracked projects and configuration have been removed.',
 				flags: 'Ephemeral',
 			})
 		}
