@@ -149,7 +149,7 @@ export const trackingCommand: ChatInputCommand = {
 			)
 			const roleNote = role ? ` ${role} will be pinged on each update.` : ''
 			await interaction.reply({
-				embeds: [success(`Notifications will be posted in <#${channel.id}>.${roleNote}`)],
+				embeds: [success(`Notifications will be posted in <#${channel.id}>.\n${roleNote}`)],
 				flags: 'Ephemeral',
 			})
 			return
@@ -231,7 +231,7 @@ export const trackingCommand: ChatInputCommand = {
 			await interaction.editReply({
 				embeds: [
 					success(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}. Notifications will go to <#${targetChannel}>.`,
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}.\nNotifications will go to <#${targetChannel}>.`,
 					),
 				],
 			})
@@ -275,7 +275,7 @@ export const trackingCommand: ChatInputCommand = {
 
 			if (tracked.length === 0) {
 				await interaction.reply({
-					embeds: [success('No projects are being tracked. Use `/tracking add` to start.')],
+					embeds: [success('No projects are being tracked.\nUse `/tracking add` to start.')],
 					flags: 'Ephemeral',
 				})
 				return
@@ -292,10 +292,10 @@ export const trackingCommand: ChatInputCommand = {
 
 			const notifValue = config?.channelId
 				? `<#${config.channelId}>${config.roleId ? ` · <@&${config.roleId}>` : ''}`
-				: 'Not configured — use `/tracking setup`'
+				: 'Not configured, use `/tracking setup`'
 
 			const embed = new EmbedBuilder()
-				.setTitle(`Tracked Projects — ${tracked.length} / ${limit}`)
+				.setTitle(`Tracked Projects · ${tracked.length} / ${limit}`)
 				.setDescription(config?.paused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList)
 				.addFields({ name: 'Notifications', value: notifValue })
 				.setColor(0x1bd96a)
@@ -323,11 +323,7 @@ export const trackingCommand: ChatInputCommand = {
 			await queries.pauseTracking(guildId)
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking paused')
 			await interaction.reply({
-				embeds: [
-					success(
-						'Tracking paused. Your projects are preserved — use `/tracking resume` to resume.',
-					),
-				],
+				embeds: [success('Tracking paused. Use `/tracking resume` to resume tracking.')],
 				flags: 'Ephemeral',
 			})
 			return
@@ -352,13 +348,7 @@ export const trackingCommand: ChatInputCommand = {
 			await queries.resumeTracking(guildId)
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking resumed')
 			await interaction.reply({
-				embeds: [
-					success(
-						config.channelId
-							? `Tracking resumed. Notifications will go to <#${config.channelId}>.`
-							: 'Tracking resumed.',
-					),
-				],
+				embeds: [success('Tracking resumed.')],
 				flags: 'Ephemeral',
 			})
 			return
