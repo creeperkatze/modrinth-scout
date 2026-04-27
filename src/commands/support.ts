@@ -95,6 +95,13 @@ export const supportCommand: ChatInputCommand = {
 				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
 				return
 			}
+			if (result === 'already_active') {
+				const embed = new EmbedBuilder()
+					.setDescription('This server already has **supporter perks** active.')
+					.setColor(0xff5e5b)
+				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				return
+			}
 
 			const activateEmbed = new EmbedBuilder()
 				.setDescription(

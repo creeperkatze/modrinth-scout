@@ -104,7 +104,12 @@ export const queries = {
 	activateByUserId: async (
 		discordUserId: string,
 		guildId: string,
-	): Promise<'ok' | 'not_found' | 'already_used'> => {
+	): Promise<'ok' | 'not_found' | 'already_used' | 'already_active'> => {
+		const server = await ServerModel.findById(guildId).select('isSupporter').lean()
+		if (server?.isSupporter) {
+			return 'already_active'
+		}
+
 		const entry = await SupporterModel.findOne({ discordUserId, usedByGuildId: null })
 		if (!entry) {
 			const used = await SupporterModel.findOne({ discordUserId })
