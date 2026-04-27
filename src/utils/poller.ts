@@ -17,7 +17,7 @@ type ProjectEntry = {
 	slug: string
 	lastUpdated: string
 	guildIds: string[]
-	channels: { channelId: string; roleId?: string | null; versionType: string[] }[]
+	channels: { channelId: string; roleId?: string | null; releaseType: string[] }[]
 }
 
 function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
@@ -29,14 +29,14 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 			entry.channels.push({
 				channelId: row.channelId,
 				roleId: row.roleId,
-				versionType: row.versionType,
+				releaseType: row.releaseType,
 			})
 		} else {
 			map.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
 				guildIds: [row.guildId],
-				channels: [{ channelId: row.channelId, roleId: row.roleId, versionType: row.versionType }],
+				channels: [{ channelId: row.channelId, roleId: row.roleId, releaseType: row.releaseType }],
 			})
 		}
 	}
@@ -60,8 +60,8 @@ async function notifyChannels(
 	channels: ProjectEntry['channels'],
 ) {
 	const notified: string[] = []
-	for (const { channelId, roleId, versionType } of channels) {
-		const filtered = newVersions.filter((v) => versionType.includes(v.version_type))
+	for (const { channelId, roleId, releaseType } of channels) {
+		const filtered = newVersions.filter((v) => releaseType.includes(v.version_type))
 		if (filtered.length === 0) continue
 
 		const channel = client.channels.cache.get(channelId) as TextChannel | undefined

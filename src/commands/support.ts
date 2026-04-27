@@ -112,7 +112,7 @@ export const supportCommand: ChatInputCommand = {
 				.setDescription(
 					isSupporter
 						? `This server has **supporter perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
-						: `This server doesn't have **supporter perks**:\n${SUPPORTER_PERKS}.\n\nSupport the bot on Ko-fi with \`/support info\` to unlock these.`,
+						: `This server doesn't have **supporter perks**:\n${SUPPORTER_PERKS}.\n\nSupport the bot on Ko-fi with \`/support info\` to unlock them.`,
 				)
 				.setColor(0xff5e5b)
 			await interaction.reply({ embeds: [statusEmbed], flags: 'Ephemeral' })

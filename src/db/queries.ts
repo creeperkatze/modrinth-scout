@@ -38,7 +38,7 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-		versionType?: string[],
+		releaseType?: string[],
 		channelId?: string | null,
 		roleId?: string | null,
 	) =>
@@ -49,7 +49,7 @@ export const queries = {
 			name,
 			lastUpdated,
 			addedBy,
-			versionType,
+			releaseType,
 			channelId: channelId ?? null,
 			roleId: roleId ?? null,
 		}),

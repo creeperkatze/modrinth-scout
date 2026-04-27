@@ -7,7 +7,7 @@ import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { logger } from '../utils/logger.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
-const VERSION_TYPE_CHOICES = [
+const RELEASE_TYPE_CHOICES = [
 	{ name: 'Release', value: 'release' },
 	{ name: 'Beta', value: 'beta' },
 	{ name: 'Alpha', value: 'alpha' },
@@ -16,7 +16,7 @@ const VERSION_TYPE_CHOICES = [
 	{ name: 'Release & Alpha', value: 'release,alpha' },
 ] as const
 
-function parseVersionType(value: string): string[] {
+function parseReleaseType(value: string): string[] {
 	return value === 'all' ? ['release', 'beta', 'alpha'] : value.split(',')
 }
 
@@ -57,9 +57,9 @@ export const trackingCommand: ChatInputCommand = {
 				)
 				.addStringOption((opt) =>
 					opt
-						.setName('version_type')
+						.setName('release_type')
 						.setDescription('Which release channels to receive notifications for')
-						.addChoices(...VERSION_TYPE_CHOICES)
+						.addChoices(...RELEASE_TYPE_CHOICES)
 						.setRequired(false),
 				)
 				.addChannelOption((opt) =>
@@ -209,8 +209,8 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const versionTypeInput = interaction.options.getString('version_type') ?? 'all'
-			const versionType = parseVersionType(versionTypeInput)
+			const releaseTypeInput = interaction.options.getString('release_type') ?? 'all'
+			const releaseType = parseReleaseType(releaseTypeInput)
 			const channelOverride = interaction.options.getChannel('channel')
 			const roleOverride = interaction.options.getRole('role')
 
@@ -221,7 +221,7 @@ export const trackingCommand: ChatInputCommand = {
 				project.name,
 				project.updated,
 				interaction.user.id,
-				versionType,
+				releaseType,
 				channelOverride?.id ?? null,
 				roleOverride?.id ?? null,
 			)
@@ -231,7 +231,7 @@ export const trackingCommand: ChatInputCommand = {
 			)
 
 			const targetChannel = channelOverride?.id ?? config.channelId
-			const channelsNote = versionTypeInput !== 'all' ? ` (${versionType.join(', ')} only)` : ''
+			const channelsNote = releaseTypeInput !== 'all' ? ` (${releaseType.join(', ')} only)` : ''
 			await interaction.editReply({
 				embeds: [
 					ok(
@@ -287,7 +287,7 @@ export const trackingCommand: ChatInputCommand = {
 
 			const projectList = tracked
 				.map((p) => {
-					const types = p.versionType ?? ['release', 'beta', 'alpha']
+					const types = p.releaseType ?? ['release', 'beta', 'alpha']
 					const versionLabel = types.length === 3 ? '' : ` · *${types.join(', ')}*`
 					const channelLabel = p.channelId ? ` · <#${p.channelId}>` : ''
 					return `• [${p.name}](https://modrinth.com/project/${p.slug})${versionLabel}${channelLabel}`

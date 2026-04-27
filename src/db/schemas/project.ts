@@ -8,7 +8,7 @@ const projectSchema = new Schema(
 		name: { type: String, required: true },
 		lastUpdated: { type: String, required: true },
 		addedBy: { type: String, required: true },
-		versionType: { type: [String], default: ['release', 'beta', 'alpha'] },
+		releaseType: { type: [String], default: ['release', 'beta', 'alpha'] },
 		channelId: { type: String, default: null },
 		roleId: { type: String, default: null },
 	},
