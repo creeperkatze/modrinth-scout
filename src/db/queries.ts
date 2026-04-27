@@ -38,7 +38,9 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-		versionChannels?: string[],
+		versionType?: string[],
+		channelId?: string | null,
+		roleId?: string | null,
 	) =>
 		ProjectModel.create({
 			guildId,
@@ -47,7 +49,9 @@ export const queries = {
 			name,
 			lastUpdated,
 			addedBy,
-			versionChannels: versionChannels,
+			versionType,
+			channelId: channelId ?? null,
+			roleId: roleId ?? null,
 		}),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
@@ -66,7 +70,12 @@ export const queries = {
 			{ $unwind: '$config' },
 			{ $match: { 'config.paused': { $ne: true } } },
 			...(supporterOnly !== undefined ? [{ $match: { 'config.isSupporter': supporterOnly } }] : []),
-			{ $set: { channelId: '$config.channelId', roleId: '$config.roleId' } },
+			{
+				$set: {
+					channelId: { $ifNull: ['$channelId', '$config.channelId'] },
+					roleId: { $ifNull: ['$roleId', '$config.roleId'] },
+				},
+			},
 			{ $unset: 'config' },
 		]),
 

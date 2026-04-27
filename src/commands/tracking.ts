@@ -7,7 +7,7 @@ import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { logger } from '../utils/logger.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
-const VERSION_CHANNEL_CHOICES = [
+const VERSION_TYPE_CHOICES = [
 	{ name: 'Release', value: 'release' },
 	{ name: 'Beta', value: 'beta' },
 	{ name: 'Alpha', value: 'alpha' },
@@ -16,7 +16,7 @@ const VERSION_CHANNEL_CHOICES = [
 	{ name: 'Release & Alpha', value: 'release,alpha' },
 ] as const
 
-function parseVersionChannels(value: string): string[] {
+function parseVersionType(value: string): string[] {
 	return value === 'all' ? ['release', 'beta', 'alpha'] : value.split(',')
 }
 
@@ -57,9 +57,24 @@ export const trackingCommand: ChatInputCommand = {
 				)
 				.addStringOption((opt) =>
 					opt
-						.setName('channels')
+						.setName('version_type')
 						.setDescription('Which release channels to receive notifications for')
-						.addChoices(...VERSION_CHANNEL_CHOICES)
+						.addChoices(...VERSION_TYPE_CHOICES)
+						.setRequired(false),
+				)
+				.addChannelOption((opt) =>
+					opt
+						.setName('channel')
+						.setDescription(
+							'Post updates for this project to a specific channel (overrides server default)',
+						)
+						.addChannelTypes(ChannelType.GuildText)
+						.setRequired(false),
+				)
+				.addRoleOption((opt) =>
+					opt
+						.setName('role')
+						.setDescription('Ping a specific role for this project (overrides server default)')
 						.setRequired(false),
 				),
 		)
@@ -190,8 +205,10 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const channelsInput = interaction.options.getString('channels') ?? 'all'
-			const versionChannels = parseVersionChannels(channelsInput)
+			const versionTypeInput = interaction.options.getString('version_type') ?? 'all'
+			const versionType = parseVersionType(versionTypeInput)
+			const channelOverride = interaction.options.getChannel('channel')
+			const roleOverride = interaction.options.getRole('role')
 
 			await queries.addTrackedProject(
 				guildId,
@@ -200,18 +217,21 @@ export const trackingCommand: ChatInputCommand = {
 				project.name,
 				project.updated,
 				interaction.user.id,
-				versionChannels,
+				versionType,
+				channelOverride?.id ?? null,
+				roleOverride?.id ?? null,
 			)
 			log.info(
 				{ guildId, projectId: project.id, slug: project.slug, userId: interaction.user.id },
 				'Project tracked',
 			)
 
-			const channelsNote = channelsInput !== 'all' ? ` (${versionChannels.join(', ')} only)` : ''
+			const targetChannel = channelOverride?.id ?? config.channelId
+			const channelsNote = versionTypeInput !== 'all' ? ` (${versionType.join(', ')} only)` : ''
 			await interaction.editReply({
 				embeds: [
 					ok(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}. Notifications will go to <#${config.channelId}>.`,
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}. Notifications will go to <#${targetChannel}>.`,
 					),
 				],
 			})
@@ -263,9 +283,10 @@ export const trackingCommand: ChatInputCommand = {
 
 			const projectList = tracked
 				.map((p) => {
-					const types = p.versionChannels ?? ['release', 'beta', 'alpha']
-					const label = types.length === 3 ? '' : ` · *${types.join(', ')}*`
-					return `• [${p.name}](https://modrinth.com/project/${p.slug})${label}`
+					const types = p.versionType ?? ['release', 'beta', 'alpha']
+					const versionLabel = types.length === 3 ? '' : ` · *${types.join(', ')}*`
+					const channelLabel = p.channelId ? ` · <#${p.channelId}>` : ''
+					return `• [${p.name}](https://modrinth.com/project/${p.slug})${versionLabel}${channelLabel}`
 				})
 				.join('\n')
 
