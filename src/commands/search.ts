@@ -9,7 +9,7 @@ import {
 
 import { modrinth, PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { TYPE_LABELS } from '../utils/embeds/index.js'
+import { error, TYPE_LABELS } from '../utils/embeds/index.js'
 
 export const SEARCH_LIMIT = 5
 
@@ -144,7 +144,7 @@ export const searchCommand: ChatInputCommand = {
 		const payload = await buildSearchPayload(query, type, index, 0)
 
 		if (!payload) {
-			await interaction.editReply({ content: `No results found for **${query}**.` })
+			await interaction.editReply({ embeds: [error(`No results found for **${query}**.`)] })
 			return
 		}
 

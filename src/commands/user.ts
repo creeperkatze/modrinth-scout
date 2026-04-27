@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildUserCard } from '../utils/embeds/index.js'
+import { buildUserCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 export const userCommand: ChatInputCommand = {
@@ -32,7 +32,7 @@ export const userCommand: ChatInputCommand = {
 				modrinth.getUserProjects(username),
 			])
 		} catch {
-			await interaction.editReply({ content: `No user found for \`${username}\`.` })
+			await interaction.editReply({ embeds: [error(`No user found for \`${username}\`.`)] })
 			return
 		}
 

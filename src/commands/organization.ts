@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildOrganizationCard } from '../utils/embeds/index.js'
+import { buildOrganizationCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 export const organizationCommand: ChatInputCommand = {
@@ -32,7 +32,7 @@ export const organizationCommand: ChatInputCommand = {
 				modrinth.getOrganizationProjects(slug),
 			])
 		} catch {
-			await interaction.editReply({ content: `No organization found for \`${slug}\`.` })
+			await interaction.editReply({ embeds: [error(`No organization found for \`${slug}\`.`)] })
 			return
 		}
 

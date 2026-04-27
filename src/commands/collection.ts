@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildCollectionCard } from '../utils/embeds/index.js'
+import { buildCollectionCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 export const collectionCommand: ChatInputCommand = {
@@ -30,7 +30,7 @@ export const collectionCommand: ChatInputCommand = {
 			collection = await modrinth.getCollection(id)
 			projects = await modrinth.getProjects(collection.projects)
 		} catch {
-			await interaction.editReply({ content: `No collection found for \`${id}\`.` })
+			await interaction.editReply({ embeds: [error(`No collection found for \`${id}\`.`)] })
 			return
 		}
 

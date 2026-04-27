@@ -3,7 +3,7 @@ import { SlashCommandBuilder } from 'discord.js'
 import { modrinth, PROJECT_TYPES } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
-import { buildProjectCard } from '../utils/embeds/index.js'
+import { buildProjectCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 export const projectCommand: ChatInputCommand = {
@@ -44,7 +44,7 @@ export const projectCommand: ChatInputCommand = {
 		try {
 			project = await modrinth.getProject(slug)
 		} catch {
-			await interaction.editReply({ content: `No project found for \`${slug}\`.` })
+			await interaction.editReply({ embeds: [error(`No project found for \`${slug}\`.`)] })
 			return
 		}
 

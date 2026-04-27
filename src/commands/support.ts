@@ -13,6 +13,7 @@ import {
 
 import { MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { error, info } from '../utils/embeds/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/icons/kofi.png'), {
@@ -66,7 +67,7 @@ export const supportCommand: ChatInputCommand = {
 
 		if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
 			await interaction.reply({
-				content: 'You need the Manage Server permission to use this command.',
+				embeds: [error('You need the Manage Server permission to use this command.')],
 				flags: 'Ephemeral',
 			})
 			return
@@ -78,51 +79,59 @@ export const supportCommand: ChatInputCommand = {
 			const result = await queries.activateByUserId(interaction.user.id, guildId)
 
 			if (result === 'not_found') {
-				const embed = new EmbedBuilder()
-					.setDescription(
-						'No Ko-fi donation found for your Discord account. Make sure your Discord is connected to Ko-fi, then try again.',
-					)
-					.setColor(0xed4245)
-				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [
+						error(
+							'No Ko-fi donation found for your Discord account. Make sure your Discord is connected to Ko-fi, then try again.',
+						),
+					],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 			if (result === 'already_used') {
-				const embed = new EmbedBuilder()
-					.setDescription(
-						'Your Ko-fi donation has already been used to activate **supporter perks** on a different server.',
-					)
-					.setColor(0xed4245)
-				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [
+						error(
+							'Your Ko-fi donation has already been used to activate **supporter perks** on a different server.',
+						),
+					],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 			if (result === 'already_active') {
-				const embed = new EmbedBuilder()
-					.setDescription('This server already has **supporter perks** active.')
-					.setColor(0xff5e5b)
-				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [info('This server already has **supporter perks** active.')],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 
-			const activateEmbed = new EmbedBuilder()
-				.setDescription(
-					`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\nThank you for your support!`,
-				)
-				.setColor(0xff5e5b)
-			await interaction.reply({ embeds: [activateEmbed], flags: 'Ephemeral' })
+			await interaction.reply({
+				embeds: [
+					info(
+						`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\nThank you for your support!`,
+					),
+				],
+				flags: 'Ephemeral',
+			})
 			return
 		}
 
 		if (sub === 'status') {
 			const config = await queries.getServerConfig(guildId)
 			const isSupporter = config?.isSupporter ?? false
-			const statusEmbed = new EmbedBuilder()
-				.setDescription(
-					isSupporter
-						? `This server has **supporter perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
-						: `This server doesn't have **supporter perks**:\n${SUPPORTER_PERKS}.\n\nSupport the bot on Ko-fi with \`/support info\` to unlock them.`,
-				)
-				.setColor(0xff5e5b)
-			await interaction.reply({ embeds: [statusEmbed], flags: 'Ephemeral' })
+			await interaction.reply({
+				embeds: [
+					info(
+						isSupporter
+							? `This server has **supporter perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
+							: `This server doesn't have **supporter perks**:\n${SUPPORTER_PERKS}.\n\nSupport the bot on Ko-fi with \`/support info\` to unlock them.`,
+					),
+				],
+				flags: 'Ephemeral',
+			})
 			return
 		}
 	},

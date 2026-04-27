@@ -2,7 +2,7 @@ import { SlashCommandBuilder } from 'discord.js'
 
 import { modrinth, PROJECT_TYPES, ProjectType } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { buildProjectCard } from '../utils/embeds/index.js'
+import { buildProjectCard, error } from '../utils/embeds/index.js'
 
 export const randomCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -26,7 +26,7 @@ export const randomCommand: ChatInputCommand = {
 		const project = await modrinth.randomProject(type)
 
 		if (!project) {
-			await interaction.editReply({ content: 'No random project found with that filter.' })
+			await interaction.editReply({ embeds: [error('No random project found with that filter.')] })
 			return
 		}
 
