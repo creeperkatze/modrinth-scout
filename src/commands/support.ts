@@ -105,7 +105,7 @@ export const supportCommand: ChatInputCommand = {
 
 			const activateEmbed = new EmbedBuilder()
 				.setDescription(
-					`**Supporter perks** activated! This server can now has the following perks:\n${SUPPORTER_PERKS}\n\nThank you for your support!`,
+					`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\nThank you for your support!`,
 				)
 				.setColor(0xff5e5b)
 			await interaction.reply({ embeds: [activateEmbed], flags: 'Ephemeral' })
