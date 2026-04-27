@@ -48,8 +48,17 @@ export const supportCommand: ChatInputCommand = {
 		.setName('support')
 		.setDescription('Support the development of this bot')
 		.addSubcommand((sub) => sub.setName('info').setDescription('Show Ko-fi support info and perks'))
+		.addSubcommand((sub) => sub.setName('list').setDescription('Show public supporters'))
 		.addSubcommand((sub) =>
-			sub.setName('activate').setDescription('Activate supporter perks using your Ko-fi account'),
+			sub
+				.setName('activate')
+				.setDescription('Activate supporter perks using your Ko-fi account')
+				.addBooleanOption((opt) =>
+					opt
+						.setName('public')
+						.setDescription('Show your name in `/support list` (true by default)')
+						.setRequired(false),
+				),
 		)
 		.addSubcommand((sub) =>
 			sub.setName('status').setDescription('Check the supporter status of this server'),
@@ -69,6 +78,23 @@ export const supportCommand: ChatInputCommand = {
 			return
 		}
 
+		if (sub === 'list') {
+			const supporters = await queries.getPublicSupporters()
+			const description =
+				supporters.length > 0
+					? supporters.map((supporter) => `<@${supporter.discordUserId}>`).join('\n')
+					: 'No public supporters yet.'
+
+			await interaction.reply({
+				embeds: [
+					info(
+						`### Supporters\n${description}\n\nThank you for helping keep Modrinth Scout running! ❤️`,
+					),
+				],
+			})
+			return
+		}
+
 		if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
 			await interaction.reply({
 				embeds: [error('You need the Manage Server permission to use this command.')],
@@ -80,7 +106,8 @@ export const supportCommand: ChatInputCommand = {
 		const guildId = interaction.guildId!
 
 		if (sub === 'activate') {
-			const result = await queries.activateByUserId(interaction.user.id, guildId)
+			const showPublicly = interaction.options.getBoolean('public') ?? true
+			const result = await queries.activateByUserId(interaction.user.id, guildId, showPublicly)
 
 			if (result === 'not_found') {
 				await interaction.reply({
@@ -115,7 +142,11 @@ export const supportCommand: ChatInputCommand = {
 			await interaction.reply({
 				embeds: [
 					info(
-						`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\nThank you for your support!`,
+						`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\n${
+							showPublicly
+								? 'You will appear in `/support list`.'
+								: 'You opted out of appearing in `/support list`.'
+						}\n\nThank you for your support!`,
 					),
 				],
 				flags: 'Ephemeral',

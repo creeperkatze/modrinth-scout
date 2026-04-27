@@ -98,12 +98,27 @@ export const queries = {
 
 	countConfiguredServers: () => ServerModel.countDocuments(),
 
-	createDonation: (data: { discordUserId: string | null; email: string; transactionId: string }) =>
-		SupporterModel.create(data),
+	createDonation: (data: {
+		discordUserId: string | null
+		email: string
+		transactionId: string
+		showPublicly?: boolean
+	}) => SupporterModel.create(data),
+
+	getPublicSupporters: () =>
+		SupporterModel.find({
+			discordUserId: { $ne: null },
+			usedByGuildId: { $ne: null },
+			showPublicly: true,
+		})
+			.sort({ createdAt: 1 })
+			.select('discordUserId usedByGuildId')
+			.lean(),
 
 	activateByUserId: async (
 		discordUserId: string,
 		guildId: string,
+		showPublicly = true,
 	): Promise<'ok' | 'not_found' | 'already_used' | 'already_active'> => {
 		const server = await ServerModel.findById(guildId).select('isSupporter').lean()
 		if (server?.isSupporter) {
@@ -116,7 +131,10 @@ export const queries = {
 			return used ? 'already_used' : 'not_found'
 		}
 		await Promise.all([
-			SupporterModel.updateOne({ _id: entry._id }, { usedByGuildId: guildId }),
+			SupporterModel.updateOne(
+				{ _id: entry._id },
+				{ usedByGuildId: guildId, showPublicly: showPublicly },
+			),
 			ServerModel.updateOne({ _id: guildId }, { $set: { isSupporter: true } }, { upsert: true }),
 		])
 		return 'ok'

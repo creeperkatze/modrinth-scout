@@ -6,6 +6,7 @@ const supporterSchema = new Schema(
 		email: { type: String, required: true },
 		transactionId: { type: String, required: true, unique: true },
 		usedByGuildId: { type: String, default: null },
+		showPublicly: { type: Boolean, default: true },
 	},
 	{ collection: 'supporters', timestamps: true },
 )
