@@ -31,10 +31,12 @@ Requires the **Manage Server** permission. Run `/tracking setup` first to config
 
 | Command | Description |
 |---------|-------------|
-| `/tracking setup` | Set the channel where update notifications will be posted |
-| `/tracking add` | Start tracking a Modrinth project (up to 100 per server) |
-| `/tracking remove` | Stop tracking a project |
-| `/tracking list` | Show all projects tracked in this server |
+| `/tracking setup` | Set the channel and optional ping role for update notifications |
+| `/tracking add` | Start tracking a project (name, slug, ID, or URL). Optionally filter by release channel (release, beta, alpha) |
+| `/tracking remove` | Stop tracking a project (name, slug, ID, or URL) |
+| `/tracking list` | Show all tracked projects with their release channel filters |
+| `/tracking pause` | Pause notifications without removing tracked projects |
+| `/tracking resume` | Resume tracking notifications |
 | `/tracking disable` | Disable tracking and remove all tracked projects |
 
 ### Miscellaneous
