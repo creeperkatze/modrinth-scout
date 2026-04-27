@@ -23,6 +23,26 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/icons/kofi.png
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
 const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
 
+export function buildSupportInfoReply() {
+	const embed = new EmbedBuilder()
+		.setTitle('Support')
+		.setDescription(
+			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n${SUPPORTER_PERKS}\n### Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks supporter perks for one server.`,
+		)
+		.setThumbnail('attachment://kofi.png')
+		.setColor(0xff5e5b)
+
+	const button = new ButtonBuilder()
+		.setLabel('Support on Ko-fi')
+		.setURL(KOFI_URL)
+		.setStyle(ButtonStyle.Link)
+		.setEmoji('☕')
+
+	const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
+
+	return { embeds: [embed], files: [kofiIcon], components: [row] }
+}
+
 export const supportCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('support')
@@ -45,23 +65,7 @@ export const supportCommand: ChatInputCommand = {
 		const sub = interaction.options.getSubcommand()
 
 		if (sub === 'info') {
-			const embed = new EmbedBuilder()
-				.setTitle('Support')
-				.setDescription(
-					`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n${SUPPORTER_PERKS}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks supporter perks for one server.`,
-				)
-				.setThumbnail('attachment://kofi.png')
-				.setColor(0xff5e5b)
-
-			const button = new ButtonBuilder()
-				.setLabel('Support on Ko-fi')
-				.setURL(KOFI_URL)
-				.setStyle(ButtonStyle.Link)
-				.setEmoji('☕')
-
-			const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
-
-			await interaction.reply({ embeds: [embed], files: [kofiIcon], components: [row] })
+			await interaction.reply(buildSupportInfoReply())
 			return
 		}
 
@@ -132,7 +136,6 @@ export const supportCommand: ChatInputCommand = {
 				],
 				flags: 'Ephemeral',
 			})
-			return
 		}
 	},
 }

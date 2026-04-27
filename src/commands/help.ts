@@ -25,8 +25,9 @@ const require = createRequire(import.meta.url)
 const { version } = require('../../package.json') as { version: string }
 
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
-const KOFI_URL = 'https://ko-fi.com/creeperkatze'
 const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
+
+export const HELP_SUPPORT_BUTTON_ID = 'help:support'
 
 type Entry = { name: string; description: string }
 
@@ -93,6 +94,11 @@ export const helpCommand: ChatInputCommand = {
 
 		const buttons = [
 			new ButtonBuilder()
+				.setLabel('Support')
+				.setEmoji('☕')
+				.setCustomId(HELP_SUPPORT_BUTTON_ID)
+				.setStyle(ButtonStyle.Secondary),
+			new ButtonBuilder()
 				.setLabel('Star on GitHub')
 				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
@@ -104,17 +110,11 @@ export const helpCommand: ChatInputCommand = {
 				.setStyle(ButtonStyle.Link),
 
 			new ButtonBuilder()
-				.setLabel('Support on Ko-fi')
-				.setEmoji('☕')
-				.setURL(KOFI_URL)
-				.setStyle(ButtonStyle.Link),
-
-			new ButtonBuilder()
 				.setLabel('Vote on top.gg')
 				.setEmoji('🔺')
 				.setURL(topggUrl)
 				.setStyle(ButtonStyle.Link),
-		].filter(Boolean) as ButtonBuilder[]
+		]
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)
 

@@ -16,12 +16,14 @@ import {
 } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
+import { HELP_SUPPORT_BUTTON_ID } from '../commands/help.js'
 import {
 	buildSearchId,
 	buildSearchPayload,
 	parseSearchId,
 	SEARCH_LIMIT,
 } from '../commands/search.js'
+import { buildSupportInfoReply } from '../commands/support.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { buildProjectCard } from './embeds/index.js'
 import { logger } from './logger.js'
@@ -62,6 +64,11 @@ export function createCommandRegistry(
 
 	async function handleButton(interaction: ButtonInteraction) {
 		const { customId } = interaction
+
+		if (customId === HELP_SUPPORT_BUTTON_ID) {
+			await interaction.reply({ ...buildSupportInfoReply(), flags: 'Ephemeral' })
+			return
+		}
 
 		if (customId.startsWith('search:')) {
 			const { action, offset, query, type, index } = parseSearchId(customId)
