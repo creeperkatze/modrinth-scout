@@ -21,6 +21,14 @@ function parseReleaseType(value: string): string[] {
 	return value === 'all' ? ['release', 'beta', 'alpha'] : value.split(',')
 }
 
+function formatReleaseTypeLabel(releaseTypes: string[]): string {
+	if (releaseTypes.length === 3) return 'all releases'
+	if (releaseTypes.length === 1) return `${releaseTypes[0]} releases`
+	const [last, ...restReversed] = [...releaseTypes].reverse()
+	const rest = restReversed.reverse()
+	return `${rest.join(' and ')} and ${last} releases`
+}
+
 const log = logger.child({ module: 'tracking' })
 
 export const trackingCommand: ChatInputCommand = {
@@ -226,12 +234,19 @@ export const trackingCommand: ChatInputCommand = {
 				'Project tracked',
 			)
 
-			const targetChannel = channelOverride?.id ?? config.channelId
-			const channelsNote = releaseTypeInput !== 'all' ? ` (${releaseType.join(', ')} only)` : ''
+			const targetChannelId = channelOverride?.id ?? config.channelId
+			const targetRoleId = roleOverride?.id ?? config.roleId
+			const releaseTypeLabel =
+				releaseTypeInput === 'all' ? '' : ` (${formatReleaseTypeLabel(releaseType)})`
+			const details = [`Notifications will go to <#${targetChannelId}>.`]
+			if (targetRoleId) {
+				details.push(`<@&${targetRoleId}> will be pinged.`)
+			}
+
 			await interaction.editReply({
 				embeds: [
 					success(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}.\nNotifications will go to <#${targetChannel}>.`,
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${releaseTypeLabel}.\n${details.join('\n')}`,
 					),
 				],
 			})
@@ -284,20 +299,30 @@ export const trackingCommand: ChatInputCommand = {
 			const projectList = tracked
 				.map((p) => {
 					const types = p.releaseType ?? ['release', 'beta', 'alpha']
-					const versionLabel = types.length === 3 ? '' : ` · *${types.join(', ')}*`
-					const channelLabel = p.channelId ? ` · <#${p.channelId}>` : ''
-					return `• [${p.name}](https://modrinth.com/project/${p.slug})${versionLabel}${channelLabel}`
+					const details = []
+					if (types.length !== 3) {
+						details.push(formatReleaseTypeLabel(types))
+					}
+					if (p.channelId) {
+						details.push(`to <#${p.channelId}>`)
+					}
+					if (p.roleId) {
+						details.push(`pinging <@&${p.roleId}>`)
+					}
+					const detailsLabel = details.length > 0 ? ` (${details.join(', ')})` : ''
+					return `• [${p.name}](https://modrinth.com/project/${p.slug})${detailsLabel}`
 				})
 				.join('\n')
 
-			const notifValue = config?.channelId
-				? `<#${config.channelId}>${config.roleId ? ` · <@&${config.roleId}>` : ''}`
-				: 'Not configured, use `/tracking setup`'
+			const defaultConfigValue = [
+				`Notifications are posted in <#${config?.channelId}>.`,
+				...(config?.roleId ? [`<@&${config?.roleId}> is pinged by default.`] : []),
+			].join('\n')
 
 			const embed = new EmbedBuilder()
 				.setTitle(`Tracked Projects · ${tracked.length} / ${limit}`)
 				.setDescription(config?.paused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList)
-				.addFields({ name: 'Notifications', value: notifValue })
+				.addFields({ name: 'Default configuration', value: defaultConfigValue })
 				.setColor(0x1bd96a)
 
 			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
