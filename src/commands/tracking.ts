@@ -123,6 +123,11 @@ export const trackingCommand: ChatInputCommand = {
 		const sub = interaction.options.getSubcommand()
 		const guildId = interaction.guildId!
 
+		const ok = (description: string) =>
+			new EmbedBuilder().setDescription(description).setColor(0x1bd96a)
+		const err = (description: string) =>
+			new EmbedBuilder().setDescription(description).setColor(0xed4245)
+
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
 			const role = interaction.options.getRole('role')
@@ -133,7 +138,7 @@ export const trackingCommand: ChatInputCommand = {
 			)
 			const roleNote = role ? ` ${role} will be pinged on each update.` : ''
 			await interaction.reply({
-				content: `Update notifications will be posted in <#${channel.id}>.${roleNote}`,
+				embeds: [ok(`Notifications will be posted in <#${channel.id}>.${roleNote}`)],
 				flags: 'Ephemeral',
 			})
 			return
@@ -143,7 +148,7 @@ export const trackingCommand: ChatInputCommand = {
 			const config = await queries.getServerConfig(guildId)
 			if (!config?.channelId) {
 				await interaction.reply({
-					content: 'Set a notification channel first with `/tracking setup`.',
+					embeds: [err('Set a notification channel first with `/tracking setup`.')],
 					flags: 'Ephemeral',
 				})
 				return
@@ -153,7 +158,11 @@ export const trackingCommand: ChatInputCommand = {
 			const limit = config.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
 			if (count >= limit) {
 				await interaction.reply({
-					content: `This server is already tracking the maximum of ${limit} projects.${!config.isSupporter ? ' Support the bot on Ko-fi with `/support` to unlock a higher limit.' : ''}`,
+					embeds: [
+						err(
+							`This server is already tracking the maximum of ${limit} projects.${!config.isSupporter ? ' Support the bot on Ko-fi with `/support` to unlock a higher limit.' : ''}`,
+						),
+					],
 					flags: 'Ephemeral',
 				})
 				return
@@ -169,18 +178,20 @@ export const trackingCommand: ChatInputCommand = {
 			try {
 				project = await modrinth.getProject(input)
 			} catch {
-				await interaction.editReply(`No project found for \`${input}\`.`)
+				await interaction.editReply({ embeds: [err(`No project found for \`${input}\`.`)] })
 				return
 			}
 
 			const existing = await queries.getTrackedProjects(guildId)
 			if (existing.some((p) => p.projectId === project.id)) {
-				await interaction.editReply(`**${project.name}** is already being tracked.`)
+				await interaction.editReply({
+					embeds: [err(`**${project.name}** is already being tracked.`)],
+				})
 				return
 			}
 
 			const channelsInput = interaction.options.getString('channels') ?? 'all'
-			const versionTypes = parseVersionChannels(channelsInput)
+			const versionChannels = parseVersionChannels(channelsInput)
 
 			await queries.addTrackedProject(
 				guildId,
@@ -189,17 +200,21 @@ export const trackingCommand: ChatInputCommand = {
 				project.name,
 				project.updated,
 				interaction.user.id,
-				versionTypes,
+				versionChannels,
 			)
 			log.info(
 				{ guildId, projectId: project.id, slug: project.slug, userId: interaction.user.id },
 				'Project tracked',
 			)
 
-			const channelsNote = channelsInput !== 'all' ? ` (${versionTypes.join(', ')} only)` : ''
-			await interaction.editReply(
-				`Now tracking **${project.name}**${channelsNote}. Notifications will go to <#${config.channelId}>.`,
-			)
+			const channelsNote = channelsInput !== 'all' ? ` (${versionChannels.join(', ')} only)` : ''
+			await interaction.editReply({
+				embeds: [
+					ok(
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${channelsNote}. Notifications will go to <#${config.channelId}>.`,
+					),
+				],
+			})
 			return
 		}
 
@@ -212,7 +227,7 @@ export const trackingCommand: ChatInputCommand = {
 
 			if (!entry) {
 				await interaction.reply({
-					content: `\`${input}\` is not being tracked in this server.`,
+					embeds: [err(`\`${input}\` is not being tracked in this server.`)],
 					flags: 'Ephemeral',
 				})
 				return
@@ -224,7 +239,7 @@ export const trackingCommand: ChatInputCommand = {
 				'Project untracked',
 			)
 			await interaction.reply({
-				content: `Stopped tracking **${entry.name}**.`,
+				embeds: [ok(`Stopped tracking **${entry.name}**.`)],
 				flags: 'Ephemeral',
 			})
 			return
@@ -239,10 +254,10 @@ export const trackingCommand: ChatInputCommand = {
 			const limit = config?.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
 
 			if (tracked.length === 0) {
-				const embed = new EmbedBuilder()
-					.setDescription('No projects are being tracked. Use `/tracking add` to start.')
-					.setColor(0x1bd96a)
-				await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [ok('No projects are being tracked. Use `/tracking add` to start.')],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 
@@ -272,19 +287,24 @@ export const trackingCommand: ChatInputCommand = {
 			const config = await queries.getServerConfig(guildId)
 			if (!config) {
 				await interaction.reply({
-					content: 'Tracking is not set up in this server.',
+					embeds: [err('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
 				})
 				return
 			}
 			if (config.paused) {
-				await interaction.reply({ content: 'Tracking is already paused.', flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [err('Tracking is already paused.')],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 			await queries.pauseTracking(guildId)
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking paused')
 			await interaction.reply({
-				content: 'Tracking paused. Your projects are preserved — use `/tracking resume` to resume.',
+				embeds: [
+					ok('Tracking paused. Your projects are preserved — use `/tracking resume` to resume.'),
+				],
 				flags: 'Ephemeral',
 			})
 			return
@@ -294,21 +314,28 @@ export const trackingCommand: ChatInputCommand = {
 			const config = await queries.getServerConfig(guildId)
 			if (!config) {
 				await interaction.reply({
-					content: 'Tracking is not set up in this server.',
+					embeds: [err('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
 				})
 				return
 			}
 			if (!config.paused) {
-				await interaction.reply({ content: 'Tracking is already active.', flags: 'Ephemeral' })
+				await interaction.reply({
+					embeds: [err('Tracking is already active.')],
+					flags: 'Ephemeral',
+				})
 				return
 			}
 			await queries.resumeTracking(guildId)
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking resumed')
 			await interaction.reply({
-				content: config.channelId
-					? `Tracking resumed. Notifications will go to <#${config.channelId}>.`
-					: 'Tracking resumed.',
+				embeds: [
+					ok(
+						config.channelId
+							? `Tracking resumed. Notifications will go to <#${config.channelId}>.`
+							: 'Tracking resumed.',
+					),
+				],
 				flags: 'Ephemeral',
 			})
 			return
@@ -318,7 +345,7 @@ export const trackingCommand: ChatInputCommand = {
 			const config = await queries.getServerConfig(guildId)
 			if (!config) {
 				await interaction.reply({
-					content: 'Tracking is not set up in this server.',
+					embeds: [err('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
 				})
 				return
@@ -327,9 +354,9 @@ export const trackingCommand: ChatInputCommand = {
 				queries.removeAllTrackedProjects(guildId),
 				queries.removeServerConfig(guildId),
 			])
-			log.info({ guildId, userId: interaction.user.id }, 'Tracking reset')
+			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
 			await interaction.reply({
-				content: 'All tracked projects and configuration have been removed.',
+				embeds: [ok('All tracked projects and configuration have been removed.')],
 				flags: 'Ephemeral',
 			})
 		}
