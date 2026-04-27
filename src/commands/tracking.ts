@@ -234,19 +234,20 @@ export const trackingCommand: ChatInputCommand = {
 				'Project tracked',
 			)
 
-			const targetChannelId = channelOverride?.id ?? config.channelId
-			const targetRoleId = roleOverride?.id ?? config.roleId
 			const releaseTypeLabel =
 				releaseTypeInput === 'all' ? '' : ` (${formatReleaseTypeLabel(releaseType)})`
-			const details = [`Notifications will go to <#${targetChannelId}>.`]
-			if (targetRoleId) {
-				details.push(`<@&${targetRoleId}> will be pinged.`)
+			const details = []
+			if (channelOverride) {
+				details.push(`Notifications will go to <#${channelOverride.id}>.`)
+			}
+			if (roleOverride) {
+				details.push(`<@&${roleOverride.id}> will be pinged.`)
 			}
 
 			await interaction.editReply({
 				embeds: [
 					success(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${releaseTypeLabel}.\n${details.join('\n')}`,
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${releaseTypeLabel}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 					),
 				],
 			})
