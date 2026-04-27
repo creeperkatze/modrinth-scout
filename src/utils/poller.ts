@@ -17,7 +17,7 @@ type ProjectEntry = {
 	slug: string
 	lastUpdated: string
 	guildIds: string[]
-	channels: { channelId: string; roleId?: string | null }[]
+	channels: { channelId: string; roleId?: string | null; versionChannels: string[] }[]
 }
 
 function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
@@ -26,13 +26,19 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 		const entry = map.get(row.projectId)
 		if (entry) {
 			entry.guildIds.push(row.guildId)
-			entry.channels.push({ channelId: row.channelId, roleId: row.roleId })
+			entry.channels.push({
+				channelId: row.channelId,
+				roleId: row.roleId,
+				versionChannels: row.versionChannels,
+			})
 		} else {
 			map.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
 				guildIds: [row.guildId],
-				channels: [{ channelId: row.channelId, roleId: row.roleId }],
+				channels: [
+					{ channelId: row.channelId, roleId: row.roleId, versionChannels: row.versionChannels },
+				],
 			})
 		}
 	}
@@ -55,21 +61,23 @@ async function notifyChannels(
 	newVersions: ModrinthVersion[],
 	channels: ProjectEntry['channels'],
 ) {
-	// Split into messages of 10 embeds
-	const pages: ModrinthVersion[][] = []
-	for (let i = 0; i < newVersions.length; i += 10) pages.push(newVersions.slice(i, i + 10))
-
-	const versionLabel = newVersions.length > 1 ? 'View Newest Version' : 'View Version'
-	const { components } = buildVersionNotification(project, newVersions.at(-1)!, versionLabel)
-
 	const notified: string[] = []
-	for (const { channelId, roleId } of channels) {
+	for (const { channelId, roleId, versionChannels } of channels) {
+		const filtered = newVersions.filter((v) => versionChannels.includes(v.version_type))
+		if (filtered.length === 0) continue
+
 		const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 		if (!channel?.isTextBased()) {
 			log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
 			continue
 		}
+
+		const pages: ModrinthVersion[][] = []
+		for (let i = 0; i < filtered.length; i += 10) pages.push(filtered.slice(i, i + 10))
+		const versionLabel = filtered.length > 1 ? 'View Newest Version' : 'View Version'
+		const { components } = buildVersionNotification(project, filtered.at(-1)!, versionLabel)
 		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
+
 		for (let i = 0; i < pages.length; i++) {
 			const embeds = pages[i].flatMap((v) => buildVersionNotification(project, v).embeds)
 			const isLast = i === pages.length - 1

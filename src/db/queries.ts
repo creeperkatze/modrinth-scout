@@ -38,7 +38,17 @@ export const queries = {
 		name: string,
 		lastUpdated: string,
 		addedBy: string,
-	) => ProjectModel.create({ guildId, projectId, slug, name, lastUpdated, addedBy }),
+		versionChannels?: string[],
+	) =>
+		ProjectModel.create({
+			guildId,
+			projectId,
+			slug,
+			name,
+			lastUpdated,
+			addedBy,
+			versionChannels: versionChannels,
+		}),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		ProjectModel.deleteOne({ guildId, projectId }),

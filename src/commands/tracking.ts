@@ -5,6 +5,20 @@ import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/que
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { logger } from '../utils/logger.js'
+import { parseModrinthUrl } from '../utils/url.js'
+
+const VERSION_CHANNEL_CHOICES = [
+	{ name: 'Release', value: 'release' },
+	{ name: 'Beta', value: 'beta' },
+	{ name: 'Alpha', value: 'alpha' },
+	{ name: 'Release & Beta', value: 'release,beta' },
+	{ name: 'Beta & Alpha', value: 'beta,alpha' },
+	{ name: 'Release & Alpha', value: 'release,alpha' },
+] as const
+
+function parseVersionChannels(value: string): string[] {
+	return value === 'all' ? ['release', 'beta', 'alpha'] : value.split(',')
+}
 
 const log = logger.child({ module: 'tracking' })
 
@@ -36,10 +50,17 @@ export const trackingCommand: ChatInputCommand = {
 				.setDescription('Start tracking a Modrinth project')
 				.addStringOption((opt) =>
 					opt
-						.setName('project')
-						.setDescription('Project name, slug, or ID')
+						.setName('query')
+						.setDescription('Project name, slug, ID, or URL')
 						.setRequired(true)
 						.setAutocomplete(true),
+				)
+				.addStringOption((opt) =>
+					opt
+						.setName('channels')
+						.setDescription('Which release channels to receive notifications for')
+						.addChoices(...VERSION_CHANNEL_CHOICES)
+						.setRequired(false),
 				),
 		)
 		.addSubcommand((sub) =>
@@ -48,8 +69,8 @@ export const trackingCommand: ChatInputCommand = {
 				.setDescription('Stop tracking a project')
 				.addStringOption((opt) =>
 					opt
-						.setName('project')
-						.setDescription('Project slug or ID')
+						.setName('query')
+						.setDescription('Project name, slug, ID, or URL')
 						.setRequired(true)
 						.setAutocomplete(true),
 				),
@@ -140,7 +161,10 @@ export const trackingCommand: ChatInputCommand = {
 
 			await interaction.deferReply({ flags: 'Ephemeral' })
 
-			const input = interaction.options.getString('project', true).trim()
+			const raw = interaction.options.getString('query', true).trim()
+			const parsed = parseModrinthUrl(raw)
+			const input = parsed?.type === 'project' ? parsed.slug : raw
+
 			let project
 			try {
 				project = await modrinth.getProject(input)
@@ -155,6 +179,9 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
+			const channelsInput = interaction.options.getString('channels') ?? 'all'
+			const versionTypes = parseVersionChannels(channelsInput)
+
 			await queries.addTrackedProject(
 				guildId,
 				project.id,
@@ -162,20 +189,24 @@ export const trackingCommand: ChatInputCommand = {
 				project.name,
 				project.updated,
 				interaction.user.id,
+				versionTypes,
 			)
 			log.info(
 				{ guildId, projectId: project.id, slug: project.slug, userId: interaction.user.id },
 				'Project tracked',
 			)
 
+			const channelsNote = channelsInput !== 'all' ? ` (${versionTypes.join(', ')} only)` : ''
 			await interaction.editReply(
-				`Now tracking **${project.name}**. Notifications will go to <#${config.channelId}>.`,
+				`Now tracking **${project.name}**${channelsNote}. Notifications will go to <#${config.channelId}>.`,
 			)
 			return
 		}
 
 		if (sub === 'remove') {
-			const input = interaction.options.getString('project', true).trim()
+			const raw = interaction.options.getString('query', true).trim()
+			const parsed = parseModrinthUrl(raw)
+			const input = parsed?.type === 'project' ? parsed.slug : raw
 			const tracked = await queries.getTrackedProjects(guildId)
 			const entry = tracked.find((p) => p.slug === input || p.projectId === input)
 
@@ -216,7 +247,11 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const projectList = tracked
-				.map((p) => `• [${p.name}](https://modrinth.com/project/${p.slug})`)
+				.map((p) => {
+					const types = p.versionChannels ?? ['release', 'beta', 'alpha']
+					const label = types.length === 3 ? '' : ` · *${types.join(', ')}*`
+					return `• [${p.name}](https://modrinth.com/project/${p.slug})${label}`
+				})
 				.join('\n')
 
 			const notifValue = config?.channelId
