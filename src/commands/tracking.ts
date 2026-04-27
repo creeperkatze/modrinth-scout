@@ -175,7 +175,11 @@ export const trackingCommand: ChatInputCommand = {
 				await interaction.reply({
 					embeds: [
 						err(
-							`This server is already tracking the maximum of ${limit} projects.${!config.isSupporter ? ' Support the bot on Ko-fi with `/support` to unlock a higher limit.' : ''}`,
+							`This server is already tracking the maximum of **${limit}** projects.${
+								!config.isSupporter
+									? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_SUPPORTER}** projects.`
+									: ''
+							}`,
 						),
 					],
 					flags: 'Ephemeral',
