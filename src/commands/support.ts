@@ -21,7 +21,7 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/icons/kofi.png
 
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
 
-const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects`
+const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Get notified  **5x faster** (checks every 1 minute instead of 5)`
 
 export const supportCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()

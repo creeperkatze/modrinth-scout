@@ -9,12 +9,14 @@ import { logger } from './logger.js'
 
 const log = logger.child({ module: 'poller' })
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000
-const HEARTBEAT_INTERVAL_MS = 60 * 1000
+const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
+const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
 type ProjectEntry = {
 	slug: string
 	lastUpdated: string
+	guildIds: string[]
 	channels: { channelId: string; roleId?: string | null }[]
 }
 
@@ -23,11 +25,13 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 	for (const row of rows) {
 		const entry = map.get(row.projectId)
 		if (entry) {
+			entry.guildIds.push(row.guildId)
 			entry.channels.push({ channelId: row.channelId, roleId: row.roleId })
 		} else {
 			map.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
+				guildIds: [row.guildId],
 				channels: [{ channelId: row.channelId, roleId: row.roleId }],
 			})
 		}
@@ -80,12 +84,12 @@ async function notifyChannels(
 	return notified
 }
 
-async function poll(client: Client) {
-	const rows = await queries.getAllTrackedWithConfig()
+async function poll(client: Client, supporterOnly: boolean) {
+	const rows = await queries.getAllTrackedWithConfig(supporterOnly)
 	if (rows.length === 0) return
 
 	const byProject = groupByProject(rows)
-	log.debug({ uniqueProjects: byProject.size }, 'Poll tick')
+	log.debug({ uniqueProjects: byProject.size, supporterOnly }, 'Poll tick')
 
 	const projects = await fetchProjects([...byProject.keys()])
 
@@ -95,7 +99,7 @@ async function poll(client: Client) {
 
 		log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
 		try {
-			await queries.updateLastUpdated(project.id, project.updated)
+			await queries.updateLastUpdated(project.id, project.updated, info.guildIds)
 
 			const t0 = Date.now()
 			const versions = await modrinth.getProjectVersions(project.slug)
@@ -129,12 +133,22 @@ async function poll(client: Client) {
 }
 
 export function startPoller(client: Client) {
-	const run = async () => {
-		await poll(client).catch((err) => log.error({ err }, 'Unhandled error in poll'))
-		setTimeout(run, POLL_INTERVAL_MS).unref()
+	const makeRunner = (supporterOnly: boolean, intervalMs: number) => {
+		const run = async () => {
+			await poll(client, supporterOnly).catch((err) =>
+				log.error({ err }, 'Unhandled error in poll'),
+			)
+			setTimeout(run, intervalMs).unref()
+		}
+		setTimeout(run, intervalMs).unref()
 	}
-	setTimeout(run, POLL_INTERVAL_MS).unref()
-	log.info({ intervalMs: POLL_INTERVAL_MS }, 'Poller started')
+
+	makeRunner(false, POLL_INTERVAL_MS)
+	makeRunner(true, SUPPORTER_POLL_INTERVAL_MS)
+	log.info(
+		{ intervalMs: POLL_INTERVAL_MS, supporterIntervalMs: SUPPORTER_POLL_INTERVAL_MS },
+		'Poller started',
+	)
 
 	if (process.env.BETTERSTACK_HEARTBEAT_URL) {
 		const url = process.env.BETTERSTACK_HEARTBEAT_URL

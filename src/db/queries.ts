@@ -43,7 +43,7 @@ export const queries = {
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		ProjectModel.deleteOne({ guildId, projectId }),
 
-	getAllTrackedWithConfig: () =>
+	getAllTrackedWithConfig: (supporterOnly?: boolean) =>
 		ProjectModel.aggregate<ProjectWithChannel>([
 			{
 				$lookup: {
@@ -54,12 +54,13 @@ export const queries = {
 				},
 			},
 			{ $unwind: '$config' },
+			...(supporterOnly !== undefined ? [{ $match: { 'config.isSupporter': supporterOnly } }] : []),
 			{ $set: { channelId: '$config.channelId', roleId: '$config.roleId' } },
 			{ $unset: 'config' },
 		]),
 
-	updateLastUpdated: (projectId: string, lastUpdated: string) =>
-		ProjectModel.updateMany({ projectId }, { $set: { lastUpdated } }),
+	updateLastUpdated: (projectId: string, lastUpdated: string, guildIds: string[]) =>
+		ProjectModel.updateMany({ projectId, guildId: { $in: guildIds } }, { $set: { lastUpdated } }),
 
 	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
 
