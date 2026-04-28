@@ -310,9 +310,10 @@ export const trackingCommand: ChatInputCommand = {
 				queries.getServerConfig(guildId),
 			])
 
-			const limit = !supporterPerksEnabled || Boolean(config?.isSupporter)
-				? MAX_TRACKED_SUPPORTER
-				: MAX_TRACKED_PER_GUILD
+			const limit =
+				!supporterPerksEnabled || Boolean(config?.isSupporter)
+					? MAX_TRACKED_SUPPORTER
+					: MAX_TRACKED_PER_GUILD
 
 			if (tracked.length === 0) {
 				await interaction.reply({
