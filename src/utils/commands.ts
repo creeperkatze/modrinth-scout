@@ -26,9 +26,9 @@ import {
 import { buildSupportInfoReply } from '../commands/support.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { buildProjectCard } from './embeds/index.js'
-import { logger } from './logger.js'
+import { createModuleLogger } from './logger.js'
 
-const log = logger.child({ module: 'commands' })
+const log = createModuleLogger('commands')
 
 type CooldownKey = `${string}:${string}`
 
@@ -172,6 +172,15 @@ export function createCommandRegistry(
 		if (cd > 0) {
 			const remain = checkCooldown(interaction.user.id, cmd.meta.name, cd)
 			if (remain > 0) {
+				log.debug(
+					{
+						command: cmd.meta.name,
+						userId: interaction.user.id,
+						guildId: interaction.guildId,
+						remainSeconds: remain,
+					},
+					'Command rate-limited',
+				)
 				await interaction.reply({
 					content: `Please wait ${remain}s before using /${cmd.meta.name} again.`,
 					flags: 'Ephemeral',
@@ -180,15 +189,24 @@ export function createCommandRegistry(
 			}
 		}
 
-		log.info(
-			{ command: cmd.meta.name, userId: interaction.user.id, guildId: interaction.guildId },
-			'Command invoked',
-		)
+		const startedAt = Date.now()
+		const context = {
+			command: cmd.meta.name,
+			interactionId: interaction.id,
+			userId: interaction.user.id,
+			guildId: interaction.guildId,
+		}
+
+		log.debug(context, 'Command started')
 
 		try {
 			await Promise.resolve(cmd.execute(interaction))
+			log.info({ ...context, durationMs: Date.now() - startedAt }, 'Command completed')
 		} catch (error) {
-			log.error({ err: error, command: cmd.meta.name }, 'Command execution failed')
+			log.error(
+				{ ...context, durationMs: Date.now() - startedAt, err: error },
+				'Command execution failed',
+			)
 			const reply = {
 				content: 'There was an error while executing this command!',
 				flags: 'Ephemeral' as const,
@@ -226,12 +244,19 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 
 	const rest = new REST().setToken(DISCORD_TOKEN)
 	const data = commands.map((c) => c.data.toJSON())
+	const startedAt = Date.now()
 
 	if (DEV_GUILD_ID) {
 		await rest.put(Routes.applicationGuildCommands(CLIENT_ID, DEV_GUILD_ID), { body: data })
-		log.info({ count: data.length, guildId: DEV_GUILD_ID }, 'Commands deployed in guild')
+		log.info(
+			{ count: data.length, guildId: DEV_GUILD_ID, durationMs: Date.now() - startedAt },
+			'Commands deployed in guild',
+		)
 	} else {
 		await rest.put(Routes.applicationCommands(CLIENT_ID), { body: data })
-		log.info({ count: data.length }, 'Commands deployed globally')
+		log.info(
+			{ count: data.length, durationMs: Date.now() - startedAt },
+			'Commands deployed globally',
+		)
 	}
 }

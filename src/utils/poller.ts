@@ -5,9 +5,9 @@ import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { buildVersionNotification } from './embeds/index.js'
-import { logger } from './logger.js'
+import { createModuleLogger } from './logger.js'
 
-const log = logger.child({ module: 'poller' })
+const log = createModuleLogger('poller')
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
@@ -49,7 +49,10 @@ async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
 	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
 	const t0 = Date.now()
 	const projects = (await Promise.all(chunks.map((chunk) => modrinth.getProjects(chunk, 0)))).flat()
-	log.debug({ ms: Date.now() - t0, returned: projects.length }, 'Batch project fetch done')
+	log.debug(
+		{ durationMs: Date.now() - t0, returned: projects.length, chunks: chunks.length },
+		'Batch project fetch done',
+	)
 	return projects
 }
 
@@ -66,7 +69,7 @@ async function notifyChannels(
 
 		const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 		if (!channel?.isTextBased()) {
-			log.warn({ projectId: project.id, channelId }, 'Channel not found or not text-based')
+			log.warn({ projectId: project.id, channelId, roleId }, 'Channel not found or not text-based')
 			continue
 		}
 
@@ -91,13 +94,25 @@ async function notifyChannels(
 }
 
 async function poll(client: Client, supporterOnly: boolean) {
+	const startedAt = Date.now()
 	const rows = await queries.getPollingProjects(supporterOnly)
-	if (rows.length === 0) return
+	if (rows.length === 0) {
+		log.debug(
+			{ supporterOnly, durationMs: Date.now() - startedAt },
+			'Poll tick skipped with no tracked projects',
+		)
+		return
+	}
 
 	const byProject = groupByProject(rows)
-	log.debug({ uniqueProjects: byProject.size, supporterOnly }, 'Poll tick')
+	log.debug(
+		{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
+		'Poll tick started',
+	)
 
 	const projects = await fetchProjects([...byProject.keys()])
+	let changedProjects = 0
+	let notificationsSent = 0
 
 	for (const project of projects) {
 		const info = byProject.get(project.id)
@@ -106,6 +121,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 		const updatedAt = new Date(project.updated)
 		if (updatedAt.getTime() === info.lastUpdated.getTime()) continue
 
+		changedProjects += 1
 		log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
 		try {
 			await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
@@ -113,7 +129,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 			const t0 = Date.now()
 			const versions = await modrinth.getProjectVersions(project.id)
 			log.debug(
-				{ ms: Date.now() - t0, slug: project.slug, total: versions.length },
+				{ durationMs: Date.now() - t0, slug: project.slug, total: versions.length },
 				'Versions fetched',
 			)
 
@@ -126,12 +142,14 @@ async function poll(client: Client, supporterOnly: boolean) {
 			}
 
 			const notified = await notifyChannels(client, project, newVersions, info.channels)
+			notificationsSent += notified.length
 			log.info(
 				{
 					projectId: project.id,
 					slug: project.slug,
 					newVersions: newVersions.length,
 					channels: notified.length,
+					guilds: info.guildIds.length,
 				},
 				'Notifications sent',
 			)
@@ -139,6 +157,18 @@ async function poll(client: Client, supporterOnly: boolean) {
 			log.error({ projectId: project.id, err }, 'Failed to check project')
 		}
 	}
+
+	log.debug(
+		{
+			supporterOnly,
+			rows: rows.length,
+			projects: projects.length,
+			changedProjects,
+			notificationsSent,
+			durationMs: Date.now() - startedAt,
+		},
+		'Poll tick complete',
+	)
 }
 
 export function startPoller(client: Client) {
@@ -161,7 +191,12 @@ export function startPoller(client: Client) {
 
 	if (process.env.BETTERSTACK_HEARTBEAT_URL) {
 		const url = process.env.BETTERSTACK_HEARTBEAT_URL
-		setInterval(() => fetch(url).catch(() => undefined), HEARTBEAT_INTERVAL_MS).unref()
+		setInterval(() => {
+			const startedAt = Date.now()
+			fetch(url)
+				.then(() => log.debug({ durationMs: Date.now() - startedAt }, 'Heartbeat ping succeeded'))
+				.catch((err) => log.warn({ err }, 'Heartbeat ping failed'))
+		}, HEARTBEAT_INTERVAL_MS).unref()
 		log.info({ intervalMs: HEARTBEAT_INTERVAL_MS }, 'Heartbeat started')
 	}
 }

@@ -1,11 +1,11 @@
 import { createRequire } from 'node:module'
 
-import { logger } from '../utils/logger.js'
+import { createModuleLogger } from '../utils/logger.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../../package.json') as { version: string }
 
-const log = logger.child({ module: 'api' })
+const log = createModuleLogger('api')
 
 const BASE_URL = 'https://api.modrinth.com/v3'
 const USER_AGENT = `creeperkatze/modrinth-scout/${version} (contact@creeperkatze.dev)`
@@ -63,20 +63,30 @@ async function get<T>(path: string, ttl = CACHE_TTL): Promise<T> {
 	if (ttl > 0) {
 		const entry = cache.get(path)
 		if (entry && Date.now() < entry.expires) {
-			log.debug({ path }, 'Cache hit')
+			log.debug({ path, ttlMs: ttl }, 'Cache hit')
 			return entry.data as T
 		}
 	}
 
-	log.debug({ path }, 'Fetching from API')
+	const startedAt = Date.now()
+	log.debug({ path, ttlMs: ttl }, 'Fetching from API')
 	const res = await fetch(`${BASE_URL}${path}`, {
 		headers: { 'User-Agent': USER_AGENT },
 	})
 	if (!res.ok) {
-		log.warn({ path, status: res.status, statusText: res.statusText }, 'Modrinth API error')
+		log.warn(
+			{
+				path,
+				status: res.status,
+				statusText: res.statusText,
+				durationMs: Date.now() - startedAt,
+			},
+			'Modrinth API error',
+		)
 		throw new Error(`Modrinth API error: ${res.status} ${res.statusText}`)
 	}
 	const data = (await res.json()) as T
+	log.debug({ path, durationMs: Date.now() - startedAt }, 'API response received')
 
 	if (ttl > 0) cache.set(path, { data, expires: Date.now() + ttl })
 	return data

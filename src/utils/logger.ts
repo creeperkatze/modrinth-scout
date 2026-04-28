@@ -1,4 +1,4 @@
-import pino from 'pino'
+import pino, { type Bindings } from 'pino'
 
 export const logger = pino({
 	level: process.env.LOG_LEVEL ?? 'info',
@@ -12,3 +12,7 @@ export const logger = pino({
 		},
 	}),
 })
+
+export function createModuleLogger(module: string, bindings: Bindings = {}) {
+	return logger.child({ module, ...bindings })
+}

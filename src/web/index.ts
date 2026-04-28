@@ -1,9 +1,10 @@
 import express from 'express'
+import { pinoHttp } from 'pino-http'
 
 import { queries } from '../db/queries.js'
-import { logger } from '../utils/logger.js'
+import { createModuleLogger } from '../utils/logger.js'
 
-const log = logger.child({ module: 'web' })
+const log = createModuleLogger('web')
 
 interface KofiPayload {
 	verification_token: string
@@ -20,6 +21,7 @@ interface KofiPayload {
 export function startWebServer() {
 	const app = express()
 	app.disable('x-powered-by')
+	app.use(pinoHttp({ logger: log }))
 	app.use(express.urlencoded({ extended: true }))
 
 	const port = parseInt(process.env.WEB_PORT!)
@@ -30,17 +32,21 @@ export function startWebServer() {
 		try {
 			payload = JSON.parse(req.body.data)
 		} catch {
-			req.socket.destroy()
+			req.log.warn('Ko-fi webhook received invalid JSON payload')
+			res.status(400).json({ error: 'invalid_payload' })
 			return
 		}
 
 		if (!verificationToken || payload.verification_token !== verificationToken) {
-			log.warn('Ko-fi webhook received with invalid verification token')
-			req.socket.destroy()
+			req.log.warn(
+				{ transactionId: payload.kofi_transaction_id ?? null },
+				'Ko-fi webhook received invalid verification token',
+			)
+			res.status(401).json({ error: 'unauthorized' })
 			return
 		}
 
-		res.status(200).send('OK')
+		res.status(200).json({ ok: true })
 
 		const discordUserId = payload.discord_userid ?? null
 
@@ -53,8 +59,8 @@ export function startWebServer() {
 		} catch (err) {
 			// Ko-fi retried a webhook we already processed, ignore
 			if ((err as { code?: number }).code === 11000) {
-				log.warn(
-					{ transactionId: payload.kofi_transaction_id },
+				req.log.warn(
+					{ transactionId: payload.kofi_transaction_id, discordUserId },
 					'Duplicate Ko-fi transaction ignored',
 				)
 				return
@@ -62,17 +68,23 @@ export function startWebServer() {
 			throw err
 		}
 
-		log.info(
-			{ from: payload.from_name, amount: payload.amount, type: payload.type, discordUserId },
+		req.log.info(
+			{
+				transactionId: payload.kofi_transaction_id,
+				amount: payload.amount,
+				currency: payload.currency,
+				type: payload.type,
+				discordUserId,
+			},
 			'Ko-fi payment received',
 		)
 	})
 
-	app.use((req) => {
-		req.socket.destroy()
+	app.use((req, res) => {
+		res.status(404).json({ error: 'not_found' })
 	})
 
 	app.listen(port, () => {
-		log.info({ port }, 'Web server started')
+		log.info({ port, webhookConfigured: Boolean(verificationToken) }, 'Web server started')
 	})
 }
