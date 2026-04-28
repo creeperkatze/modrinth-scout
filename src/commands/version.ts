@@ -5,21 +5,12 @@ import type { ChatInputCommand } from '../types/index.js'
 import { buildVersionNotification, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
-function pickNewestVersion(versions: Awaited<ReturnType<typeof modrinth.getProjectVersions>>) {
-	return [...versions].sort(
-		(a, b) => new Date(b.date_published).getTime() - new Date(a.date_published).getTime(),
-	)[0]
-}
-
 export const versionCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('version')
 		.setDescription('Look up a version of a Modrinth project')
 		.addStringOption((o) =>
-			o
-				.setName('query')
-				.setDescription('Project slug/ID, version ID, or Modrinth URL')
-				.setRequired(true),
+			o.setName('query').setDescription('Version ID or URL').setRequired(true),
 		),
 	meta: {
 		name: 'version',
@@ -54,25 +45,6 @@ export const versionCommand: ChatInputCommand = {
 			return
 		}
 
-		const input = parsed?.type === 'project' ? parsed.slug : raw
-
-		const project = await modrinth.getProject(input).catch(() => null)
-
-		if (project) {
-			const versions = await modrinth.getProjectVersions(project.id)
-			const latestVersion = pickNewestVersion(versions)
-
-			if (!latestVersion) {
-				await interaction.editReply({
-					embeds: [error(`No versions found for \`${project.slug}\`.`)],
-				})
-				return
-			}
-
-			await interaction.editReply(buildVersionNotification(project, latestVersion))
-			return
-		}
-
 		try {
 			const version = await modrinth.getVersion(raw)
 			const project = await modrinth.getProject(version.project_id)
@@ -80,7 +52,7 @@ export const versionCommand: ChatInputCommand = {
 			return
 		} catch {
 			await interaction.editReply({
-				embeds: [error(`No project or version found for \`${raw}\`.`)],
+				embeds: [error(`No version found for \`${raw}\`.`)],
 			})
 		}
 	},
