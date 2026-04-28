@@ -20,6 +20,7 @@ import { statisticsCommand } from './statistics.js'
 import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
+import { versionCommand } from './version.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../../package.json') as { version: string }
@@ -37,6 +38,7 @@ const sections: { heading: string; entries: Entry[] }[] = [
 		entries: [
 			searchCommand,
 			projectCommand,
+			versionCommand,
 			randomCommand,
 			userCommand,
 			organizationCommand,

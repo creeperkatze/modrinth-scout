@@ -10,6 +10,7 @@ const PROJECT_TYPE_SEGMENTS = new Set([
 
 export type ParsedModrinthUrl =
 	| { type: 'project'; slug: string }
+	| { type: 'version'; projectSlug: string; reference: string }
 	| { type: 'user'; username: string }
 	| { type: 'organization'; slug: string }
 	| { type: 'collection'; id: string }
@@ -27,8 +28,10 @@ export function parseModrinthUrl(input: string): ParsedModrinthUrl | null {
 	const parts = url.pathname.split('/').filter(Boolean)
 	if (parts.length < 2) return null
 
-	const [segment, slug] = parts
+	const [segment, slug, thirdSegment, fourthSegment] = parts
 
+	if (PROJECT_TYPE_SEGMENTS.has(segment) && thirdSegment === 'version' && fourthSegment)
+		return { type: 'version', projectSlug: slug, reference: decodeURIComponent(fourthSegment) }
 	if (PROJECT_TYPE_SEGMENTS.has(segment)) return { type: 'project', slug }
 	if (segment === 'user') return { type: 'user', username: slug }
 	if (segment === 'organization') return { type: 'organization', slug }

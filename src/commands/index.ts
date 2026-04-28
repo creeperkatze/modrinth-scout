@@ -10,12 +10,14 @@ import { statisticsCommand } from './statistics.js'
 import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
+import { versionCommand } from './version.js'
 
 export const commands: ChatInputCommand[] = [
 	pingCommand,
 	randomCommand,
 	searchCommand,
 	projectCommand,
+	versionCommand,
 	userCommand,
 	organizationCommand,
 	collectionCommand,

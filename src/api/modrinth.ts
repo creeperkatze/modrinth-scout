@@ -236,5 +236,7 @@ export const modrinth = {
 	getProjectVersions: (idOrSlug: string) =>
 		get<ModrinthVersion[]>(`/project/${idOrSlug}/version`, 0),
 
+	getVersion: (id: string) => get<ModrinthVersion>(`/version/${id}`, 0),
+
 	getStatistics: () => get<ModrinthStatistics>('/statistics'),
 }
