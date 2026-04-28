@@ -22,7 +22,7 @@ export function startWebServer() {
 	app.disable('x-powered-by')
 	app.use(express.urlencoded({ extended: true }))
 
-	const port = process.env.PORT ? parseInt(process.env.PORT) : 3000
+	const port = parseInt(process.env.WEB_PORT!)
 	const verificationToken = process.env.KOFI_VERIFICATION_TOKEN
 
 	app.post('/kofi', async (req, res) => {
