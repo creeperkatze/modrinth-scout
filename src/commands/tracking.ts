@@ -1,6 +1,7 @@
 import { ChannelType, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
+import { hasSupporterPerks, supporterPerksEnabled } from '../config/support.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
@@ -177,13 +178,14 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const count = await queries.countTrackedProjects(guildId)
-			const limit = config.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
+			const hasPerks = hasSupporterPerks(config.isSupporter)
+			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
 			if (count >= limit) {
 				await interaction.reply({
 					embeds: [
 						error(
 							`This server is already tracking the maximum of **${limit}** projects.${
-								!config.isSupporter
+								supporterPerksEnabled && !hasPerks
 									? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_SUPPORTER}** projects.`
 									: ''
 							}`,
@@ -308,7 +310,9 @@ export const trackingCommand: ChatInputCommand = {
 				queries.getServerConfig(guildId),
 			])
 
-			const limit = config?.isSupporter ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
+			const limit = hasSupporterPerks(config?.isSupporter)
+				? MAX_TRACKED_SUPPORTER
+				: MAX_TRACKED_PER_GUILD
 
 			if (tracked.length === 0) {
 				await interaction.reply({

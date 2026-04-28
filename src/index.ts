@@ -3,6 +3,7 @@ import 'dotenv/config'
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { commands } from './commands/index.js'
+import { supporterPerksEnabled } from './config/support.js'
 import { connectDb } from './db/index.js'
 import { queries } from './db/queries.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
@@ -29,7 +30,9 @@ client.once(Events.ClientReady, async (c) => {
 		await Promise.all(c.guilds.cache.map((g) => queries.initServerConfig(g.id)))
 
 		startPoller(c)
-		startWebServer()
+		if (supporterPerksEnabled) {
+			startWebServer()
+		}
 
 		log.info(
 			{ tag: c.user.tag, guilds: c.guilds.cache.size, durationMs: Date.now() - startedAt },

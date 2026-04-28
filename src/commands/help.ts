@@ -9,6 +9,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { supporterPerksEnabled } from '../config/support.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
 import { organizationCommand } from './organization.js'
@@ -31,8 +32,9 @@ const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PR
 export const HELP_SUPPORT_BUTTON_ID = 'help:support'
 
 type Entry = { name: string; description: string }
+type Section = { heading: string; entries: Entry[] }
 
-const sections: { heading: string; entries: Entry[] }[] = [
+const sections: Section[] = [
 	{
 		heading: 'General',
 		entries: [
@@ -51,12 +53,19 @@ const sections: { heading: string; entries: Entry[] }[] = [
 			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
 			.map((o) => ({ name: `${trackingCommand.meta.name} ${o.name}`, description: o.description })),
 	},
-	{
-		heading: 'Support',
-		entries: (supportCommand.data.toJSON().options ?? [])
-			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
-			.map((o) => ({ name: `${supportCommand.meta.name} ${o.name}`, description: o.description })),
-	},
+	...(supporterPerksEnabled
+		? [
+				{
+					heading: 'Support',
+					entries: (supportCommand.data.toJSON().options ?? [])
+						.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
+						.map((o) => ({
+							name: `${supportCommand.meta.name} ${o.name}`,
+							description: o.description,
+						})),
+				} satisfies Section,
+			]
+		: []),
 	{
 		heading: 'Miscellaneous',
 		entries: [statisticsCommand, pingCommand].map((c) => ({
@@ -94,29 +103,38 @@ export const helpCommand: ChatInputCommand = {
 
 		const topggUrl = `https://top.gg/bot/${interaction.client.user.id}/vote`
 
-		const buttons = [
+		const buttons: ButtonBuilder[] = []
+
+		if (supporterPerksEnabled) {
+			buttons.push(
+				new ButtonBuilder()
+					.setLabel('Support')
+					.setEmoji('☕')
+					.setCustomId(HELP_SUPPORT_BUTTON_ID)
+					.setStyle(ButtonStyle.Secondary),
+			)
+		}
+
+		buttons.push(
 			new ButtonBuilder()
-				.setLabel('Support')
-				.setEmoji('☕')
-				.setCustomId(HELP_SUPPORT_BUTTON_ID)
-				.setStyle(ButtonStyle.Secondary),
-			new ButtonBuilder()
+
 				.setLabel('Star on GitHub')
 				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
 				.setStyle(ButtonStyle.Link),
 			new ButtonBuilder()
+
 				.setLabel('Privacy Policy')
 				.setEmoji('🔒')
 				.setURL(PRIVACY_URL)
 				.setStyle(ButtonStyle.Link),
-
 			new ButtonBuilder()
+
 				.setLabel('Vote on top.gg')
 				.setEmoji('🔺')
 				.setURL(topggUrl)
 				.setStyle(ButtonStyle.Link),
-		]
+		)
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)
 

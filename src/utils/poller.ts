@@ -2,6 +2,7 @@ import type { Client, TextChannel } from 'discord.js'
 
 import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
 import { modrinth } from '../api/modrinth.js'
+import { supporterPerksEnabled } from '../config/support.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { buildVersionNotification } from './embeds/index.js'
@@ -172,7 +173,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 }
 
 export function startPoller(client: Client) {
-	const makeRunner = (supporterOnly: boolean, intervalMs: number) => {
+	const createRunner = (supporterOnly: boolean, intervalMs: number) => {
 		const run = async () => {
 			await poll(client, supporterOnly).catch((err) =>
 				log.error({ err }, 'Unhandled error in poll'),
@@ -182,10 +183,18 @@ export function startPoller(client: Client) {
 		setTimeout(run, intervalMs).unref()
 	}
 
-	makeRunner(false, POLL_INTERVAL_MS)
-	makeRunner(true, SUPPORTER_POLL_INTERVAL_MS)
+	if (supporterPerksEnabled) {
+		createRunner(false, POLL_INTERVAL_MS)
+		createRunner(true, SUPPORTER_POLL_INTERVAL_MS)
+	} else {
+		createRunner(false, SUPPORTER_POLL_INTERVAL_MS)
+	}
 	log.info(
-		{ intervalMs: POLL_INTERVAL_MS, supporterIntervalMs: SUPPORTER_POLL_INTERVAL_MS },
+		{
+			intervalMs: supporterPerksEnabled ? POLL_INTERVAL_MS : SUPPORTER_POLL_INTERVAL_MS,
+			supporterIntervalMs: supporterPerksEnabled ? SUPPORTER_POLL_INTERVAL_MS : null,
+			supportEnabled: supporterPerksEnabled,
+		},
 		'Poller started',
 	)
 
