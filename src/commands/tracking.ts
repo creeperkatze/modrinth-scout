@@ -150,14 +150,17 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
 			const role = interaction.options.getRole('role')
-			await queries.setServerConfig(guildId, channel.id, role?.id)
+			const trackingChannelId = channel.id
+			const trackingRoleId = role?.id ?? null
+
+			await queries.setServerConfig(guildId, trackingChannelId, trackingRoleId)
 			log.info(
-				{ guildId, channelId: channel.id, roleId: role?.id, userId: interaction.user.id },
+				{ guildId, trackingChannelId, trackingRoleId, userId: interaction.user.id },
 				'Tracking channel configured',
 			)
 			const roleNote = role ? ` ${role} will be pinged on each update.` : ''
 			await interaction.reply({
-				embeds: [success(`Notifications will be posted in <#${channel.id}>.\n${roleNote}`)],
+				embeds: [success(`Notifications will be posted in <#${trackingChannelId}>.\n${roleNote}`)],
 				flags: 'Ephemeral',
 			})
 			return

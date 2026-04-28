@@ -19,10 +19,15 @@ export const queries = {
 	initServerConfig: (guildId: string) =>
 		ServerModel.updateOne({ _id: guildId }, { $setOnInsert: { _id: guildId } }, { upsert: true }),
 
-	setServerConfig: (guildId: string, channelId: string, roleId?: string | null) =>
+	setServerConfig: (guildId: string, trackingChannelId: string, trackingRoleId?: string | null) =>
 		ServerModel.findByIdAndUpdate(
 			guildId,
-			{ $set: { trackingChannelId: channelId, trackingRoleId: roleId ?? null } },
+			{
+				$set: {
+					trackingChannelId,
+					trackingRoleId: trackingRoleId ?? null,
+				},
+			},
 			{ returnDocument: 'after' },
 		),
 
