@@ -13,6 +13,7 @@ export function buildVersionNotification(
 	const type = project.project_types[0] ?? 'project'
 	const projectUrl = `https://modrinth.com/${type}/${project.slug}`
 	const versionUrl = `${projectUrl}/version/${version.id}`
+	const primaryFile = version.files.find((file) => file.primary) ?? version.files[0]
 
 	const loaders = version.loaders.filter((l) => l !== 'minecraft' || version.loaders.length === 1)
 
@@ -46,10 +47,19 @@ export function buildVersionNotification(
 	return {
 		embeds: [embed],
 		components: [
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
+			new ActionRowBuilder<ButtonBuilder>().addComponents([
 				new ButtonBuilder().setLabel(versionLabel).setURL(versionUrl).setStyle(ButtonStyle.Link),
 				new ButtonBuilder().setLabel('View Project').setURL(projectUrl).setStyle(ButtonStyle.Link),
-			),
+				...(primaryFile
+					? [
+							new ButtonBuilder()
+								.setLabel('Download')
+								.setEmoji('⬇️')
+								.setURL(primaryFile.url)
+								.setStyle(ButtonStyle.Link),
+						]
+					: []),
+			]),
 		],
 	}
 }
