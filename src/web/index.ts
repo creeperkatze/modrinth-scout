@@ -24,7 +24,7 @@ export function startWebServer() {
 	app.use(pinoHttp({ logger: log }))
 	app.use(express.urlencoded({ extended: true }))
 
-	const port = parseInt(process.env.WEB_PORT!)
+	const port = parseInt(process.env.KOFI_PORT!)
 	const verificationToken = process.env.KOFI_VERIFICATION_TOKEN
 
 	app.post('/kofi', async (req, res) => {
