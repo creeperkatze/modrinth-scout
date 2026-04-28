@@ -61,8 +61,6 @@ services:
     image: ghcr.io/creeperkatze/modrinth-scout:latest
     restart: unless-stopped
     env_file: .env
-    environment:
-      MONGODB_URI: mongodb://mongodb:27017/modrinth_scout
     depends_on:
       - mongodb
     networks:
