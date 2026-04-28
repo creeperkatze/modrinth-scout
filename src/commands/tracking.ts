@@ -1,7 +1,7 @@
 import { ChannelType, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 
 import { modrinth } from '../api/modrinth.js'
-import { supporterPerksEnabled, usesSupporterPerks } from '../config/supporterPerks.js'
+import { supporterPerksEnabled } from '../config/supporterPerks.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
@@ -178,7 +178,7 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const count = await queries.countTrackedProjects(guildId)
-			const hasPerks = usesSupporterPerks(config.isSupporter)
+			const hasPerks = !supporterPerksEnabled || Boolean(config.isSupporter)
 			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
 			if (count >= limit) {
 				await interaction.reply({
@@ -310,7 +310,7 @@ export const trackingCommand: ChatInputCommand = {
 				queries.getServerConfig(guildId),
 			])
 
-			const limit = usesSupporterPerks(config?.isSupporter)
+			const limit = !supporterPerksEnabled || Boolean(config?.isSupporter)
 				? MAX_TRACKED_SUPPORTER
 				: MAX_TRACKED_PER_GUILD
 
