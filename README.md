@@ -22,37 +22,37 @@ Yet another Discord bot for discovering, exploring and tracking projects on Modr
 
 ### General
 
-- `/search` &middot; Search for projects on Modrinth
-- `/project` &middot; Look up a Modrinth project
-- `/version` &middot; Look up a version of a Modrinth project
-- `/random` &middot; Returns a random project from Modrinth
-- `/user` &middot; Look up a Modrinth user
-- `/organization` &middot; Look up a Modrinth organization
-- `/collection` &middot; Look up a Modrinth collection
+- `/search` · Search for projects on Modrinth
+- `/project` · Look up a Modrinth project
+- `/version` · Look up a version of a Modrinth project
+- `/random` · Returns a random project from Modrinth
+- `/user` · Look up a Modrinth user
+- `/organization` · Look up a Modrinth organization
+- `/collection` · Look up a Modrinth collection
 
 ### Tracking
 
-- `/tracking setup` &middot; Set the channel where update notifications will be posted
-- `/tracking add` &middot; Start tracking a Modrinth project
-- `/tracking remove` &middot; Stop tracking a project
-- `/tracking list` &middot; Show all projects tracked in this server
-- `/tracking pause` &middot; Pause tracking notifications without removing tracked projects
-- `/tracking resume` &middot; Resume tracking notifications for this server
-- `/tracking disable` &middot; Disable tracking and remove all tracked projects
+- `/tracking setup` · Set the channel where update notifications will be posted
+- `/tracking add` · Start tracking a Modrinth project
+- `/tracking remove` · Stop tracking a project
+- `/tracking list` · Show all projects tracked in this server
+- `/tracking pause` · Pause tracking notifications without removing tracked projects
+- `/tracking resume` · Resume tracking notifications for this server
+- `/tracking disable` · Disable tracking and remove all tracked projects
 
 ### Support
 
-- `/support info` &middot; Show Ko-fi support info and perks
-- `/support list` &middot; Show public supporters
-- `/support activate` &middot; Activate supporter perks using your Ko-fi account
-- `/support status` &middot; Check the supporter status of this server
+- `/support info` · Show Ko-fi support info and perks
+- `/support list` · Show public supporters
+- `/support activate` · Activate supporter perks using your Ko-fi account
+- `/support status` · Check the supporter status of this server
 
 ### Miscellaneous
 
-- `/statistics` &middot; Show Modrinth and bot statistics
-- `/ping` &middot; Replies with Pong!
+- `/statistics` · Show Modrinth and bot statistics
+- `/ping` · Replies with Pong!
 
-`v1.0.27` &middot; Made with &hearts; by Creeperkatze
+`v1.0.27` · Made with &hearts; by Creeperkatze
 
 ## 🚀 Self-hosting
 
