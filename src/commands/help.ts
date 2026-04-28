@@ -9,7 +9,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { supporterPerksEnabled } from '../config/supporterPerks.js'
+import { usesSupporterPerks } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
 import { organizationCommand } from './organization.js'
@@ -53,7 +53,7 @@ const sections: Section[] = [
 			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
 			.map((o) => ({ name: `${trackingCommand.meta.name} ${o.name}`, description: o.description })),
 	},
-	...(supporterPerksEnabled
+	...(usesSupporterPerks
 		? [
 				{
 					heading: 'Support',
@@ -105,7 +105,7 @@ export const helpCommand: ChatInputCommand = {
 
 		const buttons: ButtonBuilder[] = []
 
-		if (supporterPerksEnabled) {
+		if (usesSupporterPerks) {
 			buttons.push(
 				new ButtonBuilder()
 					.setLabel('Support')

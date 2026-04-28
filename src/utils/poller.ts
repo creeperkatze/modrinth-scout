@@ -2,7 +2,7 @@ import type { Client, TextChannel } from 'discord.js'
 
 import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
 import { modrinth } from '../api/modrinth.js'
-import { supporterPerksEnabled } from '../config/supporterPerks.js'
+import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { buildVersionNotification } from './embeds/index.js'
@@ -183,7 +183,7 @@ export function startPoller(client: Client) {
 		setTimeout(run, intervalMs).unref()
 	}
 
-	if (supporterPerksEnabled) {
+	if (usesSupporterPerks) {
 		createRunner(false, POLL_INTERVAL_MS)
 		createRunner(true, SUPPORTER_POLL_INTERVAL_MS)
 	} else {
@@ -191,9 +191,9 @@ export function startPoller(client: Client) {
 	}
 	log.info(
 		{
-			intervalMs: supporterPerksEnabled ? POLL_INTERVAL_MS : SUPPORTER_POLL_INTERVAL_MS,
-			supporterIntervalMs: supporterPerksEnabled ? SUPPORTER_POLL_INTERVAL_MS : null,
-			supportEnabled: supporterPerksEnabled,
+			intervalMs: usesSupporterPerks ? POLL_INTERVAL_MS : SUPPORTER_POLL_INTERVAL_MS,
+			supporterIntervalMs: usesSupporterPerks ? SUPPORTER_POLL_INTERVAL_MS : null,
+			supportEnabled: usesSupporterPerks,
 		},
 		'Poller started',
 	)

@@ -1,4 +1,4 @@
-import { supporterPerksEnabled } from '../config/supporterPerks.js'
+import { usesSupporterPerks } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
 import { helpCommand } from './help.js'
@@ -22,7 +22,7 @@ export const commands: ChatInputCommand[] = [
 	userCommand,
 	organizationCommand,
 	collectionCommand,
-	...(supporterPerksEnabled ? [supportCommand] : []),
+	...(usesSupporterPerks ? [supportCommand] : []),
 	trackingCommand,
 	statisticsCommand,
 	helpCommand,
