@@ -138,7 +138,7 @@ export const trackingCommand: ChatInputCommand = {
 					(p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()),
 				)
 				.slice(0, 25)
-				.map((p) => ({ name: p.name, value: p.slug }))
+				.map((p) => ({ name: p.name, value: p.projectId }))
 			await interaction.respond(choices)
 		}
 	},
@@ -205,8 +205,8 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const existing = await queries.getTrackedProjects(guildId)
-			if (existing.some((p) => p.projectId === project.id)) {
+			const existing = await queries.findTrackedProjectById(guildId, project.id)
+			if (existing) {
 				await interaction.editReply({
 					embeds: [error(`**${project.name}** is already being tracked.`)],
 				})
@@ -223,7 +223,7 @@ export const trackingCommand: ChatInputCommand = {
 				project.id,
 				project.slug,
 				project.name,
-				project.updated,
+				new Date(project.updated),
 				interaction.user.id,
 				releaseType,
 				channelOverride?.id ?? null,
@@ -257,13 +257,32 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'remove') {
 			const raw = interaction.options.getString('query', true).trim()
 			const parsed = parseModrinthUrl(raw)
-			const input = parsed?.type === 'project' ? parsed.slug : raw
-			const tracked = await queries.getTrackedProjects(guildId)
-			const entry = tracked.find((p) => p.slug === input || p.projectId === input)
+			const projectId =
+				parsed?.type === 'project'
+					? await modrinth
+							.getProject(parsed.slug)
+							.then((project) => project.id)
+							.catch(async () => {
+								await interaction.reply({
+									embeds: [error(`No project found for \`${parsed.slug}\`.`)],
+									flags: 'Ephemeral',
+								})
+								return null
+							})
+					: await modrinth
+							.getProject(raw)
+							.then((project) => project.id)
+							.catch(() => raw)
+
+			if (!projectId) {
+				return
+			}
+
+			const entry = await queries.findTrackedProjectById(guildId, projectId)
 
 			if (!entry) {
 				await interaction.reply({
-					embeds: [error(`\`${input}\` is not being tracked in this server.`)],
+					embeds: [error(`\`${raw}\` is not being tracked in this server.`)],
 					flags: 'Ephemeral',
 				})
 				return

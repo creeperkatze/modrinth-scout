@@ -30,7 +30,7 @@ export async function respondWithProjectSearch(
 			type,
 		})
 		const labels = formatHitLabels(hits)
-		await interaction.respond(hits.map((h, i) => ({ name: labels[i], value: h.slug })))
+		await interaction.respond(hits.map((h, i) => ({ name: labels[i], value: h.project_id })))
 	} catch {
 		await interaction.respond([])
 	}

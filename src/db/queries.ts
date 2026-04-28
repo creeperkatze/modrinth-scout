@@ -1,10 +1,17 @@
 import type { ProjectWithChannel } from './schemas/project.js'
 import { ProjectModel } from './schemas/project.js'
+import type { Server } from './schemas/server.js'
 import { ServerModel } from './schemas/server.js'
 import { SupporterModel } from './schemas/supporter.js'
 
 export const MAX_TRACKED_PER_GUILD = 5
 export const MAX_TRACKED_SUPPORTER = 100
+
+type ServerPollingConfig = {
+	_id: string
+	channelId: string
+	roleId: Server['roleId']
+}
 
 export const queries = {
 	getServerConfig: (guildId: string) => ServerModel.findById(guildId).lean(),
@@ -29,6 +36,9 @@ export const queries = {
 
 	getTrackedProjects: (guildId: string) => ProjectModel.find({ guildId }).lean(),
 
+	findTrackedProjectById: (guildId: string, projectId: string) =>
+		ProjectModel.findOne({ guildId, projectId }).lean(),
+
 	countTrackedProjects: (guildId: string) => ProjectModel.countDocuments({ guildId }),
 
 	addTrackedProject: (
@@ -36,7 +46,7 @@ export const queries = {
 		projectId: string,
 		slug: string,
 		name: string,
-		lastUpdated: string,
+		lastUpdated: Date,
 		addedBy: string,
 		releaseType?: string[],
 		channelId?: string | null,
@@ -57,29 +67,46 @@ export const queries = {
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		ProjectModel.deleteOne({ guildId, projectId }),
 
-	getAllTrackedWithConfig: (supporterOnly?: boolean) =>
-		ProjectModel.aggregate<ProjectWithChannel>([
-			{
-				$lookup: {
-					from: 'servers',
-					localField: 'guildId',
-					foreignField: '_id',
-					as: 'config',
-				},
-			},
-			{ $unwind: '$config' },
-			{ $match: { 'config.paused': { $ne: true } } },
-			...(supporterOnly !== undefined ? [{ $match: { 'config.isSupporter': supporterOnly } }] : []),
-			{
-				$set: {
-					channelId: { $ifNull: ['$channelId', '$config.channelId'] },
-					roleId: { $ifNull: ['$roleId', '$config.roleId'] },
-				},
-			},
-			{ $unset: 'config' },
-		]),
+	getPollingProjects: async (supporterOnly?: boolean): Promise<ProjectWithChannel[]> => {
+		const servers = await ServerModel.find({
+			paused: { $ne: true },
+			channelId: { $ne: null },
+			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
+		})
+			.select('_id channelId roleId')
+			.lean<ServerPollingConfig[]>()
 
-	updateLastUpdated: (projectId: string, lastUpdated: string, guildIds: string[]) =>
+		if (servers.length === 0) {
+			return []
+		}
+
+		const serverConfigByGuildId = new Map(servers.map((server) => [server._id, server]))
+		const projects = await ProjectModel.find({
+			guildId: { $in: servers.map((server) => server._id) },
+		}).lean()
+
+		return projects.flatMap((project) => {
+			const config = serverConfigByGuildId.get(project.guildId)
+			if (!config) {
+				return []
+			}
+
+			const channelId = project.channelId ?? config.channelId
+			if (!channelId) {
+				return []
+			}
+
+			return [
+				{
+					...project,
+					channelId,
+					roleId: project.roleId ?? config.roleId,
+				},
+			]
+		})
+	},
+
+	updateLastUpdated: (projectId: string, lastUpdated: Date, guildIds: string[]) =>
 		ProjectModel.updateMany({ projectId, guildId: { $in: guildIds } }, { $set: { lastUpdated } }),
 
 	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),

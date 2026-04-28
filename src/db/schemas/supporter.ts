@@ -11,5 +11,8 @@ const supporterSchema = new Schema(
 	{ collection: 'supporters', timestamps: true },
 )
 
+supporterSchema.index({ discordUserId: 1, usedByGuildId: 1 })
+supporterSchema.index({ showPublicly: 1, usedByGuildId: 1, createdAt: 1 })
+
 export type Supporter = InferSchemaType<typeof supporterSchema>
 export const SupporterModel = model('Supporter', supporterSchema)

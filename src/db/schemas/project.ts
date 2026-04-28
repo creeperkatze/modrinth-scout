@@ -6,7 +6,7 @@ const projectSchema = new Schema(
 		projectId: { type: String, required: true },
 		slug: { type: String, required: true },
 		name: { type: String, required: true },
-		lastUpdated: { type: String, required: true },
+		lastUpdated: { type: Date, required: true },
 		addedBy: { type: String, required: true },
 		releaseType: { type: [String], default: ['release', 'beta', 'alpha'] },
 		channelId: { type: String, default: null },
@@ -16,6 +16,8 @@ const projectSchema = new Schema(
 )
 
 projectSchema.index({ guildId: 1, projectId: 1 }, { unique: true })
+projectSchema.index({ projectId: 1, guildId: 1 })
+projectSchema.index({ guildId: 1, slug: 1 })
 
 export type Project = InferSchemaType<typeof projectSchema>
 export type ProjectWithChannel = Project & {

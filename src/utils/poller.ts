@@ -15,7 +15,7 @@ const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
 type ProjectEntry = {
 	slug: string
-	lastUpdated: string
+	lastUpdated: Date
 	guildIds: string[]
 	channels: { channelId: string; roleId?: string | null; releaseType: string[] }[]
 }
@@ -91,7 +91,7 @@ async function notifyChannels(
 }
 
 async function poll(client: Client, supporterOnly: boolean) {
-	const rows = await queries.getAllTrackedWithConfig(supporterOnly)
+	const rows = await queries.getPollingProjects(supporterOnly)
 	if (rows.length === 0) return
 
 	const byProject = groupByProject(rows)
@@ -101,11 +101,14 @@ async function poll(client: Client, supporterOnly: boolean) {
 
 	for (const project of projects) {
 		const info = byProject.get(project.id)
-		if (!info || project.updated === info.lastUpdated) continue
+		if (!info) continue
+
+		const updatedAt = new Date(project.updated)
+		if (updatedAt.getTime() === info.lastUpdated.getTime()) continue
 
 		log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
 		try {
-			await queries.updateLastUpdated(project.id, project.updated, info.guildIds)
+			await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
 
 			const t0 = Date.now()
 			const versions = await modrinth.getProjectVersions(project.slug)
@@ -115,7 +118,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 			)
 
 			const newVersions = versions
-				.filter((v) => new Date(v.date_published) > new Date(info.lastUpdated))
+				.filter((v) => new Date(v.date_published) > info.lastUpdated)
 				.reverse()
 			if (newVersions.length === 0) {
 				log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
