@@ -236,24 +236,26 @@ export function createCommandRegistry(
 }
 
 export async function deployCommands(commands: ChatInputCommand[]) {
-	const { CLIENT_ID, DISCORD_TOKEN, DEV_GUILD_ID } = process.env
+	const { DISCORD_CLIENT_ID, DISCORD_TOKEN, DISCORD_GUILD_ID } = process.env
 
-	if (!CLIENT_ID || !DISCORD_TOKEN) {
-		throw new Error('Missing CLIENT_ID or DISCORD_TOKEN in environment')
+	if (!DISCORD_CLIENT_ID || !DISCORD_TOKEN) {
+		throw new Error('Missing DISCORD_CLIENT_ID or DISCORD_TOKEN in environment')
 	}
 
 	const rest = new REST().setToken(DISCORD_TOKEN)
 	const data = commands.map((c) => c.data.toJSON())
 	const startedAt = Date.now()
 
-	if (DEV_GUILD_ID) {
-		await rest.put(Routes.applicationGuildCommands(CLIENT_ID, DEV_GUILD_ID), { body: data })
+	if (DISCORD_GUILD_ID) {
+		await rest.put(Routes.applicationGuildCommands(DISCORD_CLIENT_ID, DISCORD_GUILD_ID), {
+			body: data,
+		})
 		log.info(
-			{ count: data.length, guildId: DEV_GUILD_ID, durationMs: Date.now() - startedAt },
+			{ count: data.length, guildId: DISCORD_GUILD_ID, durationMs: Date.now() - startedAt },
 			'Commands deployed in guild',
 		)
 	} else {
-		await rest.put(Routes.applicationCommands(CLIENT_ID), { body: data })
+		await rest.put(Routes.applicationCommands(DISCORD_CLIENT_ID), { body: data })
 		log.info(
 			{ count: data.length, durationMs: Date.now() - startedAt },
 			'Commands deployed globally',

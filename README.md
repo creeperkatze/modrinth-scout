@@ -94,7 +94,8 @@ networks:
 
 ```env
 DISCORD_TOKEN=your_bot_token
-CLIENT_ID=your_application_id
+DISCORD_CLIENT_ID=your_application_id
+
 MONGODB_URI=mongodb://mongodb:27017/modrinth_scout
 ```
 
