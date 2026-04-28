@@ -94,7 +94,7 @@ async function notifyChannels(
 	return notified
 }
 
-async function poll(client: Client, supporterOnly: boolean) {
+async function poll(client: Client, supporterOnly?: boolean) {
 	const startedAt = Date.now()
 	const rows = await queries.getPollingProjects(supporterOnly)
 	if (rows.length === 0) {
@@ -173,7 +173,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 }
 
 export function startPoller(client: Client) {
-	const createRunner = (supporterOnly: boolean, intervalMs: number) => {
+	const createRunner = (supporterOnly: boolean | undefined, intervalMs: number) => {
 		const run = async () => {
 			await poll(client, supporterOnly).catch((err) =>
 				log.error({ err }, 'Unhandled error in poll'),
@@ -187,7 +187,7 @@ export function startPoller(client: Client) {
 		createRunner(false, POLL_INTERVAL_MS)
 		createRunner(true, SUPPORTER_POLL_INTERVAL_MS)
 	} else {
-		createRunner(false, SUPPORTER_POLL_INTERVAL_MS)
+		createRunner(undefined, SUPPORTER_POLL_INTERVAL_MS)
 	}
 	log.info(
 		{
