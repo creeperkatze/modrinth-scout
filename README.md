@@ -49,40 +49,57 @@ Requires the **Manage Server** permission. Run `/tracking setup` first to config
 
 ## 🚀 Self-hosting
 
-**Prerequisites:** [Node.js](https://nodejs.org) 22+, [pnpm](https://pnpm.io), and a [MongoDB](https://www.mongodb.com) instance.
+The recommended deployment is Docker Compose with the published container image on GHCR.
 
-**1. Clone and install**
+**Prerequisites:** [Docker](https://www.docker.com/) and an [application](https://discord.com/developers/home) on Discord.
 
-```bash
-git clone https://github.com/creeperkatze/modrinth-scout.git
-cd modrinth-scout
-pnpm install
+**1. Create `docker-compose.yml`**
+
+```yaml
+services:
+  bot:
+    image: ghcr.io/creeperkatze/modrinth-scout:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/modrinth_scout
+    depends_on:
+      - mongodb
+    networks:
+      - backend
+
+  mongodb:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - backend
+
+volumes:
+  mongodb-data:
+
+networks:
+  backend:
+    driver: bridge
+    internal: true
 ```
 
-**2. Configure**
-
-Create a `.env` file in the project root:
+**2. Create `.env`**
 
 ```env
 DISCORD_TOKEN=your_bot_token
 CLIENT_ID=your_application_id
-MONGODB_URI=mongodb://localhost:27017/modrinth_scout
+MONGODB_URI=mongodb://mongodb:27017/modrinth_scout
 ```
 
-`MONGODB_URI` defaults to `mongodb://localhost:27017/modrinth_scout` if omitted.
-
-**3. Deploy slash commands**
+**3. Start**
 
 ```bash
-pnpm deploy
+docker compose up -d
 ```
 
-**4. Run**
-
-```bash
-pnpm build
-pnpm start
-```
+Slash commands are deployed automatically during startup.
 
 ## 👨‍💻 Development
 
@@ -96,7 +113,7 @@ Runs the bot with `tsx` in watch mode, no build step needed. Deploy commands to 
 DEV_GUILD_ID=your_guild_id
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are always welcome!
 
