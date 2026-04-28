@@ -150,7 +150,7 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
 			const role = interaction.options.getRole('role')
-			await queries.setServerConfig(guildId, channel.id, interaction.user.id, role?.id)
+			await queries.setServerConfig(guildId, channel.id, role?.id)
 			log.info(
 				{ guildId, channelId: channel.id, roleId: role?.id, userId: interaction.user.id },
 				'Tracking channel configured',
@@ -165,7 +165,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'add') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config?.channelId) {
+			if (!config?.trackingChannelId) {
 				await interaction.reply({
 					embeds: [error('Set a notification channel first with `/tracking setup`.')],
 					flags: 'Ephemeral',
@@ -224,7 +224,6 @@ export const trackingCommand: ChatInputCommand = {
 				project.slug,
 				project.name,
 				new Date(project.updated),
-				interaction.user.id,
 				releaseType,
 				channelOverride?.id ?? null,
 				roleOverride?.id ?? null,
@@ -335,13 +334,15 @@ export const trackingCommand: ChatInputCommand = {
 				.join('\n')
 
 			const defaultConfigValue = [
-				`Notifications are posted in <#${config?.channelId}>.`,
-				...(config?.roleId ? [`<@&${config?.roleId}> is pinged by default.`] : []),
+				`Notifications are posted in <#${config?.trackingChannelId}>.`,
+				...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
 			].join('\n')
 
 			const embed = new EmbedBuilder()
 				.setTitle(`Tracked Projects · ${tracked.length} / ${limit}`)
-				.setDescription(config?.paused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList)
+				.setDescription(
+					config?.trackingPaused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList,
+				)
 				.addFields({ name: 'Default configuration', value: defaultConfigValue })
 				.setColor(0x1bd96a)
 
@@ -358,7 +359,7 @@ export const trackingCommand: ChatInputCommand = {
 				})
 				return
 			}
-			if (config.paused) {
+			if (config.trackingPaused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already paused.')],
 					flags: 'Ephemeral',
@@ -383,7 +384,7 @@ export const trackingCommand: ChatInputCommand = {
 				})
 				return
 			}
-			if (!config.paused) {
+			if (!config.trackingPaused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already active.')],
 					flags: 'Ephemeral',

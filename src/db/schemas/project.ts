@@ -6,11 +6,10 @@ const projectSchema = new Schema(
 		projectId: { type: String, required: true },
 		slug: { type: String, required: true },
 		name: { type: String, required: true },
-		lastUpdated: { type: Date, required: true },
-		addedBy: { type: String, required: true },
 		releaseType: { type: [String], default: ['release', 'beta', 'alpha'] },
 		channelId: { type: String, default: null },
 		roleId: { type: String, default: null },
+		lastUpdated: { type: Date, required: true },
 	},
 	{ collection: 'projects', timestamps: true },
 )

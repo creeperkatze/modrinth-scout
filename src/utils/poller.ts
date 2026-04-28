@@ -111,7 +111,7 @@ async function poll(client: Client, supporterOnly: boolean) {
 			await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
 
 			const t0 = Date.now()
-			const versions = await modrinth.getProjectVersions(project.slug)
+			const versions = await modrinth.getProjectVersions(project.id)
 			log.debug(
 				{ ms: Date.now() - t0, slug: project.slug, total: versions.length },
 				'Versions fetched',

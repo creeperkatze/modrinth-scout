@@ -2,9 +2,9 @@ import { InferSchemaType, model, Schema } from 'mongoose'
 
 const supporterSchema = new Schema(
 	{
-		discordUserId: { type: String, default: null },
 		email: { type: String, required: true },
 		transactionId: { type: String, required: true, unique: true },
+		discordUserId: { type: String, default: null },
 		usedByGuildId: { type: String, default: null },
 		showPublicly: { type: Boolean, default: true },
 	},

@@ -9,8 +9,8 @@ export const MAX_TRACKED_SUPPORTER = 100
 
 type ServerPollingConfig = {
 	_id: string
-	channelId: string
-	roleId: Server['roleId']
+	trackingChannelId: string
+	trackingRoleId: Server['trackingRoleId']
 }
 
 export const queries = {
@@ -19,15 +19,10 @@ export const queries = {
 	initServerConfig: (guildId: string) =>
 		ServerModel.updateOne({ _id: guildId }, { $setOnInsert: { _id: guildId } }, { upsert: true }),
 
-	setServerConfig: (
-		guildId: string,
-		channelId: string,
-		configuredBy: string,
-		roleId?: string | null,
-	) =>
+	setServerConfig: (guildId: string, channelId: string, roleId?: string | null) =>
 		ServerModel.findByIdAndUpdate(
 			guildId,
-			{ $set: { channelId, configuredBy, roleId: roleId ?? null } },
+			{ $set: { trackingChannelId: channelId, trackingRoleId: roleId ?? null } },
 			{ returnDocument: 'after' },
 		),
 
@@ -47,7 +42,6 @@ export const queries = {
 		slug: string,
 		name: string,
 		lastUpdated: Date,
-		addedBy: string,
 		releaseType?: string[],
 		channelId?: string | null,
 		roleId?: string | null,
@@ -58,7 +52,6 @@ export const queries = {
 			slug,
 			name,
 			lastUpdated,
-			addedBy,
 			releaseType,
 			channelId: channelId ?? null,
 			roleId: roleId ?? null,
@@ -69,11 +62,11 @@ export const queries = {
 
 	getPollingProjects: async (supporterOnly?: boolean): Promise<ProjectWithChannel[]> => {
 		const servers = await ServerModel.find({
-			paused: { $ne: true },
-			channelId: { $ne: null },
+			trackingPaused: { $ne: true },
+			trackingChannelId: { $ne: null },
 			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
 		})
-			.select('_id channelId roleId')
+			.select('_id trackingChannelId trackingRoleId')
 			.lean<ServerPollingConfig[]>()
 
 		if (servers.length === 0) {
@@ -91,7 +84,7 @@ export const queries = {
 				return []
 			}
 
-			const channelId = project.channelId ?? config.channelId
+			const channelId = project.channelId ?? config.trackingChannelId
 			if (!channelId) {
 				return []
 			}
@@ -100,7 +93,7 @@ export const queries = {
 				{
 					...project,
 					channelId,
-					roleId: project.roleId ?? config.roleId,
+					roleId: project.roleId ?? config.trackingRoleId,
 				},
 			]
 		})
@@ -114,10 +107,10 @@ export const queries = {
 	removeServerConfig: (guildId: string) => ServerModel.findByIdAndDelete(guildId),
 
 	pauseTracking: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $set: { paused: true } }),
+		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: true } }),
 
 	resumeTracking: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $set: { paused: false } }),
+		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: false } }),
 
 	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 
