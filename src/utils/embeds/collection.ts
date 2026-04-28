@@ -1,6 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import type { ModrinthCollection, ModrinthProject } from '../../api/modrinth.js'
+import { toDate } from '../time.js'
 import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
 
@@ -20,7 +21,7 @@ export function buildCollectionCard(
 			{ name: 'Downloads', value: totalDownloads.toLocaleString('en-US'), inline: true },
 		)
 		.setFooter({ text: 'Updated' })
-		.setTimestamp(new Date(collection.updated))
+		.setTimestamp(toDate(collection.updated))
 
 	if (collection.description) embed.setDescription(collection.description)
 	if (collection.icon_url) embed.setThumbnail(collection.icon_url)

@@ -2,6 +2,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 
 import type { ModrinthProject } from '../../api/modrinth.js'
 import { formatTags } from '../loaders.js'
+import { formatDiscordDate } from '../time.js'
 import { type CardPayload, TYPE_LABELS } from './types.js'
 
 export function buildProjectCard(project: ModrinthProject): CardPayload {
@@ -26,9 +27,9 @@ export function buildProjectCard(project: ModrinthProject): CardPayload {
 				value: TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1),
 				inline: true,
 			},
+			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
+			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
-		.setFooter({ text: 'Updated' })
-		.setTimestamp(new Date(project.updated))
 
 	if (loaders.length > 0)
 		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })

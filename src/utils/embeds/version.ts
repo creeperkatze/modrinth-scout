@@ -3,6 +3,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 import type { ModrinthProject, ModrinthVersion } from '../../api/modrinth.js'
 import { emojis } from '../emojis.js'
 import { formatTags } from '../loaders.js'
+import { toDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
 export function buildVersionNotification(
@@ -29,7 +30,7 @@ export function buildVersionNotification(
 		.setTitle(`${project.name} ${version.version_number}`)
 		.setColor(project.color ?? 0x1bd96a)
 		.setFooter({ text: 'Released' })
-		.setTimestamp(new Date(version.date_published))
+		.setTimestamp(toDate(version.date_published))
 
 	if (changelog) embed.setDescription(changelog)
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
