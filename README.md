@@ -14,38 +14,45 @@ Yet another Discord bot for discovering, exploring and tracking projects on Modr
 
 ## ✨ Commands
 
+The `/help` command shows:
+
+**Modrinth Scout**
+
+Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
+
 ### General
 
-| Command | Description |
-|---------|-------------|
-| `/search` | Search for projects on Modrinth with pagination and filters |
-| `/project` | Look up a Modrinth project |
-| `/random` | Returns a random project from Modrinth |
-| `/user` | Look up a Modrinth user |
-| `/organization` | Look up a Modrinth organization |
-| `/collection` | Look up a Modrinth collection |
+- `/search` &middot; Search for projects on Modrinth
+- `/project` &middot; Look up a Modrinth project
+- `/version` &middot; Look up a version of a Modrinth project
+- `/random` &middot; Returns a random project from Modrinth
+- `/user` &middot; Look up a Modrinth user
+- `/organization` &middot; Look up a Modrinth organization
+- `/collection` &middot; Look up a Modrinth collection
 
 ### Tracking
 
-Requires the **Manage Server** permission. Run `/tracking setup` first to configure a notification channel.
+- `/tracking setup` &middot; Set the channel where update notifications will be posted
+- `/tracking add` &middot; Start tracking a Modrinth project
+- `/tracking remove` &middot; Stop tracking a project
+- `/tracking list` &middot; Show all projects tracked in this server
+- `/tracking pause` &middot; Pause tracking notifications without removing tracked projects
+- `/tracking resume` &middot; Resume tracking notifications for this server
+- `/tracking disable` &middot; Disable tracking and remove all tracked projects
 
-| Command | Description |
-|---------|-------------|
-| `/tracking setup` | Set the channel and optional ping role for update notifications |
-| `/tracking add` | Start tracking a project (name, slug, ID, or URL). Optionally filter by release channel (release, beta, alpha) |
-| `/tracking remove` | Stop tracking a project (name, slug, ID, or URL) |
-| `/tracking list` | Show all tracked projects with their release channel filters |
-| `/tracking pause` | Pause notifications without removing tracked projects |
-| `/tracking resume` | Resume tracking notifications |
-| `/tracking disable` | Disable tracking and remove all tracked projects |
+### Support
+
+- `/support info` &middot; Show Ko-fi support info and perks
+- `/support list` &middot; Show public supporters
+- `/support activate` &middot; Activate supporter perks using your Ko-fi account
+- `/support status` &middot; Check the supporter status of this server
 
 ### Miscellaneous
 
-| Command | Description |
-|---------|-------------|
-| `/statistics` | Show Modrinth and bot statistics |
-| `/support` | Support the development of this bot |
-| `/ping` | Check bot latency |
+- `/statistics` &middot; Show Modrinth and bot statistics
+- `/ping` &middot; Replies with Pong!
+
+`v1.0.27` &middot; Made with &hearts; by Creeperkatze
 
 ## 🚀 Self-hosting
 
