@@ -9,7 +9,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { supporterPerksEnabled } from '../config/support.js'
+import { supporterPerksEnabled } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
 import { organizationCommand } from './organization.js'

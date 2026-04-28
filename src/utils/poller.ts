@@ -2,7 +2,7 @@ import type { Client, TextChannel } from 'discord.js'
 
 import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
 import { modrinth } from '../api/modrinth.js'
-import { supporterPerksEnabled } from '../config/support.js'
+import { supporterPerksEnabled } from '../config/supporterPerks.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { buildVersionNotification } from './embeds/index.js'
