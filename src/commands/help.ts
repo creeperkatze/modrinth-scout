@@ -38,13 +38,13 @@ const sections: Section[] = [
 	{
 		heading: 'General',
 		entries: [
-			searchCommand,
 			projectCommand,
 			versionCommand,
 			randomCommand,
 			userCommand,
 			organizationCommand,
 			collectionCommand,
+			searchCommand,
 		].map((c) => ({ name: c.meta.name, description: c.meta.description })),
 	},
 	{
