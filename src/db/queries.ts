@@ -109,7 +109,17 @@ export const queries = {
 
 	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
 
-	removeServerConfig: (guildId: string) => ServerModel.findByIdAndDelete(guildId),
+	clearTrackingConfig: (guildId: string) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{
+				$set: {
+					trackingChannelId: null,
+					trackingRoleId: null,
+					trackingPaused: false,
+				},
+			},
+		),
 
 	pauseTracking: (guildId: string) =>
 		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: true } }),
@@ -150,18 +160,16 @@ export const queries = {
 			return 'already_active'
 		}
 
-		const entry = await SupporterModel.findOne({ discordUserId, usedByGuildId: null })
+		const entry = await SupporterModel.findOneAndUpdate(
+			{ discordUserId, usedByGuildId: null },
+			{ $set: { usedByGuildId: guildId, showPublicly: showPublicly } },
+			{ returnDocument: 'after' },
+		)
 		if (!entry) {
 			const used = await SupporterModel.findOne({ discordUserId })
 			return used ? 'already_used' : 'not_found'
 		}
-		await Promise.all([
-			SupporterModel.updateOne(
-				{ _id: entry._id },
-				{ usedByGuildId: guildId, showPublicly: showPublicly },
-			),
-			ServerModel.updateOne({ _id: guildId }, { $set: { isSupporter: true } }, { upsert: true }),
-		])
+		await ServerModel.updateOne({ _id: guildId }, { $set: { isSupporter: true } }, { upsert: true })
 		return 'ok'
 	},
 }

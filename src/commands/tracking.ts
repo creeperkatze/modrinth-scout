@@ -360,7 +360,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'pause') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config) {
+			if (!config?.trackingChannelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
@@ -385,7 +385,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'resume') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config) {
+			if (!config?.trackingChannelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
@@ -410,7 +410,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'disable') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config) {
+			if (!config?.trackingChannelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
 					flags: 'Ephemeral',
@@ -419,7 +419,7 @@ export const trackingCommand: ChatInputCommand = {
 			}
 			await Promise.all([
 				queries.removeAllTrackedProjects(guildId),
-				queries.removeServerConfig(guildId),
+				queries.clearTrackingConfig(guildId),
 			])
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
 			await interaction.reply({
