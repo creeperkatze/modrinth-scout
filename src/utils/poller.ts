@@ -113,6 +113,8 @@ async function poll(client: Client, supporterOnly?: boolean) {
 
 	const projects = await fetchProjects([...byProject.keys()])
 	let changedProjects = 0
+	let failedProjects = 0
+	let newVersionsFound = 0
 	let notificationsSent = 0
 
 	for (const project of projects) {
@@ -141,6 +143,7 @@ async function poll(client: Client, supporterOnly?: boolean) {
 				log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
 				continue
 			}
+			newVersionsFound += newVersions.length
 
 			const notified = await notifyChannels(client, project, newVersions, info.channels)
 			notificationsSent += notified.length
@@ -155,20 +158,24 @@ async function poll(client: Client, supporterOnly?: boolean) {
 				'Notifications sent',
 			)
 		} catch (err) {
+			failedProjects += 1
 			log.error({ projectId: project.id, err }, 'Failed to check project')
 		}
 	}
 
-	log.debug(
+	log.info(
 		{
 			supporterOnly,
-			rows: rows.length,
-			projects: projects.length,
-			changedProjects,
+			trackedProjects: rows.length,
+			uniqueProjects: byProject.size,
+			checkedProjects: projects.length,
+			updatedProjects: changedProjects,
+			failedProjects,
+			newVersionsFound,
 			notificationsSent,
 			durationMs: Date.now() - startedAt,
 		},
-		'Poll tick complete',
+		'Poll tick completed',
 	)
 }
 
