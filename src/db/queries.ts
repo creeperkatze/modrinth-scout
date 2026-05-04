@@ -28,7 +28,7 @@ export const queries = {
 					trackingRoleId: trackingRoleId ?? null,
 				},
 			},
-			{ returnDocument: 'after' },
+			{ returnDocument: 'after', upsert: true },
 		),
 
 	deleteServer: (guildId: string) =>
