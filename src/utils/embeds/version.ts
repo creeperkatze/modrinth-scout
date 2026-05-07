@@ -14,9 +14,12 @@ export function buildVersionNotification(
 	const type = project.project_types[0] ?? 'project'
 	const projectUrl = `https://modrinth.com/${type}/${project.slug}`
 	const versionUrl = `${projectUrl}/version/${version.id}`
-	const primaryFile = version.files.find((file) => file.primary) ?? version.files[0]
+	const primaryFile =
+		version.files.find((file: { primary: boolean }) => file.primary) ?? version.files[0]
 
-	const loaders = version.loaders.filter((l) => l !== 'minecraft' || version.loaders.length === 1)
+	const loaders = version.loaders.filter(
+		(l: string) => l !== 'minecraft' || version.loaders.length === 1,
+	)
 
 	const MAX_CHANGELOG_LENGTH = 1024
 	let changelog = version.changelog?.trim() ?? null

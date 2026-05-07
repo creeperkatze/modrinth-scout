@@ -1,19 +1,21 @@
 import { AutocompleteInteraction } from 'discord.js'
 
-import { modrinth, ProjectType } from '../api/modrinth.js'
+import { modrinth, type ModrinthSearchHit, ProjectType } from '../api/modrinth.js'
 import { TYPE_LABELS } from './embeds/index.js'
 
-type Hit = { name: string; project_types?: string[]; author: string; downloads: number }
+export type AutocompleteHit = Pick<ModrinthSearchHit, 'title' | 'author' | 'downloads'> & {
+	project_type?: ModrinthSearchHit['project_type'] | ProjectType
+}
 
-function resolveType(hit: Hit): string {
-	const raw = (hit.project_types ?? [])[0] ?? 'project'
+function resolveType(hit: AutocompleteHit): string {
+	const raw = hit.project_type ?? 'project'
 	return TYPE_LABELS[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
-export function formatHitLabels(hits: Hit[]): string[] {
+export function formatHitLabels(hits: AutocompleteHit[]): string[] {
 	const types = hits.map(resolveType)
 	return hits.map((h, i) =>
-		`${h.name} · ${types[i]} · by ${h.author} · ${h.downloads.toLocaleString('en-US')} downloads`.slice(
+		`${h.title} · ${types[i]} · by ${h.author} · ${h.downloads.toLocaleString('en-US')} downloads`.slice(
 			0,
 			100,
 		),
@@ -30,7 +32,9 @@ export async function respondWithProjectSearch(
 			type,
 		})
 		const labels = formatHitLabels(hits)
-		await interaction.respond(hits.map((h, i) => ({ name: labels[i], value: h.project_id })))
+		await interaction.respond(
+			hits.map((h: ModrinthSearchHit, i: number) => ({ name: labels[i], value: h.project_id })),
+		)
 	} catch {
 		await interaction.respond([])
 	}

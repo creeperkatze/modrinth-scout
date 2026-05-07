@@ -1,5 +1,7 @@
 import { createRequire } from 'node:module'
 
+import { GenericModrinthClient } from '@modrinth/api-client'
+
 import { createModuleLogger } from '../utils/logger.js'
 
 const require = createRequire(import.meta.url)
@@ -7,43 +9,20 @@ const { version } = require('../../package.json') as { version: string }
 
 const log = createModuleLogger('api')
 
-const BASE_URL = 'https://api.modrinth.com/v3'
 const USER_AGENT = `creeperkatze/modrinth-scout/${version} (contact@creeperkatze.dev)`
 
-export interface ModrinthProjectLink {
-	platform: string
-	donation: boolean
-	url: string
-}
+const client = new GenericModrinthClient({
+	userAgent: USER_AGENT,
+})
 
-export interface ModrinthProject {
-	id: string
-	slug: string
-	name: string
-	summary: string
-	project_types: string[]
-	icon_url: string | null
-	color: number | null
-	downloads: number
-	followers: number
-	categories: string[]
-	additional_categories?: string[]
-	game_versions?: string[]
-	loaders?: string[]
-	updated: string
-	published: string
-	link_urls: Record<string, ModrinthProjectLink>
-}
-
-export interface ModrinthUser {
-	id: string
-	username: string
-	name: string | null
-	bio: string | null
-	avatar_url: string | null
-	created: string
-	role: string
-}
+export type ModrinthProject = Awaited<ReturnType<typeof client.labrinth.projects_v3.get>>
+export type ModrinthProjectLink = ModrinthProject['link_urls'][string]
+export type ModrinthUser = Awaited<ReturnType<typeof client.labrinth.users_v2.get>>
+export type ModrinthOrganization = Awaited<ReturnType<typeof client.labrinth.organizations_v3.get>>
+export type ModrinthCollection = Awaited<ReturnType<typeof client.labrinth.collections.get>>
+export type ModrinthVersion = Awaited<ReturnType<typeof client.labrinth.versions_v3.getVersion>>
+export type ModrinthSearchResponse = Awaited<ReturnType<typeof client.labrinth.projects_v2.search>>
+export type ModrinthSearchHit = ModrinthSearchResponse['hits'][number]
 
 const CACHE_TTL = 10 * 60 * 1000
 
@@ -59,99 +38,42 @@ setInterval(
 	10 * 60 * 1000,
 ).unref()
 
-async function get<T>(path: string, ttl = CACHE_TTL): Promise<T> {
+async function get<T>(path: string, ttl = CACHE_TTL, params?: Record<string, unknown>): Promise<T> {
+	const cacheKey = params ? `${path}?${JSON.stringify(params)}` : path
+
 	if (ttl > 0) {
-		const entry = cache.get(path)
+		const entry = cache.get(cacheKey)
 		if (entry && Date.now() < entry.expires) {
-			log.debug({ path, ttlMs: ttl }, 'Cache hit')
+			log.debug({ path, params, ttlMs: ttl }, 'Cache hit')
 			return entry.data as T
 		}
 	}
 
 	const startedAt = Date.now()
-	log.debug({ path, ttlMs: ttl }, 'Fetching from API')
-	const res = await fetch(`${BASE_URL}${path}`, {
-		headers: { 'User-Agent': USER_AGENT },
-	})
-	if (!res.ok) {
+	log.debug({ path, params, ttlMs: ttl }, 'Fetching from API')
+	try {
+		const data = await client.request<T>(path, {
+			api: 'labrinth',
+			version: 3,
+			method: 'GET',
+			params,
+		})
+		log.debug({ path, durationMs: Date.now() - startedAt }, 'API response received')
+
+		if (ttl > 0) cache.set(cacheKey, { data, expires: Date.now() + ttl })
+		return data
+	} catch (error) {
 		log.warn(
 			{
 				path,
-				status: res.status,
-				statusText: res.statusText,
+				params,
+				error,
 				durationMs: Date.now() - startedAt,
 			},
 			'Modrinth API error',
 		)
-		throw new Error(`Modrinth API error: ${res.status} ${res.statusText}`)
+		throw error
 	}
-	const data = (await res.json()) as T
-	log.debug({ path, durationMs: Date.now() - startedAt }, 'API response received')
-
-	if (ttl > 0) cache.set(path, { data, expires: Date.now() + ttl })
-	return data
-}
-
-export interface ModrinthSearchHit {
-	project_id: string
-	slug: string
-	name: string
-	summary: string
-	project_types?: string[]
-	icon_url: string | null
-	color: number | null
-	downloads: number
-	follows: number
-	author: string
-	categories: string[]
-}
-
-export interface ModrinthSearchResponse {
-	hits: ModrinthSearchHit[]
-	total_hits: number
-}
-
-export interface ModrinthOrganization {
-	id: string
-	slug: string
-	name: string
-	description: string
-	icon_url: string | null
-	color: number | null
-}
-
-export interface ModrinthCollection {
-	id: string
-	user: string
-	name: string
-	description: string | null
-	icon_url: string | null
-	color: number | null
-	status: string
-	created: string
-	updated: string
-	projects: string[]
-}
-
-export interface ModrinthVersion {
-	id: string
-	project_id: string
-	author_id: string
-	name: string
-	version_number: string
-	changelog: string | null
-	date_published: string
-	downloads: number
-	version_type: 'release' | 'beta' | 'alpha'
-	status: string
-	game_versions: string[]
-	loaders: string[]
-	files: {
-		url: string
-		filename: string
-		primary: boolean
-		size: number
-	}[]
 }
 
 export interface ModrinthStatistics {
@@ -192,51 +114,55 @@ export type SearchIndex = 'relevance' | 'downloads' | 'follows' | 'newest' | 'up
 
 export const modrinth = {
 	randomProject: (type?: ProjectType) => {
-		const params = new URLSearchParams({
+		const params: Record<string, string> = {
 			count: '1',
 			t: String(Date.now()),
-		})
-		if (type) params.set('facets', JSON.stringify([[`project_types:${type}`]]))
-		return get<ModrinthProject[]>(`/projects_random?${params}`, 0).then(([project]) => project)
+		}
+		if (type) params.facets = JSON.stringify([[`project_types:${type}`]])
+		return get<ModrinthProject[]>('/projects_random', 0, params).then(([project]) => project)
 	},
 
 	search: (
 		query: string,
 		options?: { type?: ProjectType; index?: SearchIndex; limit?: number; offset?: number },
 	) => {
-		const params = new URLSearchParams({
+		const params: Parameters<typeof client.labrinth.projects_v2.search>[0] = {
 			query,
-			limit: String(options?.limit ?? 5),
+			limit: options?.limit ?? 5,
 			index: options?.index ?? 'relevance',
-			offset: String(options?.offset ?? 0),
-		})
-		if (options?.type) params.set('facets', JSON.stringify([[`project_types:${options.type}`]]))
-		return get<ModrinthSearchResponse>(`/search?${params}`)
+			offset: options?.offset ?? 0,
+		}
+		if (options?.type) params.facets = [[`project_type:${options.type}`]]
+		return client.labrinth.projects_v2.search(params)
 	},
 
-	getProject: (idOrSlug: string) => get<ModrinthProject>(`/project/${idOrSlug}`),
+	getProject: (idOrSlug: string) =>
+		client.labrinth.projects_v3.get(idOrSlug) as Promise<ModrinthProject>,
 
-	getUser: (idOrUsername: string) => get<ModrinthUser>(`/user/${idOrUsername}`),
+	getUser: (idOrUsername: string) =>
+		client.labrinth.users_v2.get(idOrUsername) as Promise<ModrinthUser>,
 
 	getUserProjects: (idOrUsername: string) =>
 		get<ModrinthProject[]>(`/user/${idOrUsername}/projects`),
 
-	getOrganization: (idOrSlug: string) => get<ModrinthOrganization>(`/organization/${idOrSlug}`),
+	getOrganization: (idOrSlug: string) =>
+		client.labrinth.organizations_v3.get(idOrSlug) as Promise<ModrinthOrganization>,
 
 	getOrganizationProjects: (idOrSlug: string) =>
-		get<ModrinthProject[]>(`/organization/${idOrSlug}/projects`),
+		client.labrinth.organizations_v3.getProjects(idOrSlug) as Promise<ModrinthProject[]>,
 
-	getCollection: (id: string) => get<ModrinthCollection>(`/collection/${id}`),
+	getCollection: (id: string) => client.labrinth.collections.get(id) as Promise<ModrinthCollection>,
 
 	getProjects: (ids: string[], ttl = CACHE_TTL) =>
 		ids.length === 0
 			? Promise.resolve([] as ModrinthProject[])
-			: get<ModrinthProject[]>(`/projects?ids=${encodeURIComponent(JSON.stringify(ids))}`, ttl),
+			: get<ModrinthProject[]>('/projects', ttl, { ids: JSON.stringify(ids) }),
 
 	getProjectVersions: (idOrSlug: string) =>
-		get<ModrinthVersion[]>(`/project/${idOrSlug}/version`, 0),
+		client.labrinth.versions_v3.getProjectVersions(idOrSlug) as Promise<ModrinthVersion[]>,
 
-	getVersion: (id: string) => get<ModrinthVersion>(`/version/${id}`, 0),
+	getVersion: (id: string) =>
+		client.labrinth.versions_v3.getVersion(id) as Promise<ModrinthVersion>,
 
 	getStatistics: () => get<ModrinthStatistics>('/statistics'),
 }

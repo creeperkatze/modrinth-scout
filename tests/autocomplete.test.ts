@@ -1,43 +1,41 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatHitLabels } from '../src/utils/autocomplete.js'
+import { type AutocompleteHit, formatHitLabels } from '../src/utils/autocomplete.js'
 
-type Hit = { name: string; project_types?: string[]; author: string; downloads: number }
-
-const hit = (overrides: Partial<Hit> = {}): Hit => ({
-	name: 'Sodium',
-	project_types: ['mod'],
+const hit = (overrides: Partial<AutocompleteHit> = {}): AutocompleteHit => ({
+	title: 'Sodium',
+	project_type: 'mod',
 	author: 'JellySquid3',
 	downloads: 1_234_567,
 	...overrides,
 })
 
 describe('formatHitLabels', () => {
-	it('formats label with name, type, author, and downloads', () => {
+	it('formats label with title, type, author, and downloads', () => {
 		expect(formatHitLabels([hit()])[0]).toBe('Sodium · Mod · by JellySquid3 · 1,234,567 downloads')
 	})
 
 	it('maps minecraft_java_server to Server', () => {
-		expect(formatHitLabels([hit({ project_types: ['minecraft_java_server'] })])[0]).toContain(
+		expect(formatHitLabels([hit({ project_type: 'minecraft_java_server' })])[0]).toContain(
 			'· Server ·',
 		)
 	})
 
 	it('capitalizes unknown project types', () => {
-		expect(formatHitLabels([hit({ project_types: ['shader'] })])[0]).toContain('· Shader ·')
+		expect(formatHitLabels([hit({ project_type: 'shader' })])[0]).toContain('· Shader ·')
 	})
 
-	it('falls back to Project when project_types is missing', () => {
-		expect(formatHitLabels([hit({ project_types: undefined })])[0]).toContain('· Project ·')
+	it('falls back to Project when project_type is missing', () => {
+		expect(formatHitLabels([hit({ project_type: undefined })])[0]).toContain('· Project ·')
 	})
 
 	it('truncates label to 100 characters', () => {
-		const long = hit({ name: 'A'.repeat(100) })
+		const long = hit({ title: 'A'.repeat(100) })
 		expect(formatHitLabels([long])[0].length).toBeLessThanOrEqual(100)
 	})
 
 	it('returns one label per hit', () => {
-		const hits = [hit({ name: 'Sodium' }), hit({ name: 'Iris' })]
+		const hits = [hit({ title: 'Sodium' }), hit({ title: 'Iris' })]
 		const labels = formatHitLabels(hits)
 		expect(labels).toHaveLength(2)
 		expect(labels[0]).toContain('Sodium')

@@ -14,7 +14,7 @@ export function buildProjectCard(project: ModrinthProject): CardPayload {
 	const versionsText =
 		formatTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
 	const rawLoaders = project.loaders ?? []
-	const loaders = rawLoaders.filter((l) => l !== 'minecraft' || rawLoaders.length === 1)
+	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
 
 	const embed = new EmbedBuilder()
 		.setTitle(project.name)

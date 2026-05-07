@@ -7,6 +7,7 @@ import {
 	StringSelectMenuBuilder,
 } from 'discord.js'
 
+import type { ModrinthSearchHit } from '../api/modrinth.js'
 import { modrinth, PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, TYPE_LABELS } from '../utils/embeds/index.js'
@@ -54,11 +55,12 @@ export async function buildSearchPayload(
 
 	const header = `🔎 Results for "${query}", ${total_hits.toLocaleString('en-US')} total results`
 
-	const resultEmbeds = hits.map((hit) => {
-		const rawType = (hit.project_types ?? [])[0] ?? 'project'
+	const resultEmbeds = hits.map((hit: ModrinthSearchHit) => {
+		const rawType = hit.project_type ?? 'project'
 		const hitType = TYPE_LABELS[rawType] ?? rawType.charAt(0).toUpperCase() + rawType.slice(1)
 		const url = `https://modrinth.com/${rawType}/${hit.slug}`
-		const desc = hit.summary.length > 120 ? hit.summary.slice(0, 119) + '…' : hit.summary
+		const desc =
+			hit.description.length > 120 ? hit.description.slice(0, 119) + '...' : hit.description
 		const downloads = hit.downloads.toLocaleString('en-US', {
 			notation: 'compact',
 			maximumFractionDigits: 1,
@@ -71,7 +73,7 @@ export async function buildSearchPayload(
 			.map((t) => `\`${t.charAt(0).toUpperCase() + t.slice(1)}\``)
 			.join(' ')
 		return new EmbedBuilder()
-			.setAuthor({ name: hit.name, iconURL: hit.icon_url ?? undefined, url })
+			.setAuthor({ name: hit.title, iconURL: hit.icon_url ?? undefined, url })
 			.setDescription(`by **${hit.author}**\n\n${desc}\n⬇️ ${downloads} · ♥️ ${follows} · ${tags}`)
 			.setColor(hit.color ?? 0x1bd96a)
 	})
@@ -80,8 +82,8 @@ export async function buildSearchPayload(
 		.setCustomId('search_result')
 		.setPlaceholder(`View a project... (Page ${currentPage} / ${totalPages})`)
 		.addOptions(
-			hits.map((hit) => ({
-				label: hit.name.slice(0, 100),
+			hits.map((hit: ModrinthSearchHit) => ({
+				label: hit.title.slice(0, 100),
 				value: `project:${hit.slug}`,
 			})),
 		)
