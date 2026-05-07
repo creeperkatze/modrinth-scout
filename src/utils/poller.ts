@@ -74,19 +74,15 @@ async function notifyChannels(
 			continue
 		}
 
-		const pages: ModrinthVersion[][] = []
-		for (let i = 0; i < filtered.length; i += 10) pages.push(filtered.slice(i, i + 10))
-		const versionLabel = filtered.length > 1 ? 'View Newest Version' : 'View Version'
-		const { components } = buildVersionNotification(project, filtered.at(-1)!, versionLabel)
 		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
 
-		for (let i = 0; i < pages.length; i++) {
-			const embeds = pages[i].flatMap((v) => buildVersionNotification(project, v).embeds)
-			const isLast = i === pages.length - 1
+		for (let i = 0; i < filtered.length; i++) {
+			const payload = buildVersionNotification(project, filtered[i])
+			const isFirst = i === 0
 			await channel.send({
-				content: isLast ? mention : undefined,
-				embeds,
-				components: isLast ? components : [],
+				content: isFirst ? mention : undefined,
+				embeds: payload.embeds,
+				components: payload.components,
 			})
 		}
 		notified.push(channelId)
