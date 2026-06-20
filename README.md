@@ -3,6 +3,7 @@
 Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main)
+![Codecov](https://img.shields.io/codecov/c/github/creeperkatze/modrinth-scout)
 ![GitHub Issues](https://img.shields.io/github/issues/creeperkatze/modrinth-scout)
 ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/creeperkatze/modrinth-scout)
 ![GitHub Repo stars](https://img.shields.io/github/stars/creeperkatze/modrinth-scout?style=flat)
@@ -119,8 +120,12 @@ Runs the bot with `tsx` in watch mode, no build step needed. Deploy commands to 
 DEV_GUILD_ID=your_guild_id
 ```
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are always welcome!
 
-Please ensure you run `pnpm lint` before opening a pull request.
+Please ensure you run `pnpm lint:fix` before opening a pull request.
+
+## 📜 License
+
+AGPL-3.0
