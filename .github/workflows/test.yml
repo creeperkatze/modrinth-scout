@@ -52,3 +52,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test
+
+      - run: pnpm test:coverage
+
+      - uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
