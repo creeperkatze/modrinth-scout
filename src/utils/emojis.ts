@@ -25,6 +25,8 @@ const LOADER_NAMES = [
 	'rift',
 ]
 
+export const LOADERS = new Set(LOADER_NAMES)
+
 const CHANNEL_NAMES = ['release', 'beta', 'alpha']
 
 const PROJECT_TYPE_NAMES = [
