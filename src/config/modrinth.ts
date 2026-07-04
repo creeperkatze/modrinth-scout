@@ -1,11 +1,5 @@
 export type ProjectType =
-	| 'mod'
-	| 'resourcepack'
-	| 'datapack'
-	| 'shader'
-	| 'modpack'
-	| 'plugin'
-	| 'minecraft_java_server'
+	'mod' | 'resourcepack' | 'datapack' | 'shader' | 'modpack' | 'plugin' | 'minecraft_java_server'
 
 export const PROJECT_TYPES: { name: string; value: ProjectType }[] = [
 	{ name: 'Mod', value: 'mod' },

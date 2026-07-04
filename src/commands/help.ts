@@ -118,15 +118,15 @@ export const helpCommand: ChatInputCommand = {
 		buttons.push(
 			new ButtonBuilder()
 
-				.setLabel('Star on GitHub')
-				.setEmoji('⭐')
-				.setURL(GITHUB_URL)
+				.setLabel('Privacy')
+				.setEmoji('🔒')
+				.setURL(PRIVACY_URL)
 				.setStyle(ButtonStyle.Link),
 			new ButtonBuilder()
 
-				.setLabel('Privacy Policy')
-				.setEmoji('🔒')
-				.setURL(PRIVACY_URL)
+				.setLabel('Star on GitHub')
+				.setEmoji('⭐')
+				.setURL(GITHUB_URL)
 				.setStyle(ButtonStyle.Link),
 			new ButtonBuilder()
 
