@@ -27,6 +27,16 @@ const LOADER_NAMES = [
 
 const CHANNEL_NAMES = ['release', 'beta', 'alpha']
 
+const PROJECT_TYPE_NAMES = [
+	'mod',
+	'resourcepack',
+	'datapack',
+	'shader',
+	'modpack',
+	'plugin',
+	'minecraft_java_server',
+]
+
 export const emojis: Record<string, string> = {}
 
 export async function syncEmojis(client: Client): Promise<void> {
@@ -42,6 +52,11 @@ export async function syncEmojis(client: Client): Promise<void> {
 			key: n,
 			emojiName: n,
 			file: join(__dirname, `../assets/channels/${n}.png`),
+		})),
+		...PROJECT_TYPE_NAMES.map((n) => ({
+			key: n,
+			emojiName: n,
+			file: join(__dirname, `../assets/project-types/${n}.png`),
 		})),
 	]
 

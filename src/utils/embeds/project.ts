@@ -3,7 +3,8 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 
 import { formatTags } from '../loaders.js'
 import { formatDiscordDate, toDate } from '../time.js'
-import { type CardPayload, TYPE_LABELS } from './types.js'
+import { typeLabel } from './helpers.js'
+import type { CardPayload } from './types.js'
 
 export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPayload {
 	const type = project.project_types[0] ?? 'project'
@@ -22,11 +23,7 @@ export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPay
 		.addFields(
 			{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true },
 			{ name: 'Followers', value: project.followers.toLocaleString('en-US'), inline: true },
-			{
-				name: 'Type',
-				value: TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1),
-				inline: true,
-			},
+			{ name: 'Type', value: typeLabel(type), inline: true },
 			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
 			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
