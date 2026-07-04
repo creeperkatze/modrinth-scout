@@ -1,6 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js'
 
-import { PROJECT_TYPES } from '../config/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
@@ -17,12 +16,6 @@ export const projectCommand: ChatInputCommand = {
 				.setDescription('Project name, slug, ID, or URL')
 				.setRequired(true)
 				.setAutocomplete(true),
-		)
-		.addStringOption((o) =>
-			o
-				.setName('type')
-				.setDescription('Filter by project type')
-				.addChoices(PROJECT_TYPES.map((t) => ({ name: t.name, value: t.value }))),
 		),
 	meta: {
 		name: 'project',
