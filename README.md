@@ -1,6 +1,6 @@
 # <img src=".github/assets/logo.png" alt="Modrinth Scout" height="100">
 
-Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
+A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main)
 ![Codecov](https://img.shields.io/codecov/c/github/creeperkatze/modrinth-scout)
@@ -19,7 +19,7 @@ The `/help` command shows:
 
 **Modrinth Scout**
 
-Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
+A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ### General
 
