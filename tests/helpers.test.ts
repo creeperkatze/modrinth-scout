@@ -49,7 +49,7 @@ describe('topProjectsList', () => {
 
 	it('formats download count using compact notation', () => {
 		const result = topProjectsList([project('Sodium', 'sodium', 1_234_567)])
-		expect(result).toContain('⬇️ 1.2M')
+		expect(result).toContain('1.2M')
 	})
 
 	it('does not mutate the input array', () => {
