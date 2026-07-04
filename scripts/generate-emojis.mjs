@@ -8,9 +8,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_LOADERS = join(__dirname, '..', 'src', 'assets', 'loaders')
 const OUT_CHANNELS = join(__dirname, '..', 'src', 'assets', 'channels')
 const OUT_PROJECT_TYPES = join(__dirname, '..', 'src', 'assets', 'project-types')
+const OUT_STATS = join(__dirname, '..', 'src', 'assets', 'stats')
 mkdirSync(OUT_LOADERS, { recursive: true })
 mkdirSync(OUT_CHANNELS, { recursive: true })
 mkdirSync(OUT_PROJECT_TYPES, { recursive: true })
+mkdirSync(OUT_STATS, { recursive: true })
 
 const svgs = {
 	fabric: `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" clip-rule="evenodd" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path fill="none" stroke="currentColor" stroke-width="23" d="m820 761-85.6-87.6c-4.6-4.7-10.4-9.6-25.9 1-19.9 13.6-8.4 21.9-5.2 25.4 8.2 9 84.1 89 97.2 104 2.5 2.8-20.3-22.5-6.5-39.7 5.4-7 18-12 26-3 6.5 7.3 10.7 18-3.4 29.7-24.7 20.4-102 82.4-127 103-12.5 10.3-28.5 2.3-35.8-6-7.5-8.9-30.6-34.6-51.3-58.2-5.5-6.3-4.1-19.6 2.3-25 35-30.3 91.9-73.8 111.9-90.8" transform="matrix(.08671 0 0 .0867 -49.8 -56)"/></svg>`,
@@ -56,6 +58,10 @@ const svgs = {
 	plugin: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-plug" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"></path></svg>`,
 
 	minecraft_java_server: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-hard-drive" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11M6 16h.01M10 16h.01"></path></svg>`,
+
+	downloads: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4"></path></svg>`,
+
+	follows: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0"></path></svg>`,
 }
 
 // Light-theme colors from Modrinth's variables.scss; undefined loaders fall back to white
@@ -89,6 +95,7 @@ const projectTypes = new Set([
 	'plugin',
 	'minecraft_java_server',
 ])
+const stats = new Set(['downloads', 'follows'])
 
 for (const [name, svg] of Object.entries(svgs)) {
 	const color = colors[name] ?? '#ffffff'
@@ -99,7 +106,9 @@ for (const [name, svg] of Object.entries(svgs)) {
 		? OUT_CHANNELS
 		: projectTypes.has(name)
 			? OUT_PROJECT_TYPES
-			: OUT_LOADERS
+			: stats.has(name)
+				? OUT_STATS
+				: OUT_LOADERS
 	const out = join(dir, `${name}.png`)
 	writeFileSync(out, png)
 	console.log(`✓ ${name}.png  (${color})`)

@@ -37,6 +37,8 @@ const PROJECT_TYPE_NAMES = [
 	'minecraft_java_server',
 ]
 
+const STAT_NAMES = ['downloads', 'follows']
+
 export const emojis: Record<string, string> = {}
 
 export async function syncEmojis(client: Client): Promise<void> {
@@ -57,6 +59,11 @@ export async function syncEmojis(client: Client): Promise<void> {
 			key: n,
 			emojiName: n,
 			file: join(__dirname, `../assets/project-types/${n}.png`),
+		})),
+		...STAT_NAMES.map((n) => ({
+			key: n,
+			emojiName: n,
+			file: join(__dirname, `../assets/stats/${n}.png`),
 		})),
 	]
 

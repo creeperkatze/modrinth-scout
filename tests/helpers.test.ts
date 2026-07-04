@@ -32,9 +32,9 @@ describe('topProjectsList', () => {
 		expect(lines[1]).toContain('Beta')
 	})
 
-	it('limits output to 5 projects', () => {
-		const projects = Array.from({ length: 10 }, (_, i) => project(`P${i}`, `p${i}`, i * 100))
-		expect(topProjectsList(projects).split('\n')).toHaveLength(5)
+	it('limits output to 10 projects', () => {
+		const projects = Array.from({ length: 15 }, (_, i) => project(`P${i}`, `p${i}`, i * 100))
+		expect(topProjectsList(projects).split('\n')).toHaveLength(10)
 	})
 
 	it('includes a markdown link with the correct URL', () => {
@@ -47,9 +47,9 @@ describe('topProjectsList', () => {
 		expect(result).toContain('https://modrinth.com/shader/shader-pack')
 	})
 
-	it('formats download count with en-US locale separators', () => {
+	it('formats download count using compact notation', () => {
 		const result = topProjectsList([project('Sodium', 'sodium', 1_234_567)])
-		expect(result).toContain('1,234,567 downloads')
+		expect(result).toContain('⬇️ 1.2M')
 	})
 
 	it('does not mutate the input array', () => {

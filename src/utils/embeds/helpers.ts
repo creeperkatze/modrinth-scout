@@ -3,15 +3,59 @@ import type { Labrinth } from '@modrinth/api-client'
 import { emojis } from '../emojis.js'
 import { TYPE_LABELS } from './types.js'
 
+const MAX_FIELD_LENGTH = 1024
+
 export function topProjectsList(projects: Labrinth.Projects.v3.Project[]): string {
-	return [...projects]
+	const lines = [...projects]
 		.sort((a, b) => b.downloads - a.downloads)
-		.slice(0, 5)
-		.map(
-			(p) =>
-				`[${p.name}](https://modrinth.com/${p.project_types[0]}/${p.slug}) — ${p.downloads.toLocaleString('en-US')} downloads`,
-		)
-		.join('\n')
+		.slice(0, 10)
+		.map((p) => {
+			const type = p.project_types[0] ?? 'project'
+			const emoji = emojis[type]
+			const url = `https://modrinth.com/${type}/${p.slug}`
+			const downloads = p.downloads.toLocaleString('en-US', {
+				notation: 'compact',
+				maximumFractionDigits: 1,
+			})
+			const followers = p.followers.toLocaleString('en-US', {
+				notation: 'compact',
+				maximumFractionDigits: 1,
+			})
+			const rawLoaders = p.loaders ?? []
+			const loaders = rawLoaders.filter((l) => l !== 'minecraft' || rawLoaders.length === 1)
+			const loaderEmojis = loaders
+				.map((l) => emojis[l])
+				.filter(Boolean)
+				.join(' ')
+			const downloadsEmoji = emojis['downloads']
+			const followsEmoji = emojis['follows']
+			const prefix = emoji ? `${emoji} ` : ''
+			const suffix = loaderEmojis ? ` · ${loaderEmojis}` : ''
+			return `${prefix}[${p.name}](${url}) · ${downloadsEmoji} ${downloads} · ${followsEmoji} ${followers}${suffix}`
+		})
+
+	const shown: string[] = []
+	let length = 0
+	for (const line of lines) {
+		const nextLength = length === 0 ? line.length : length + 1 + line.length
+		if (nextLength > MAX_FIELD_LENGTH) break
+		shown.push(line)
+		length = nextLength
+	}
+
+	let note = `*(+${lines.length - shown.length} more)*`
+	while (
+		shown.length > 0 &&
+		lines.length - shown.length > 0 &&
+		length + 1 + note.length > MAX_FIELD_LENGTH
+	) {
+		length -= shown.pop()!.length + 1
+		note = `*(+${lines.length - shown.length} more)*`
+	}
+	if (lines.length - shown.length > 0 && length + 1 + note.length <= MAX_FIELD_LENGTH)
+		shown.push(note)
+
+	return shown.join('\n')
 }
 
 export function typeLabel(type: string): string {
