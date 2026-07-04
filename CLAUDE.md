@@ -14,7 +14,7 @@ pnpm test # Run tests with vitest
 pnpm test:coverage # Run tests with coverage
 ```
 
-Deploy commands to a dev guild for instant slash-command updates by setting `DEV_GUILD_ID` in `.env`.
+Deploy commands to a dev guild for instant slash-command updates by setting `DISCORD_GUILD_ID` in `.env`.
 
 ## Architecture
 

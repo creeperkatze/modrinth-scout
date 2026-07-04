@@ -53,8 +53,6 @@ Yet another Discord bot for discovering, exploring and tracking projects on Modr
 - `/statistics` · Show Modrinth and bot statistics
 - `/ping` · Replies with Pong!
 
-`v1.0.27` · Made with &hearts; by Creeperkatze
-
 ## 🚀 Self-hosting
 
 The recommended deployment is Docker Compose with the published container image on GHCR.
@@ -117,7 +115,7 @@ pnpm dev
 Runs the bot with `tsx` in watch mode, no build step needed. Deploy commands to a dev guild for instant updates:
 
 ```bash
-DEV_GUILD_ID=your_guild_id
+DISCORD_GUILD_ID=your_guild_id
 ```
 
 ## 🤝 Contributing
