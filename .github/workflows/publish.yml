@@ -33,15 +33,6 @@ jobs:
                 type=semver,pattern={{version}}
                 type=semver,pattern={{major}}.{{minor}}
                 type=semver,pattern={{major}}
-            labels: |
-                org.opencontainers.image.title=modrinth-scout
-                org.opencontainers.image.description=Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
-                org.opencontainers.image.licenses=AGPL-3.0-only
-                org.opencontainers.image.source=https://github.com/creeperkatze/modrinth-scout
-            annotations: |
-                org.opencontainers.image.title=modrinth-scout
-                org.opencontainers.image.description=Yet another Discord bot for discovering, exploring and tracking projects on Modrinth.
-                org.opencontainers.image.licenses=AGPL-3.0-only
       - name: 🔑 Login to GitHub Packages
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
