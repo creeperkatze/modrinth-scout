@@ -1,9 +1,9 @@
 import { ChannelType, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { error, success } from '../utils/embeds/index.js'
 import { logger } from '../utils/logger.js'
@@ -204,7 +204,7 @@ export const trackingCommand: ChatInputCommand = {
 
 			let project
 			try {
-				project = await modrinth.getProject(input)
+				project = await modrinthClient.labrinth.projects_v3.get(input)
 			} catch {
 				await interaction.editReply({ embeds: [error(`No project found for \`${input}\`.`)] })
 				return
@@ -226,7 +226,7 @@ export const trackingCommand: ChatInputCommand = {
 			await queries.addTrackedProject(
 				guildId,
 				project.id,
-				project.slug,
+				project.slug ?? project.id,
 				project.name,
 				new Date(project.updated),
 				releaseType,
@@ -263,8 +263,8 @@ export const trackingCommand: ChatInputCommand = {
 			const parsed = parseModrinthUrl(raw)
 			const projectId =
 				parsed?.type === 'project'
-					? await modrinth
-							.getProject(parsed.slug)
+					? await modrinthClient.labrinth.projects_v3
+							.get(parsed.slug)
 							.then((project) => project.id)
 							.catch(async () => {
 								await interaction.reply({
@@ -273,8 +273,8 @@ export const trackingCommand: ChatInputCommand = {
 								})
 								return null
 							})
-					: await modrinth
-							.getProject(raw)
+					: await modrinthClient.labrinth.projects_v3
+							.get(raw)
 							.then((project) => project.id)
 							.catch(() => raw)
 

@@ -1,10 +1,10 @@
+import type { Labrinth } from '@modrinth/api-client'
 import type { Client, TextChannel } from 'discord.js'
 
-import type { ModrinthProject, ModrinthVersion } from '../api/modrinth.js'
-import { modrinth } from '../api/modrinth.js'
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
+import { modrinthClient } from './api.js'
 import { buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 
@@ -44,12 +44,14 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 	return map
 }
 
-async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
+async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Project[]> {
 	// Modrinth's endpoint caps at ~810 IDs per request, 512 keeps us safe
 	const chunks: string[][] = []
 	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
 	const t0 = Date.now()
-	const projects = (await Promise.all(chunks.map((chunk) => modrinth.getProjects(chunk, 0)))).flat()
+	const projects = (
+		await Promise.all(chunks.map((chunk) => modrinthClient.labrinth.projects_v3.getMultiple(chunk)))
+	).flat()
 	log.debug(
 		{ durationMs: Date.now() - t0, returned: projects.length, chunks: chunks.length },
 		'Batch project fetch done',
@@ -59,8 +61,8 @@ async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
 
 async function notifyChannels(
 	client: Client,
-	project: ModrinthProject,
-	newVersions: ModrinthVersion[],
+	project: Labrinth.Projects.v3.Project,
+	newVersions: Labrinth.Versions.v3.Version[],
 	channels: ProjectEntry['channels'],
 ) {
 	const notified: string[] = []
@@ -126,7 +128,7 @@ async function poll(client: Client, supporterOnly?: boolean) {
 			await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
 
 			const t0 = Date.now()
-			const versions = await modrinth.getProjectVersions(project.id)
+			const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
 			log.debug(
 				{ durationMs: Date.now() - t0, slug: project.slug, total: versions.length },
 				'Versions fetched',

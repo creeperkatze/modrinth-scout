@@ -1,6 +1,6 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { describe, expect, it } from 'vitest'
 
-import type { ModrinthProject } from '../src/api/modrinth.js'
 import { topProjectsList } from '../src/utils/embeds/helpers.js'
 
 const project = (
@@ -8,7 +8,7 @@ const project = (
 	slug: string,
 	downloads: number,
 	project_types = ['mod'],
-): ModrinthProject => ({
+): Labrinth.Projects.v3.Project => ({
 	id: slug,
 	slug,
 	name,

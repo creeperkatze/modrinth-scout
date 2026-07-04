@@ -1,14 +1,14 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import type { ModrinthProject } from '../../api/modrinth.js'
 import { formatTags } from '../loaders.js'
 import { formatDiscordDate, toDate } from '../time.js'
 import { type CardPayload, TYPE_LABELS } from './types.js'
 
-export function buildProjectCard(project: ModrinthProject): CardPayload {
+export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPayload {
 	const type = project.project_types[0] ?? 'project'
 	const url = `https://modrinth.com/${type}/${project.slug}`
-	const gameVersions = project.game_versions ?? []
+	const gameVersions = (project.game_versions as string[] | undefined) ?? []
 	const recentVersions = gameVersions.slice(-3).reverse()
 	const extraVersions = gameVersions.length - recentVersions.length
 	const versionsText =

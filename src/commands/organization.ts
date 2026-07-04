@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
 import { buildOrganizationCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
@@ -28,8 +28,8 @@ export const organizationCommand: ChatInputCommand = {
 		let org, projects
 		try {
 			;[org, projects] = await Promise.all([
-				modrinth.getOrganization(slug),
-				modrinth.getOrganizationProjects(slug),
+				modrinthClient.labrinth.organizations_v3.get(slug),
+				modrinthClient.labrinth.organizations_v3.getProjects(slug),
 			])
 		} catch {
 			await interaction.editReply({ embeds: [error(`No organization found for \`${slug}\`.`)] })

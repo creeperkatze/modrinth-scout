@@ -15,7 +15,6 @@ import {
 	TextInputStyle,
 } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import { HELP_SUPPORT_BUTTON_ID } from '../commands/help.js'
 import {
 	buildSearchId,
@@ -25,6 +24,7 @@ import {
 } from '../commands/search.js'
 import { buildSupportInfoReply } from '../commands/support.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from './api.js'
 import { buildProjectCard } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 
@@ -55,7 +55,7 @@ export function createCommandRegistry(
 	) {
 		await interaction.deferReply()
 		try {
-			const project = await modrinth.getProject(id)
+			const project = await modrinthClient.labrinth.projects_v3.get(id)
 			await interaction.editReply(buildProjectCard(project))
 		} catch {
 			await interaction.editReply({ content: `No project found for \`${id}\`.` })

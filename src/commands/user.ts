@@ -1,7 +1,8 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
 import { buildUserCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
@@ -28,8 +29,12 @@ export const userCommand: ChatInputCommand = {
 		let user, projects
 		try {
 			;[user, projects] = await Promise.all([
-				modrinth.getUser(username),
-				modrinth.getUserProjects(username),
+				modrinthClient.labrinth.users_v2.get(username),
+				modrinthClient.request<Labrinth.Projects.v3.Project[]>(`/user/${username}/projects`, {
+					api: 'labrinth',
+					version: 3,
+					method: 'GET',
+				}),
 			])
 		} catch {
 			await interaction.editReply({ embeds: [error(`No user found for \`${username}\`.`)] })

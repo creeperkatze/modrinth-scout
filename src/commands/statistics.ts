@@ -1,8 +1,15 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import { queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
+
+interface ModrinthStatistics {
+	projects: number
+	versions: number
+	files: number
+	authors: number
+}
 
 export const statisticsCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -18,7 +25,11 @@ export const statisticsCommand: ChatInputCommand = {
 		await interaction.deferReply()
 
 		const [modrinthStats, trackedTotal] = await Promise.all([
-			modrinth.getStatistics(),
+			modrinthClient.request<ModrinthStatistics>('/statistics', {
+				api: 'labrinth',
+				version: 3,
+				method: 'GET',
+			}),
 			queries.countAllTrackedProjects(),
 			queries.countConfiguredServers(),
 		])

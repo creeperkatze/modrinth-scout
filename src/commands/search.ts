@@ -1,3 +1,4 @@
+import type { Labrinth } from '@modrinth/api-client'
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
@@ -7,9 +8,9 @@ import {
 	StringSelectMenuBuilder,
 } from 'discord.js'
 
-import type { ModrinthSearchHit } from '../api/modrinth.js'
-import { modrinth, PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../api/modrinth.js'
+import { PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../config/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
 import { error, TYPE_LABELS } from '../utils/embeds/index.js'
 
 export const SEARCH_LIMIT = 5
@@ -41,11 +42,12 @@ export async function buildSearchPayload(
 	index: SearchIndex | undefined,
 	offset: number,
 ) {
-	const { hits, total_hits } = await modrinth.search(query, {
-		type,
-		index,
+	const { hits, total_hits } = await modrinthClient.labrinth.projects_v2.search({
+		query,
 		limit: SEARCH_LIMIT,
+		index: index ?? 'relevance',
 		offset,
+		facets: type ? [[`project_type:${type}`]] : undefined,
 	})
 
 	if (hits.length === 0) return null
@@ -55,7 +57,7 @@ export async function buildSearchPayload(
 
 	const header = `🔎 Results for "${query}", ${total_hits.toLocaleString('en-US')} total results`
 
-	const resultEmbeds = hits.map((hit: ModrinthSearchHit) => {
+	const resultEmbeds = hits.map((hit: Labrinth.Projects.v2.SearchResultHit) => {
 		const rawType = hit.project_type ?? 'project'
 		const hitType = TYPE_LABELS[rawType] ?? rawType.charAt(0).toUpperCase() + rawType.slice(1)
 		const url = `https://modrinth.com/${rawType}/${hit.slug}`
@@ -82,7 +84,7 @@ export async function buildSearchPayload(
 		.setCustomId('search_result')
 		.setPlaceholder(`View a project... (Page ${currentPage} / ${totalPages})`)
 		.addOptions(
-			hits.map((hit: ModrinthSearchHit) => ({
+			hits.map((hit: Labrinth.Projects.v2.SearchResultHit) => ({
 				label: hit.title.slice(0, 100),
 				value: `project:${hit.slug}`,
 			})),

@@ -1,14 +1,14 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import type { ModrinthProject, ModrinthVersion } from '../../api/modrinth.js'
 import { emojis } from '../emojis.js'
 import { formatTags } from '../loaders.js'
 import { toDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
 export function buildVersionNotification(
-	project: ModrinthProject,
-	version: ModrinthVersion,
+	project: Labrinth.Projects.v3.Project,
+	version: Labrinth.Versions.v3.Version,
 	versionLabel = 'View Version',
 ): CardPayload {
 	const type = project.project_types[0] ?? 'project'

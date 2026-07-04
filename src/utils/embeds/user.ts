@@ -1,11 +1,14 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import type { ModrinthProject, ModrinthUser } from '../../api/modrinth.js'
 import { formatDiscordDate } from '../time.js'
 import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
 
-export function buildUserCard(user: ModrinthUser, projects: ModrinthProject[]): CardPayload {
+export function buildUserCard(
+	user: Labrinth.Users.v2.User,
+	projects: Labrinth.Projects.v3.Project[],
+): CardPayload {
 	const profileUrl = `https://modrinth.com/user/${user.username}`
 	const totalDownloads = projects.reduce((sum, p) => sum + p.downloads, 0)
 	const topProjects = topProjectsList(projects)

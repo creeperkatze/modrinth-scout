@@ -1,10 +1,15 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { AutocompleteInteraction } from 'discord.js'
 
-import { modrinth, type ModrinthSearchHit, ProjectType } from '../api/modrinth.js'
+import { ProjectType } from '../config/modrinth.js'
+import { modrinthClient } from './api.js'
 import { TYPE_LABELS } from './embeds/index.js'
 
-export type AutocompleteHit = Pick<ModrinthSearchHit, 'title' | 'author' | 'downloads'> & {
-	project_type?: ModrinthSearchHit['project_type'] | ProjectType
+export type AutocompleteHit = Pick<
+	Labrinth.Projects.v2.SearchResultHit,
+	'title' | 'author' | 'downloads'
+> & {
+	project_type?: Labrinth.Projects.v2.SearchResultHit['project_type'] | ProjectType
 }
 
 function resolveType(hit: AutocompleteHit): string {
@@ -27,13 +32,18 @@ export async function respondWithProjectSearch(
 ): Promise<void> {
 	try {
 		const type = (interaction.options.getString('type') ?? undefined) as ProjectType | undefined
-		const { hits } = await modrinth.search(interaction.options.getFocused(), {
+		const { hits } = await modrinthClient.labrinth.projects_v2.search({
+			query: interaction.options.getFocused(),
 			limit: 10,
-			type,
+			index: 'relevance',
+			facets: type ? [[`project_type:${type}`]] : undefined,
 		})
 		const labels = formatHitLabels(hits)
 		await interaction.respond(
-			hits.map((h: ModrinthSearchHit, i: number) => ({ name: labels[i], value: h.project_id })),
+			hits.map((h: Labrinth.Projects.v2.SearchResultHit, i: number) => ({
+				name: labels[i],
+				value: h.project_id,
+			})),
 		)
 	} catch {
 		await interaction.respond([])

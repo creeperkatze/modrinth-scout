@@ -1,7 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js'
 
-import { modrinth } from '../api/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { modrinthClient } from '../utils/api.js'
 import { buildVersionNotification, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
@@ -25,10 +25,12 @@ export const versionCommand: ChatInputCommand = {
 		const parsed = parseModrinthUrl(raw)
 
 		if (parsed?.type === 'version') {
-			const project = await modrinth.getProject(parsed.projectSlug).catch(() => null)
+			const project = await modrinthClient.labrinth.projects_v3
+				.get(parsed.projectSlug)
+				.catch(() => null)
 
 			if (project) {
-				const versions = await modrinth.getProjectVersions(project.id)
+				const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
 				const version = versions.find(
 					(entry) => entry.id === parsed.reference || entry.version_number === parsed.reference,
 				)
@@ -46,8 +48,8 @@ export const versionCommand: ChatInputCommand = {
 		}
 
 		try {
-			const version = await modrinth.getVersion(raw)
-			const project = await modrinth.getProject(version.project_id)
+			const version = await modrinthClient.labrinth.versions_v3.getVersion(raw)
+			const project = await modrinthClient.labrinth.projects_v3.get(version.project_id)
 			await interaction.editReply(buildVersionNotification(project, version))
 			return
 		} catch {

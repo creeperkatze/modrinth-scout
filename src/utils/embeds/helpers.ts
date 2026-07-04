@@ -1,6 +1,6 @@
-import type { ModrinthProject } from '../../api/modrinth.js'
+import type { Labrinth } from '@modrinth/api-client'
 
-export function topProjectsList(projects: ModrinthProject[]): string {
+export function topProjectsList(projects: Labrinth.Projects.v3.Project[]): string {
 	return [...projects]
 		.sort((a, b) => b.downloads - a.downloads)
 		.slice(0, 5)
