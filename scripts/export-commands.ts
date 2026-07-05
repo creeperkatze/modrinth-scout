@@ -1,3 +1,5 @@
+import 'dotenv/config'
+
 import { writeFileSync } from 'node:fs'
 
 import { commands } from '../src/commands/index.js'
