@@ -2,8 +2,6 @@
 
 A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
-[![Discord Bots](https://top.gg/api/widget/1496760658732122152.svg)](https://top.gg/bot/1496760658732122152)
-
 ![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main)
 ![Codecov](https://img.shields.io/codecov/c/github/creeperkatze/modrinth-scout)
 ![GitHub Issues](https://img.shields.io/github/issues/creeperkatze/modrinth-scout)
@@ -11,6 +9,8 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 ![GitHub Repo stars](https://img.shields.io/github/stars/creeperkatze/modrinth-scout?style=flat)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/creeperkatze)
+
+[![Discord Bots](https://top.gg/api/widget/1496760658732122152.svg)](https://top.gg/bot/1496760658732122152)
 
 > [!NOTE]
 > This bot is not associated with or endorsed by Modrinth.
