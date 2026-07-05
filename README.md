@@ -2,11 +2,11 @@
 
 A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
-![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main)
-![Codecov](https://img.shields.io/codecov/c/github/creeperkatze/modrinth-scout)
-![GitHub Issues](https://img.shields.io/github/issues/creeperkatze/modrinth-scout)
-![GitHub Pull Requests](https://img.shields.io/github/issues-pr/creeperkatze/modrinth-scout)
-![GitHub Repo stars](https://img.shields.io/github/stars/creeperkatze/modrinth-scout?style=flat)
+[![GitHub Branch Check Runs](https://img.shields.io/github/check-runs/creeperkatze/modrinth-scout/main)](https://github.com/creeperkatze/modrinth-scout/actions)
+[![Codecov](https://img.shields.io/codecov/c/github/creeperkatze/modrinth-scout)](https://codecov.io/github/creeperkatze/modrinth-scout)
+[![GitHub Issues](https://img.shields.io/github/issues/creeperkatze/modrinth-scout)](https://github.com/creeperkatze/modrinth-scout/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/creeperkatze/modrinth-scout)](https://github.com/creeperkatze/modrinth-scout/pulls)
+[![GitHub Repo stars](https://img.shields.io/github/stars/creeperkatze/modrinth-scout?style=flat)](https://github.com/creeperkatze/modrinth-scout/stargazers)
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/creeperkatze)
 
