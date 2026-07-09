@@ -14,6 +14,7 @@ import {
 import { MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
+import { emojiRefs } from '../utils/emojis.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/icons/kofi.png'), {
@@ -36,7 +37,7 @@ export function buildSupportInfoReply() {
 		.setLabel('Support on Ko-fi')
 		.setURL(KOFI_URL)
 		.setStyle(ButtonStyle.Link)
-		.setEmoji('☕')
+	if (emojiRefs['kofi']) button.setEmoji(emojiRefs['kofi'])
 
 	const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
 

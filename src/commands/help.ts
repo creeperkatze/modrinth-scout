@@ -11,6 +11,7 @@ import {
 
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { emojiRefs } from '../utils/emojis.js'
 import { collectionCommand } from './collection.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
@@ -106,14 +107,19 @@ export const helpCommand: ChatInputCommand = {
 		const buttons: ButtonBuilder[] = []
 
 		if (usesSupporterPerks) {
-			buttons.push(
-				new ButtonBuilder()
-					.setLabel('Support')
-					.setEmoji('☕')
-					.setCustomId(HELP_SUPPORT_BUTTON_ID)
-					.setStyle(ButtonStyle.Secondary),
-			)
+			const supportButton = new ButtonBuilder()
+				.setLabel('Support')
+				.setCustomId(HELP_SUPPORT_BUTTON_ID)
+				.setStyle(ButtonStyle.Secondary)
+			if (emojiRefs['kofi']) supportButton.setEmoji(emojiRefs['kofi'])
+			buttons.push(supportButton)
 		}
+
+		const topggButton = new ButtonBuilder()
+			.setLabel('Vote on top.gg')
+			.setURL(topggUrl)
+			.setStyle(ButtonStyle.Link)
+		if (emojiRefs['topgg']) topggButton.setEmoji(emojiRefs['topgg'])
 
 		buttons.push(
 			new ButtonBuilder()
@@ -128,12 +134,7 @@ export const helpCommand: ChatInputCommand = {
 				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
 				.setStyle(ButtonStyle.Link),
-			new ButtonBuilder()
-
-				.setLabel('Vote on top.gg')
-				.setEmoji('🔺')
-				.setURL(topggUrl)
-				.setStyle(ButtonStyle.Link),
+			topggButton,
 		)
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)
