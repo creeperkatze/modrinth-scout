@@ -1,12 +1,29 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
+import { modrinthClient } from '../api.js'
+import { emojiRefs } from '../emojis.js'
 import { formatTags } from '../loaders.js'
+import { createModuleLogger } from '../logger.js'
 import { formatDiscordDate, toDate } from '../time.js'
 import { typeLabel } from './helpers.js'
 import type { CardPayload } from './types.js'
 
-export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPayload {
+const log = createModuleLogger('embeds:project')
+
+async function getOwnerAvatarUrl(teamId: string): Promise<string | undefined> {
+	try {
+		const [members] = await modrinthClient.labrinth.teams_v3.getMultiple([teamId])
+		return members?.find((m) => m.is_owner)?.user.avatar_url ?? undefined
+	} catch (err) {
+		log.warn({ err, teamId }, 'Failed to fetch team owner avatar')
+		return undefined
+	}
+}
+
+export async function buildProjectCard(
+	project: Labrinth.Projects.v3.Project,
+): Promise<CardPayload> {
 	const type = project.project_types[0] ?? 'project'
 	const url = `https://modrinth.com/${type}/${project.slug}`
 	const gameVersions = (project.game_versions as string[] | undefined) ?? []
@@ -16,6 +33,7 @@ export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPay
 		formatTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
 	const rawLoaders = project.loaders ?? []
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
+	const ownerAvatarUrl = await getOwnerAvatarUrl(project.team_id)
 
 	const embed = new EmbedBuilder()
 		.setTitle(project.name)
@@ -27,7 +45,7 @@ export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPay
 			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
 			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
-		.setFooter({ text: 'Updated' })
+		.setFooter({ text: 'Updated', iconURL: ownerAvatarUrl })
 		.setTimestamp(toDate(project.updated))
 
 	if (loaders.length > 0)
@@ -38,8 +56,14 @@ export function buildProjectCard(project: Labrinth.Projects.v3.Project): CardPay
 	if (project.color) embed.setColor(project.color)
 
 	const links = project.link_urls ?? {}
+	const viewProjectButton = new ButtonBuilder()
+		.setLabel('View project')
+		.setURL(url)
+		.setStyle(ButtonStyle.Link)
+	if (emojiRefs['modrinth']) viewProjectButton.setEmoji(emojiRefs['modrinth'])
+
 	const buttons = [
-		new ButtonBuilder().setLabel('View project').setURL(url).setStyle(ButtonStyle.Link),
+		viewProjectButton,
 		links['source'] &&
 			new ButtonBuilder()
 				.setLabel('Source')

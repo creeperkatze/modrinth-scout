@@ -42,6 +42,6 @@ export const projectCommand: ChatInputCommand = {
 			return
 		}
 
-		await interaction.editReply(buildProjectCard(project))
+		await interaction.editReply(await buildProjectCard(project))
 	},
 }

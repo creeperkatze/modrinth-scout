@@ -36,7 +36,7 @@ export const versionCommand: ChatInputCommand = {
 				)
 
 				if (version) {
-					await interaction.editReply(buildVersionNotification(project, version))
+					await interaction.editReply(await buildVersionNotification(project, version))
 					return
 				}
 			}
@@ -50,7 +50,7 @@ export const versionCommand: ChatInputCommand = {
 		try {
 			const version = await modrinthClient.labrinth.versions_v3.getVersion(raw)
 			const project = await modrinthClient.labrinth.projects_v3.get(version.project_id)
-			await interaction.editReply(buildVersionNotification(project, version))
+			await interaction.editReply(await buildVersionNotification(project, version))
 			return
 		} catch {
 			await interaction.editReply({

@@ -9,10 +9,12 @@ const OUT_LOADERS = join(__dirname, '..', 'src', 'assets', 'loaders')
 const OUT_CHANNELS = join(__dirname, '..', 'src', 'assets', 'channels')
 const OUT_PROJECT_TYPES = join(__dirname, '..', 'src', 'assets', 'project-types')
 const OUT_STATS = join(__dirname, '..', 'src', 'assets', 'stats')
+const OUT_BRAND = join(__dirname, '..', 'src', 'assets', 'brand')
 mkdirSync(OUT_LOADERS, { recursive: true })
 mkdirSync(OUT_CHANNELS, { recursive: true })
 mkdirSync(OUT_PROJECT_TYPES, { recursive: true })
 mkdirSync(OUT_STATS, { recursive: true })
+mkdirSync(OUT_BRAND, { recursive: true })
 
 const svgs = {
 	fabric: `<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round" clip-rule="evenodd" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path fill="none" stroke="currentColor" stroke-width="23" d="m820 761-85.6-87.6c-4.6-4.7-10.4-9.6-25.9 1-19.9 13.6-8.4 21.9-5.2 25.4 8.2 9 84.1 89 97.2 104 2.5 2.8-20.3-22.5-6.5-39.7 5.4-7 18-12 26-3 6.5 7.3 10.7 18-3.4 29.7-24.7 20.4-102 82.4-127 103-12.5 10.3-28.5 2.3-35.8-6-7.5-8.9-30.6-34.6-51.3-58.2-5.5-6.3-4.1-19.6 2.3-25 35-30.3 91.9-73.8 111.9-90.8" transform="matrix(.08671 0 0 .0867 -49.8 -56)"/></svg>`,
@@ -62,6 +64,8 @@ const svgs = {
 	downloads: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-4-4 4m0 0-4-4m4 4V4"></path></svg>`,
 
 	follows: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 0 0 0 6.364L12 20.364l7.682-7.682a4.5 4.5 0 0 0-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 0 0-6.364 0"></path></svg>`,
+
+	modrinth: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 592.28 592.28"><g fill="currentColor"><path d="m29 424.4 188.2-112.95-17.15-45.48 53.75-55.21 67.93-14.64 19.67 24.21-31.32 31.72-27.3 8.6-19.52 20.05 9.56 26.6 19.4 20.6 27.36-7.28 19.47-21.38 42.51-13.47 12.67 28.5-43.87 53.78-73.5 23.27-32.97-36.7L55.06 467.94C46.1 456.41 35.67 440.08 29 424.4Zm543.03-230.25-149.5 40.32c8.24 21.92 10.95 34.8 13.23 49l149.23-40.26c-2.38-15.94-6.65-32.17-12.96-49.06Z"/><path d="M51.28 316.13c10.59 125 115.54 223.3 243.27 223.3 96.51 0 180.02-56.12 219.63-137.46l48.61 16.83c-46.78 101.34-149.35 171.75-268.24 171.75C138.6 590.55 10.71 469.38 0 316.13h51.28ZM.78 265.24C15.86 116.36 141.73 0 294.56 0c162.97 0 295.28 132.31 295.28 295.28 0 26.14-3.4 51.49-9.8 75.63l-48.48-16.78a244.28 244.28 0 0 0 7.15-58.85c0-134.75-109.4-244.15-244.15-244.15-124.58 0-227.49 93.5-242.32 214.11H.8Z"/><path d="M293.77 153.17c-78.49.07-142.2 63.83-142.2 142.34 0 78.56 63.79 142.34 142.35 142.34 3.98 0 7.93-.16 11.83-.49l14.22 49.76a194.65 194.65 0 0 1-26.05 1.74c-106.72 0-193.36-86.64-193.36-193.35 0-106.72 86.64-193.35 193.36-193.35 2.64 0 5.28.05 7.9.16l-8.05 50.85Zm58.2-42.13c78.39 24.67 135.3 97.98 135.3 184.47 0 80.07-48.77 148.83-118.2 178.18l-14.17-49.55c48.08-22.85 81.36-71.89 81.36-128.63 0-60.99-38.44-113.07-92.39-133.32l8.1-51.15Z"/></g></svg>`,
 }
 
 // Light-theme colors from Modrinth's variables.scss; undefined loaders fall back to white
@@ -83,6 +87,8 @@ const colors = {
 	release: '#00af5c',
 	beta: '#e08325',
 	alpha: '#cb2245',
+
+	modrinth: '#1bd96a',
 }
 
 const channels = new Set(['release', 'beta', 'alpha'])
@@ -96,6 +102,7 @@ const projectTypes = new Set([
 	'minecraft_java_server',
 ])
 const stats = new Set(['downloads', 'follows'])
+const brand = new Set(['modrinth'])
 
 for (const [name, svg] of Object.entries(svgs)) {
 	const color = colors[name] ?? '#ffffff'
@@ -108,7 +115,9 @@ for (const [name, svg] of Object.entries(svgs)) {
 			? OUT_PROJECT_TYPES
 			: stats.has(name)
 				? OUT_STATS
-				: OUT_LOADERS
+				: brand.has(name)
+					? OUT_BRAND
+					: OUT_LOADERS
 	const out = join(dir, `${name}.png`)
 	writeFileSync(out, png)
 	console.log(`✓ ${name}.png  (${color})`)

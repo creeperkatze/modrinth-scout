@@ -1,16 +1,30 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import { emojis } from '../emojis.js'
+import { modrinthClient } from '../api.js'
+import { emojiRefs, emojis } from '../emojis.js'
 import { formatTags } from '../loaders.js'
+import { createModuleLogger } from '../logger.js'
 import { toDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
-export function buildVersionNotification(
+const log = createModuleLogger('embeds:version')
+
+async function getAuthorAvatarUrl(authorId: string): Promise<string | undefined> {
+	try {
+		const author = await modrinthClient.labrinth.users_v3.get(authorId)
+		return author.avatar_url ?? undefined
+	} catch (err) {
+		log.warn({ err, authorId }, 'Failed to fetch version author avatar')
+		return undefined
+	}
+}
+
+export async function buildVersionNotification(
 	project: Labrinth.Projects.v3.Project,
 	version: Labrinth.Versions.v3.Version,
 	versionLabel = 'View Version',
-): CardPayload {
+): Promise<CardPayload> {
 	const type = project.project_types[0] ?? 'project'
 	const projectUrl = `https://modrinth.com/${type}/${project.slug}`
 	const versionUrl = `${projectUrl}/version/${version.id}`
@@ -28,11 +42,12 @@ export function buildVersionNotification(
 
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
 	const typeValue = `${emojis[version.version_type] ?? ''} ${typeLabel}`.trim()
+	const authorAvatarUrl = await getAuthorAvatarUrl(version.author_id)
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${project.name} ${version.version_number}`)
 		.setColor(project.color ?? 0x1bd96a)
-		.setFooter({ text: 'Released' })
+		.setFooter({ text: 'Released', iconURL: authorAvatarUrl })
 		.setTimestamp(toDate(version.date_published))
 
 	if (changelog) embed.setDescription(changelog)
@@ -48,12 +63,25 @@ export function buildVersionNotification(
 		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })
 	embed.addFields({ name: 'Type', value: typeValue, inline: true })
 
+	const viewVersionButton = new ButtonBuilder()
+		.setLabel(versionLabel)
+		.setURL(versionUrl)
+		.setStyle(ButtonStyle.Link)
+	const viewProjectButton = new ButtonBuilder()
+		.setLabel('View Project')
+		.setURL(projectUrl)
+		.setStyle(ButtonStyle.Link)
+	if (emojiRefs['modrinth']) {
+		viewVersionButton.setEmoji(emojiRefs['modrinth'])
+		viewProjectButton.setEmoji(emojiRefs['modrinth'])
+	}
+
 	return {
 		embeds: [embed],
 		components: [
 			new ActionRowBuilder<ButtonBuilder>().addComponents([
-				new ButtonBuilder().setLabel(versionLabel).setURL(versionUrl).setStyle(ButtonStyle.Link),
-				new ButtonBuilder().setLabel('View Project').setURL(projectUrl).setStyle(ButtonStyle.Link),
+				viewVersionButton,
+				viewProjectButton,
 				...(primaryFile
 					? [
 							new ButtonBuilder()

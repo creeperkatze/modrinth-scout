@@ -56,7 +56,7 @@ export function createCommandRegistry(
 		await interaction.deferReply()
 		try {
 			const project = await modrinthClient.labrinth.projects_v3.get(id)
-			await interaction.editReply(buildProjectCard(project))
+			await interaction.editReply(await buildProjectCard(project))
 		} catch {
 			await interaction.editReply({ content: `No project found for \`${id}\`.` })
 		}

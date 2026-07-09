@@ -79,7 +79,7 @@ async function notifyChannels(
 		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
 
 		for (let i = 0; i < filtered.length; i++) {
-			const payload = buildVersionNotification(project, filtered[i])
+			const payload = await buildVersionNotification(project, filtered[i])
 			const isFirst = i === 0
 			await channel.send({
 				content: isFirst ? mention : undefined,

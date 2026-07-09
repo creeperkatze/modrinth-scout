@@ -41,7 +41,10 @@ const PROJECT_TYPE_NAMES = [
 
 const STAT_NAMES = ['downloads', 'follows']
 
+const BRAND_NAMES = ['modrinth']
+
 export const emojis: Record<string, string> = {}
+export const emojiRefs: Record<string, { id: string; name: string }> = {}
 
 export async function syncEmojis(client: Client): Promise<void> {
 	const existing = await client.application!.emojis.fetch()
@@ -67,6 +70,11 @@ export async function syncEmojis(client: Client): Promise<void> {
 			emojiName: n,
 			file: join(__dirname, `../assets/stats/${n}.png`),
 		})),
+		...BRAND_NAMES.map((n) => ({
+			key: n,
+			emojiName: n,
+			file: join(__dirname, `../assets/brand/${n}.png`),
+		})),
 	]
 
 	let uploaded = 0
@@ -84,7 +92,9 @@ export async function syncEmojis(client: Client): Promise<void> {
 				continue
 			}
 		}
-		emojis[key] = `<:${emoji.name ?? emojiName}:${emoji.id}>`
+		const name = emoji.name ?? emojiName
+		emojis[key] = `<:${name}:${emoji.id}>`
+		emojiRefs[key] = { id: emoji.id, name }
 	}
 
 	log.info({ count: Object.keys(emojis).length, uploaded }, 'Emojis synced')
