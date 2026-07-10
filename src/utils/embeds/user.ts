@@ -1,6 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
+import { emojiRefs } from '../emojis.js'
 import { formatDiscordDate } from '../time.js'
 import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
@@ -26,12 +27,14 @@ export function buildUserCard(
 	if (user.avatar_url) embed.setThumbnail(user.avatar_url)
 	if (topProjects) embed.addFields({ name: 'Top Projects', value: topProjects })
 
+	const viewProfileButton = new ButtonBuilder()
+		.setLabel('View Profile')
+		.setURL(profileUrl)
+		.setStyle(ButtonStyle.Link)
+	if (emojiRefs['modrinth']) viewProfileButton.setEmoji(emojiRefs['modrinth'])
+
 	return {
 		embeds: [embed],
-		components: [
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				new ButtonBuilder().setLabel('View Profile').setURL(profileUrl).setStyle(ButtonStyle.Link),
-			),
-		],
+		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(viewProfileButton)],
 	}
 }
