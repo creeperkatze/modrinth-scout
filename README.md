@@ -15,13 +15,15 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 > [!NOTE]
 > This bot is not associated with or endorsed by Modrinth.
 
+## 🏁 Get Started
+
+[**Add the bot**](https://top.gg/bot/1496760658732122152), then run `/help` to see all available commands.
+
+Prefer to run your own instance? See [Self-hosting](#-self-hosting) below.
+
 ## ✨ Commands
 
 The `/help` command shows:
-
-**Modrinth Scout**
-
-A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ### General
 
@@ -88,7 +90,6 @@ volumes:
 networks:
   backend:
     driver: bridge
-    internal: true
 ```
 
 **2. Create `.env`**
