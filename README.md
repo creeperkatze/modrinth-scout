@@ -15,7 +15,7 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 > [!NOTE]
 > This bot is not associated with or endorsed by Modrinth.
 
-## 🏁 Get Started
+## 🏁 Geting Started
 
 [**Add the bot**](https://top.gg/bot/1496760658732122152), then run `/help` to see all available commands.
 
