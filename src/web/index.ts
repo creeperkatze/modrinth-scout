@@ -32,7 +32,16 @@ interface KofiPayload {
 export function startWebServer() {
 	const app = express()
 	app.disable('x-powered-by')
-	app.use(pinoHttp({ logger: log }))
+	app.use(
+		pinoHttp({
+			logger: log,
+			customLogLevel: (req, res, err) => {
+				if (err || res.statusCode >= 500) return 'error'
+				if (res.statusCode >= 400) return 'warn'
+				return 'debug'
+			},
+		}),
+	)
 
 	const port = parseInt(process.env.PORT ?? '3000')
 	const metricsToken = process.env.METRICS_TOKEN
