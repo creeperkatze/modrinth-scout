@@ -1,6 +1,6 @@
 import 'dotenv/config'
 
-const port = process.env.KOFI_PORT
+const port = process.env.PORT ?? '3000'
 const token = process.env.KOFI_VERIFICATION_TOKEN
 
 const payload = {

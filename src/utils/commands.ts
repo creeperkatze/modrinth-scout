@@ -27,6 +27,7 @@ import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from './api.js'
 import { buildProjectCard } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
+import { commandDurationSeconds, commandsTotal } from './metrics.js'
 
 const log = createModuleLogger('commands')
 
@@ -202,11 +203,15 @@ export function createCommandRegistry(
 		try {
 			await Promise.resolve(cmd.execute(interaction))
 			log.info({ ...context, durationMs: Date.now() - startedAt }, 'Command completed')
+			commandsTotal.inc({ command: cmd.meta.name, status: 'success' })
+			commandDurationSeconds.observe({ command: cmd.meta.name }, (Date.now() - startedAt) / 1000)
 		} catch (error) {
 			log.error(
 				{ ...context, durationMs: Date.now() - startedAt, err: error },
 				'Command execution failed',
 			)
+			commandsTotal.inc({ command: cmd.meta.name, status: 'error' })
+			commandDurationSeconds.observe({ command: cmd.meta.name }, (Date.now() - startedAt) / 1000)
 			const reply = {
 				content: 'There was an error while executing this command!',
 				flags: 'Ephemeral' as const,

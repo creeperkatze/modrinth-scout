@@ -3,12 +3,12 @@ import 'dotenv/config'
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { commands } from './commands/index.js'
-import { usesSupporterPerks } from './config/supporterPerks.js'
 import { connectDb } from './db/index.js'
 import { queries } from './db/queries.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
 import { createModuleLogger } from './utils/logger.js'
+import { guildCount } from './utils/metrics.js'
 import { startPoller } from './utils/poller.js'
 import { startWebServer } from './web/index.js'
 
@@ -28,11 +28,10 @@ client.once(Events.ClientReady, async (c) => {
 
 		log.info({ guilds: c.guilds.cache.size }, 'Initializing guild configs')
 		await Promise.all(c.guilds.cache.map((g) => queries.initServerConfig(g.id)))
+		guildCount.set(c.guilds.cache.size)
 
 		startPoller(c)
-		if (usesSupporterPerks) {
-			startWebServer()
-		}
+		startWebServer()
 
 		log.info(
 			{ tag: c.user.tag, guilds: c.guilds.cache.size, durationMs: Date.now() - startedAt },
@@ -47,11 +46,13 @@ client.once(Events.ClientReady, async (c) => {
 
 client.on(Events.GuildCreate, async (guild) => {
 	await queries.initServerConfig(guild.id)
+	guildCount.inc()
 	log.info({ guildId: guild.id }, 'Joined guild')
 })
 
 client.on(Events.GuildDelete, async (guild) => {
 	await queries.deleteServer(guild.id)
+	guildCount.dec()
 	log.info({ guildId: guild.id }, 'Left guild, cleaned up data')
 })
 

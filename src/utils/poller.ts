@@ -7,6 +7,12 @@ import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { modrinthClient } from './api.js'
 import { buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
+import {
+	pollDurationSeconds,
+	pollNotificationsTotal,
+	pollTicksTotal,
+	timeApiCall,
+} from './metrics.js'
 
 const log = createModuleLogger('poller')
 
@@ -50,7 +56,13 @@ async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Projec
 	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
 	const t0 = Date.now()
 	const projects = (
-		await Promise.all(chunks.map((chunk) => modrinthClient.labrinth.projects_v3.getMultiple(chunk)))
+		await Promise.all(
+			chunks.map((chunk) =>
+				timeApiCall('projects_v3.getMultiple', () =>
+					modrinthClient.labrinth.projects_v3.getMultiple(chunk),
+				),
+			),
+		)
 	).flat()
 	log.debug(
 		{ durationMs: Date.now() - t0, returned: projects.length, chunks: chunks.length },
@@ -94,87 +106,102 @@ async function notifyChannels(
 
 async function poll(client: Client, supporterOnly?: boolean) {
 	const startedAt = Date.now()
-	const rows = await queries.getPollingProjects(supporterOnly)
-	if (rows.length === 0) {
-		log.debug(
-			{ supporterOnly, durationMs: Date.now() - startedAt },
-			'Poll tick skipped with no tracked projects',
-		)
-		return
-	}
+	const supporterLabel = supporterOnly ? 'true' : 'false'
+	const stopTimer = pollDurationSeconds.startTimer({ supporter: supporterLabel })
 
-	const byProject = groupByProject(rows)
-	log.debug(
-		{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
-		'Poll tick started',
-	)
-
-	const projects = await fetchProjects([...byProject.keys()])
-	let changedProjects = 0
-	let failedProjects = 0
-	let newVersionsFound = 0
-	let notificationsSent = 0
-
-	for (const project of projects) {
-		const info = byProject.get(project.id)
-		if (!info) continue
-
-		const updatedAt = new Date(project.updated)
-		if (updatedAt.getTime() === info.lastUpdated.getTime()) continue
-
-		changedProjects += 1
-		log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
-		try {
-			await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
-
-			const t0 = Date.now()
-			const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
+	try {
+		const rows = await queries.getPollingProjects(supporterOnly)
+		if (rows.length === 0) {
 			log.debug(
-				{ durationMs: Date.now() - t0, slug: project.slug, total: versions.length },
-				'Versions fetched',
+				{ supporterOnly, durationMs: Date.now() - startedAt },
+				'Poll tick skipped with no tracked projects',
 			)
-
-			const newVersions = versions
-				.filter((v) => new Date(v.date_published) > info.lastUpdated)
-				.reverse()
-			if (newVersions.length === 0) {
-				log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
-				continue
-			}
-			newVersionsFound += newVersions.length
-
-			const notified = await notifyChannels(client, project, newVersions, info.channels)
-			notificationsSent += notified.length
-			log.info(
-				{
-					projectId: project.id,
-					slug: project.slug,
-					newVersions: newVersions.length,
-					channels: notified.length,
-					guilds: info.guildIds.length,
-				},
-				'Notifications sent',
-			)
-		} catch (err) {
-			failedProjects += 1
-			log.error({ projectId: project.id, err }, 'Failed to check project')
+			pollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+			return
 		}
-	}
 
-	log.info(
-		{
-			supporterOnly,
-			trackedProjects: rows.length,
-			uniqueProjects: byProject.size,
-			checkedProjects: projects.length,
-			updatedProjects: changedProjects,
-			failedProjects,
-			newVersionsFound,
-			notificationsSent,
-			durationMs: Date.now() - startedAt,
-		},
-		'Poll tick completed',
-	)
+		const byProject = groupByProject(rows)
+		log.debug(
+			{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
+			'Poll tick started',
+		)
+
+		const projects = await fetchProjects([...byProject.keys()])
+		let changedProjects = 0
+		let failedProjects = 0
+		let newVersionsFound = 0
+		let notificationsSent = 0
+
+		for (const project of projects) {
+			const info = byProject.get(project.id)
+			if (!info) continue
+
+			const updatedAt = new Date(project.updated)
+			if (updatedAt.getTime() === info.lastUpdated.getTime()) continue
+
+			changedProjects += 1
+			log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
+			try {
+				await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
+
+				const t0 = Date.now()
+				const versions = await timeApiCall('versions_v3.getProjectVersions', () =>
+					modrinthClient.labrinth.versions_v3.getProjectVersions(project.id),
+				)
+				log.debug(
+					{ durationMs: Date.now() - t0, slug: project.slug, total: versions.length },
+					'Versions fetched',
+				)
+
+				const newVersions = versions
+					.filter((v) => new Date(v.date_published) > info.lastUpdated)
+					.reverse()
+				if (newVersions.length === 0) {
+					log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
+					continue
+				}
+				newVersionsFound += newVersions.length
+
+				const notified = await notifyChannels(client, project, newVersions, info.channels)
+				notificationsSent += notified.length
+				log.info(
+					{
+						projectId: project.id,
+						slug: project.slug,
+						newVersions: newVersions.length,
+						channels: notified.length,
+						guilds: info.guildIds.length,
+					},
+					'Notifications sent',
+				)
+			} catch (err) {
+				failedProjects += 1
+				log.error({ projectId: project.id, err }, 'Failed to check project')
+			}
+		}
+
+		pollNotificationsTotal.inc(notificationsSent)
+		log.info(
+			{
+				supporterOnly,
+				trackedProjects: rows.length,
+				uniqueProjects: byProject.size,
+				checkedProjects: projects.length,
+				updatedProjects: changedProjects,
+				failedProjects,
+				newVersionsFound,
+				notificationsSent,
+				durationMs: Date.now() - startedAt,
+			},
+			'Poll tick completed',
+		)
+		pollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+	} catch (err) {
+		pollTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
+		throw err
+	} finally {
+		stopTimer()
+	}
 }
 
 export function startPoller(client: Client) {
