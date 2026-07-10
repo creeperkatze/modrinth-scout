@@ -7,12 +7,7 @@ import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { modrinthClient } from './api.js'
 import { buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
-import {
-	pollDurationSeconds,
-	pollNotificationsTotal,
-	pollTicksTotal,
-	timeApiCall,
-} from './metrics.js'
+import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from './metrics.js'
 
 const log = createModuleLogger('poller')
 
@@ -56,13 +51,7 @@ async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Projec
 	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
 	const t0 = Date.now()
 	const projects = (
-		await Promise.all(
-			chunks.map((chunk) =>
-				timeApiCall('projects_v3.getMultiple', () =>
-					modrinthClient.labrinth.projects_v3.getMultiple(chunk),
-				),
-			),
-		)
+		await Promise.all(chunks.map((chunk) => modrinthClient.labrinth.projects_v3.getMultiple(chunk)))
 	).flat()
 	log.debug(
 		{ durationMs: Date.now() - t0, returned: projects.length, chunks: chunks.length },
@@ -145,9 +134,7 @@ async function poll(client: Client, supporterOnly?: boolean) {
 				await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
 
 				const t0 = Date.now()
-				const versions = await timeApiCall('versions_v3.getProjectVersions', () =>
-					modrinthClient.labrinth.versions_v3.getProjectVersions(project.id),
-				)
+				const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
 				log.debug(
 					{ durationMs: Date.now() - t0, slug: project.slug, total: versions.length },
 					'Versions fetched',

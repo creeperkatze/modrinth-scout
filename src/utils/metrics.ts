@@ -1,3 +1,4 @@
+import { AbstractFeature, type RequestContext } from '@modrinth/api-client'
 import client from 'prom-client'
 
 const PREFIX = 'modrinth_scout_'
@@ -49,29 +50,51 @@ export const pollNotificationsTotal = new client.Counter({
 
 const upstreamApiRequestsTotal = new client.Counter({
 	name: `${PREFIX}upstream_api_requests_total`,
-	help: 'Total Modrinth API requests made by the poller',
+	help: 'Total Modrinth API requests',
 	labelNames: ['endpoint', 'status'] as const,
 	registers: [register],
 })
 
 const upstreamApiDurationSeconds = new client.Histogram({
 	name: `${PREFIX}upstream_api_request_duration_seconds`,
-	help: 'Modrinth API request duration in seconds, as observed by the poller',
+	help: 'Modrinth API request duration in seconds',
 	labelNames: ['endpoint'] as const,
 	buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10],
 	registers: [register],
 })
 
-export async function timeApiCall<T>(endpoint: string, fn: () => Promise<T>): Promise<T> {
-	const stopTimer = upstreamApiDurationSeconds.startTimer({ endpoint })
-	try {
-		const result = await fn()
-		upstreamApiRequestsTotal.inc({ endpoint, status: 'success' })
-		return result
-	} catch (err) {
-		upstreamApiRequestsTotal.inc({ endpoint, status: 'error' })
-		throw err
-	} finally {
-		stopTimer()
+// Labrinth path segments followed by a dynamic id/slug, e.g. '/project/:id'
+const DYNAMIC_SEGMENT_PARENTS = new Set([
+	'project',
+	'organization',
+	'user',
+	'version',
+	'collection',
+])
+
+function normalizeEndpointPath(path: string): string {
+	const [rawPath] = path.split('?')
+	const segments = rawPath.split('/').filter(Boolean)
+	for (let i = 1; i < segments.length; i++) {
+		if (DYNAMIC_SEGMENT_PARENTS.has(segments[i - 1])) segments[i] = ':id'
+	}
+	return `/${segments.join('/')}`
+}
+
+// Records duration/status for every modrinthClient request; registered in utils/api.ts
+export class MetricsFeature extends AbstractFeature {
+	async execute<T>(next: () => Promise<T>, context: RequestContext): Promise<T> {
+		const endpoint = `${context.options.method ?? 'GET'} ${normalizeEndpointPath(context.path)}`
+		const stopTimer = upstreamApiDurationSeconds.startTimer({ endpoint })
+		try {
+			const result = await next()
+			upstreamApiRequestsTotal.inc({ endpoint, status: 'success' })
+			return result
+		} catch (err) {
+			upstreamApiRequestsTotal.inc({ endpoint, status: 'error' })
+			throw err
+		} finally {
+			stopTimer()
+		}
 	}
 }
