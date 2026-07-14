@@ -1,6 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
+import { emojiRefs } from '../emojis.js'
 import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
 
@@ -24,12 +25,14 @@ export function buildOrganizationCard(
 	if (org.icon_url) embed.setThumbnail(org.icon_url)
 	if (topProjects) embed.addFields({ name: 'Top Projects', value: topProjects })
 
+	const viewOrganizationButton = new ButtonBuilder()
+		.setLabel('View Organization')
+		.setURL(orgUrl)
+		.setStyle(ButtonStyle.Link)
+	if (emojiRefs['modrinth']) viewOrganizationButton.setEmoji(emojiRefs['modrinth'])
+
 	return {
 		embeds: [embed],
-		components: [
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				new ButtonBuilder().setLabel('View Organization').setURL(orgUrl).setStyle(ButtonStyle.Link),
-			),
-		],
+		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(viewOrganizationButton)],
 	}
 }
