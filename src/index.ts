@@ -16,33 +16,43 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const { onInteractionCreate } = createCommandRegistry(commands)
 const log = createModuleLogger('app')
 
-client.once(Events.ClientReady, async (c) => {
+function waitForReady(): Promise<Client<true>> {
+	return new Promise((resolve, reject) => {
+		client.once(Events.ClientReady, resolve)
+		client.login(process.env.DISCORD_TOKEN).catch(reject)
+	})
+}
+
+async function main() {
 	const startedAt = Date.now()
 
-	try {
-		log.info({ tag: c.user.tag, guilds: c.guilds.cache.size }, 'Discord client ready')
+	await connectDb()
 
-		await connectDb()
-		await deployCommands(commands)
-		await syncEmojis(c)
+	const readyClient = await waitForReady()
+	log.info(
+		{ tag: readyClient.user.tag, guilds: readyClient.guilds.cache.size },
+		'Discord client ready',
+	)
 
-		log.info({ guilds: c.guilds.cache.size }, 'Initializing guild configs')
-		await Promise.all(c.guilds.cache.map((g) => queries.initServerConfig(g.id)))
-		guildCount.set(c.guilds.cache.size)
+	await deployCommands(commands)
+	await syncEmojis(readyClient)
 
-		startPoller(c)
-		startWebServer()
+	log.info({ guilds: readyClient.guilds.cache.size }, 'Initializing guild configs')
+	await Promise.all(readyClient.guilds.cache.map((g) => queries.initServerConfig(g.id)))
+	guildCount.set(readyClient.guilds.cache.size)
 
-		log.info(
-			{ tag: c.user.tag, guilds: c.guilds.cache.size, durationMs: Date.now() - startedAt },
-			'Bot ready',
-		)
-	} catch (error) {
-		log.fatal({ err: error, durationMs: Date.now() - startedAt }, 'Bot startup failed')
-		client.destroy()
-		process.exit(1)
-	}
-})
+	startPoller(readyClient)
+	startWebServer()
+
+	log.info(
+		{
+			tag: readyClient.user.tag,
+			guilds: readyClient.guilds.cache.size,
+			durationMs: Date.now() - startedAt,
+		},
+		'Bot ready',
+	)
+}
 
 client.on(Events.GuildCreate, async (guild) => {
 	await queries.initServerConfig(guild.id)
@@ -56,11 +66,24 @@ client.on(Events.GuildDelete, async (guild) => {
 	log.info({ guildId: guild.id }, 'Left guild, cleaned up data')
 })
 
+client.on(Events.GuildUnavailable, (guild) =>
+	log.warn({ guildId: guild.id }, 'Guild unavailable, likely a server outage'),
+)
+
+client.on(Events.Error, (err) => log.error({ err }, 'Discord client error'))
+client.on(Events.Warn, (message) => log.warn({ message }, 'Discord client warning'))
 client.on(Events.ShardError, (err) => log.error({ err }, 'Discord shard error'))
 client.on(Events.ShardDisconnect, (event, id) =>
 	log.warn({ shardId: id, code: event.code }, 'Discord shard disconnected'),
 )
 client.on(Events.ShardReconnecting, (id) => log.info({ shardId: id }, 'Discord shard reconnecting'))
+client.on(Events.ShardResume, (id, replayedEvents) =>
+	log.info({ shardId: id, replayedEvents }, 'Discord shard resumed'),
+)
+client.on(Events.Invalidated, () => {
+	log.fatal('Discord session invalidated, exiting for restart')
+	process.exit(1)
+})
 
 client.on(Events.InteractionCreate, onInteractionCreate)
 
@@ -81,7 +104,8 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
 	})
 }
 
-client.login(process.env.DISCORD_TOKEN).catch((error) => {
-	log.fatal({ err: error }, 'Discord login failed')
+main().catch((error) => {
+	log.fatal({ err: error }, 'Bot startup failed')
+	client.destroy()
 	process.exit(1)
 })
