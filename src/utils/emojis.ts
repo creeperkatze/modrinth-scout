@@ -41,7 +41,7 @@ const PROJECT_TYPE_NAMES = [
 
 const STAT_NAMES = ['downloads', 'follows']
 
-const BRAND_NAMES = ['modrinth', 'topgg']
+const BRAND_NAMES = ['modrinth', 'topgg', 'discord']
 const ICON_NAMES = ['kofi']
 
 export const emojis: Record<string, string> = {}

@@ -62,6 +62,11 @@ export async function buildProjectCard(
 		.setStyle(ButtonStyle.Link)
 	if (emojiRefs['modrinth']) viewProjectButton.setEmoji(emojiRefs['modrinth'])
 
+	const discordButton =
+		links['discord'] &&
+		new ButtonBuilder().setLabel('Discord').setURL(links['discord'].url).setStyle(ButtonStyle.Link)
+	if (discordButton && emojiRefs['discord']) discordButton.setEmoji(emojiRefs['discord'])
+
 	const buttons = [
 		viewProjectButton,
 		links['source'] &&
@@ -82,12 +87,7 @@ export async function buildProjectCard(
 				.setEmoji('📖')
 				.setURL(links['wiki'].url)
 				.setStyle(ButtonStyle.Link),
-		links['discord'] &&
-			new ButtonBuilder()
-				.setLabel('Discord')
-				.setEmoji('💬')
-				.setURL(links['discord'].url)
-				.setStyle(ButtonStyle.Link),
+		discordButton,
 	].filter(Boolean) as ButtonBuilder[]
 
 	return {
