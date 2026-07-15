@@ -194,25 +194,32 @@ export async function syncEmojis(client: Client): Promise<void> {
 		})),
 	]
 
-	let uploaded = 0
-	for (const { key, emojiName, file } of defs) {
-		let emoji = existing.find((e) => e.name === emojiName)
-		if (!emoji) {
-			try {
-				emoji = await client.application!.emojis.create({
-					name: emojiName,
-					attachment: readFileSync(file),
-				})
-				uploaded++
-			} catch (err) {
-				log.warn({ key, err }, 'Failed to upload emoji')
-				continue
-			}
+	const managedNames = new Set(defs.map((d) => d.emojiName))
+	let cleared = 0
+	for (const emoji of existing.values()) {
+		if (!managedNames.has(emoji.name)) continue
+		try {
+			await emoji.delete()
+			cleared++
+		} catch (err) {
+			log.warn({ name: emoji.name, err }, 'Failed to clear stale emoji')
 		}
-		const name = emoji.name ?? emojiName
-		emojis[key] = `<:${name}:${emoji.id}>`
-		emojiRefs[key] = { id: emoji.id, name }
 	}
 
-	log.info({ count: Object.keys(emojis).length, uploaded }, 'Emojis synced')
+	let uploaded = 0
+	for (const { key, emojiName, file } of defs) {
+		try {
+			const emoji = await client.application!.emojis.create({
+				name: emojiName,
+				attachment: readFileSync(file),
+			})
+			uploaded++
+			emojis[key] = `<:${emoji.name}:${emoji.id}>`
+			emojiRefs[key] = { id: emoji.id, name: emoji.name }
+		} catch (err) {
+			log.warn({ key, err }, 'Failed to upload emoji')
+		}
+	}
+
+	log.info({ count: Object.keys(emojis).length, uploaded, cleared }, 'Emojis synced')
 }
