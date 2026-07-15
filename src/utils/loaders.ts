@@ -9,3 +9,13 @@ export function formatTags(tags: string[]): string {
 		})
 		.join(' ')
 }
+
+export function formatPlainTags(tags: string[]): string {
+	return tags
+		.map((t) => {
+			const emoji = emojis[t.toLowerCase()]
+			const label = t.charAt(0).toUpperCase() + t.slice(1)
+			return emoji ? `${emoji} ${label}` : label
+		})
+		.join(' ')
+}

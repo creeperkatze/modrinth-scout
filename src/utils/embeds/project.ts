@@ -2,8 +2,8 @@ import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import { modrinthClient } from '../api.js'
-import { emojiRefs } from '../emojis.js'
-import { formatTags } from '../loaders.js'
+import { emojiRefs, emojis } from '../emojis.js'
+import { formatPlainTags } from '../loaders.js'
 import { createModuleLogger } from '../logger.js'
 import { formatDiscordDate, toDate } from '../time.js'
 import { typeLabel } from './helpers.js'
@@ -30,9 +30,11 @@ export async function buildProjectCard(
 	const recentVersions = gameVersions.slice(-3).reverse()
 	const extraVersions = gameVersions.length - recentVersions.length
 	const versionsText =
-		formatTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
+		formatPlainTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
 	const rawLoaders = project.loaders ?? []
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
+	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
+	const categories = [...(project.categories ?? []), ...(project.additional_categories ?? [])]
 	const ownerAvatarUrl = await getOwnerAvatarUrl(project.team_id)
 
 	const embed = new EmbedBuilder()
@@ -41,7 +43,7 @@ export async function buildProjectCard(
 		.addFields(
 			{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true },
 			{ name: 'Followers', value: project.followers.toLocaleString('en-US'), inline: true },
-			{ name: 'Type', value: typeLabel(type), inline: true },
+			{ name: 'Type', value: typeValue, inline: true },
 			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
 			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
@@ -49,9 +51,11 @@ export async function buildProjectCard(
 		.setTimestamp(toDate(project.updated))
 
 	if (loaders.length > 0)
-		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })
+		embed.addFields({ name: 'Loaders', value: formatPlainTags(loaders), inline: true })
 	if (recentVersions.length > 0)
 		embed.addFields({ name: 'Game Versions', value: versionsText, inline: true })
+	if (categories.length > 0)
+		embed.addFields({ name: 'Categories', value: formatPlainTags(categories), inline: false })
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
 	if (project.color) embed.setColor(project.color)
 
