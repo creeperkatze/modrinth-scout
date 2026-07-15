@@ -48,7 +48,7 @@ export async function buildProjectCard(
 			{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true },
 			{ name: 'Followers', value: project.followers.toLocaleString('en-US'), inline: true },
 			{ name: 'Type', value: typeValue, inline: true },
-			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
+			{ name: 'Released', value: formatDiscordDate(project.published), inline: true },
 			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
 		.setFooter({ text: owner?.name ?? 'Unknown', iconURL: owner?.avatarUrl })

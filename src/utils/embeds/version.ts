@@ -5,17 +5,19 @@ import { modrinthClient } from '../api.js'
 import { emojiRefs, emojis } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTags } from '../tags.js'
-import { toDate } from '../time.js'
+import { formatDiscordDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
 const log = createModuleLogger('embeds:version')
 
-async function getAuthorAvatarUrl(authorId: string): Promise<string | undefined> {
+async function getAuthor(
+	authorId: string,
+): Promise<{ name: string; avatarUrl: string | undefined } | undefined> {
 	try {
 		const author = await modrinthClient.labrinth.users_v3.get(authorId)
-		return author.avatar_url ?? undefined
+		return { name: author.username, avatarUrl: author.avatar_url ?? undefined }
 	} catch (err) {
-		log.warn({ err, authorId }, 'Failed to fetch version author avatar')
+		log.warn({ err, authorId }, 'Failed to fetch version author')
 		return undefined
 	}
 }
@@ -42,13 +44,12 @@ export async function buildVersionNotification(
 
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
 	const typeValue = `${emojis[version.version_type] ?? ''} ${typeLabel}`.trim()
-	const authorAvatarUrl = await getAuthorAvatarUrl(version.author_id)
+	const author = await getAuthor(version.author_id)
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${project.name} ${version.version_number}`)
 		.setColor(project.color ?? 0x1bd96a)
-		.setFooter({ text: 'Released', iconURL: authorAvatarUrl })
-		.setTimestamp(toDate(version.date_published))
+		.setFooter({ text: author?.name ?? 'Unknown', iconURL: author?.avatarUrl })
 
 	if (changelog) embed.setDescription(changelog)
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
@@ -62,6 +63,11 @@ export async function buildVersionNotification(
 	if (loaders.length > 0)
 		embed.addFields({ name: 'Loaders', value: formatPlainTags(loaders), inline: true })
 	embed.addFields({ name: 'Type', value: typeValue, inline: true })
+	embed.addFields({
+		name: 'Released',
+		value: formatDiscordDate(version.date_published),
+		inline: true,
+	})
 
 	const viewVersionButton = new ButtonBuilder()
 		.setLabel(versionLabel)
