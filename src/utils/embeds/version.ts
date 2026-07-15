@@ -12,12 +12,18 @@ const log = createModuleLogger('embeds:version')
 
 async function getAuthor(
 	authorId: string,
+	organizationId: string | undefined,
 ): Promise<{ name: string; avatarUrl: string | undefined } | undefined> {
 	try {
+		if (organizationId) {
+			const organization = await modrinthClient.labrinth.organizations_v3.get(organizationId)
+			return { name: organization.name, avatarUrl: organization.icon_url ?? undefined }
+		}
+
 		const author = await modrinthClient.labrinth.users_v3.get(authorId)
 		return { name: author.username, avatarUrl: author.avatar_url ?? undefined }
 	} catch (err) {
-		log.warn({ err, authorId }, 'Failed to fetch version author')
+		log.warn({ err, authorId, organizationId }, 'Failed to fetch version author')
 		return undefined
 	}
 }
@@ -44,7 +50,7 @@ export async function buildVersionNotification(
 
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
 	const typeValue = `${emojis[version.version_type] ?? ''} ${typeLabel}`.trim()
-	const author = await getAuthor(version.author_id)
+	const author = await getAuthor(version.author_id, project.organization)
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${project.name} ${version.version_number}`)
