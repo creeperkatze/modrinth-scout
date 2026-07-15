@@ -7,7 +7,7 @@ import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
 
 export function buildUserCard(
-	user: Labrinth.Users.v2.User,
+	user: Labrinth.Users.v3.User,
 	projects: Labrinth.Projects.v3.Project[],
 ): CardPayload {
 	const profileUrl = `https://modrinth.com/user/${user.username}`

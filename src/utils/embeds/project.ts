@@ -3,8 +3,8 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 
 import { modrinthClient } from '../api.js'
 import { emojiRefs, emojis } from '../emojis.js'
-import { formatPlainTags, formatTags } from '../loaders.js'
 import { createModuleLogger } from '../logger.js'
+import { formatPlainTags, formatTags } from '../tags.js'
 import { formatDiscordDate, toDate } from '../time.js'
 import { typeLabel } from './helpers.js'
 import type { CardPayload } from './types.js'

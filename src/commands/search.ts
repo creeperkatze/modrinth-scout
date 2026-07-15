@@ -11,9 +11,9 @@ import {
 import { PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../config/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
-import { error, TYPE_LABELS } from '../utils/embeds/index.js'
+import { error, typeLabel } from '../utils/embeds/index.js'
 import { emojis, LOADERS } from '../utils/emojis.js'
-import { formatPlainTags } from '../utils/loaders.js'
+import { formatPlainTags } from '../utils/tags.js'
 
 export const SEARCH_LIMIT = 5
 
@@ -61,7 +61,7 @@ export async function buildSearchPayload(
 
 	const resultEmbeds = hits.map((hit: Labrinth.Projects.v2.SearchResultHit) => {
 		const rawType = hit.project_type ?? 'project'
-		const hitType = TYPE_LABELS[rawType] ?? rawType.charAt(0).toUpperCase() + rawType.slice(1)
+		const hitType = typeLabel(rawType)
 		const url = `https://modrinth.com/${rawType}/${hit.slug}`
 		const desc =
 			hit.description.length > 120 ? hit.description.slice(0, 119) + '...' : hit.description

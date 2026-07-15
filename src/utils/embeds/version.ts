@@ -3,8 +3,8 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 
 import { modrinthClient } from '../api.js'
 import { emojiRefs, emojis } from '../emojis.js'
-import { formatTags } from '../loaders.js'
 import { createModuleLogger } from '../logger.js'
+import { formatPlainTags, formatTags } from '../tags.js'
 import { toDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
@@ -56,11 +56,11 @@ export async function buildVersionNotification(
 	if (version.game_versions.length > 0)
 		embed.addFields({
 			name: 'Game versions',
-			value: version.game_versions.join(', '),
+			value: formatTags(version.game_versions),
 			inline: true,
 		})
 	if (loaders.length > 0)
-		embed.addFields({ name: 'Loaders', value: formatTags(loaders), inline: true })
+		embed.addFields({ name: 'Loaders', value: formatPlainTags(loaders), inline: true })
 	embed.addFields({ name: 'Type', value: typeValue, inline: true })
 
 	const viewVersionButton = new ButtonBuilder()

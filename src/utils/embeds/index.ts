@@ -1,4 +1,5 @@
 export { buildCollectionCard } from './collection.js'
+export { typeLabel } from './helpers.js'
 export { buildOrganizationCard } from './organization.js'
 export { buildProjectCard } from './project.js'
 export { error, info, success } from './response.js'

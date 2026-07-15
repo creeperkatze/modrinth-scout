@@ -3,7 +3,7 @@ import { AutocompleteInteraction } from 'discord.js'
 
 import { ProjectType } from '../config/modrinth.js'
 import { modrinthClient } from './api.js'
-import { TYPE_LABELS } from './embeds/index.js'
+import { typeLabel } from './embeds/index.js'
 
 export type AutocompleteHit = Pick<
 	Labrinth.Projects.v2.SearchResultHit,
@@ -13,8 +13,7 @@ export type AutocompleteHit = Pick<
 }
 
 function resolveType(hit: AutocompleteHit): string {
-	const raw = hit.project_type ?? 'project'
-	return TYPE_LABELS[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1)
+	return typeLabel(hit.project_type ?? 'project')
 }
 
 export function formatHitLabels(hits: AutocompleteHit[]): string[] {

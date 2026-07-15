@@ -29,7 +29,7 @@ export const userCommand: ChatInputCommand = {
 		let user, projects
 		try {
 			;[user, projects] = await Promise.all([
-				modrinthClient.labrinth.users_v2.get(username),
+				modrinthClient.labrinth.users_v3.get(username),
 				modrinthClient.request<Labrinth.Projects.v3.Project[]>(`/user/${username}/projects`, {
 					api: 'labrinth',
 					version: 3,

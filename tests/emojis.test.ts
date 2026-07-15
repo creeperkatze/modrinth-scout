@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { emojis } from '../src/utils/emojis.js'
-import { formatTags } from '../src/utils/loaders.js'
+import { formatTags } from '../src/utils/tags.js'
 
 beforeEach(() => {
 	delete emojis['fabric']
