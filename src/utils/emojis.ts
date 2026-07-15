@@ -150,6 +150,16 @@ const CATEGORY_NAMES = [
 	'worldgen',
 ]
 
+const BADGE_NAMES = [
+	'badge-alpha',
+	'badge-plus',
+	'badge-early-modpack',
+	'badge-early-plugin',
+	'badge-early-resourcepack',
+	'badge-staff',
+	'badge-moderator',
+]
+
 export const emojis: Record<string, string> = {}
 export const emojiRefs: Record<string, { id: string; name: string }> = {}
 
@@ -191,6 +201,11 @@ export async function syncEmojis(client: Client): Promise<void> {
 			key: n,
 			emojiName: n.replace(/-/g, ''),
 			file: join(__dirname, `../assets/categories/${n}.png`),
+		})),
+		...BADGE_NAMES.map((n) => ({
+			key: n,
+			emojiName: n.replace(/-/g, ''),
+			file: join(__dirname, `../assets/badges/${n.replace('badge-', '')}.png`),
 		})),
 	]
 
