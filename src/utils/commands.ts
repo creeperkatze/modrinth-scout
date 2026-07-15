@@ -3,7 +3,6 @@ import {
 	ButtonInteraction,
 	Collection,
 	Interaction,
-	InteractionContextType,
 	ModalBuilder,
 	ModalSubmitInteraction,
 	PermissionsBitField,
@@ -224,20 +223,7 @@ export function createCommandRegistry(
 		}
 	}
 
-	function getAllSlashCommandData() {
-		return Array.from(map.values()).map((c) => {
-			const builder = c.data as SlashCommandBuilder
-			if (c.meta.defaultMemberPermissions !== undefined) {
-				builder.setDefaultMemberPermissions(
-					PermissionsBitField.resolve(c.meta.defaultMemberPermissions),
-				)
-			}
-			builder.setContexts([InteractionContextType.Guild])
-			return builder.toJSON()
-		})
-	}
-
-	return { onInteractionCreate, getAllSlashCommandData }
+	return { onInteractionCreate }
 }
 
 export async function deployCommands(commands: ChatInputCommand[]) {
@@ -248,7 +234,15 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 	}
 
 	const rest = new REST().setToken(DISCORD_TOKEN)
-	const data = commands.map((c) => c.data.toJSON())
+	const data = commands.map((c) => {
+		const builder = c.data as SlashCommandBuilder
+		if (c.meta.defaultMemberPermissions !== undefined) {
+			builder.setDefaultMemberPermissions(
+				PermissionsBitField.resolve(c.meta.defaultMemberPermissions),
+			)
+		}
+		return builder.toJSON()
+	})
 	const startedAt = Date.now()
 
 	if (DISCORD_GUILD_ID) {

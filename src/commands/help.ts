@@ -9,6 +9,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
@@ -77,7 +78,11 @@ const sections: Section[] = [
 ]
 
 export const helpCommand: ChatInputCommand = {
-	data: new SlashCommandBuilder().setName('help').setDescription('Show bot info and commands'),
+	data: new SlashCommandBuilder()
+		.setName('help')
+		.setDescription('Show bot info and commands')
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'help',
 		description: 'Show bot info and commands',

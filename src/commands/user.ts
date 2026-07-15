@@ -1,6 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { buildUserCard, error } from '../utils/embeds/index.js'
@@ -12,7 +13,9 @@ export const userCommand: ChatInputCommand = {
 		.setDescription('Look up a Modrinth user')
 		.addStringOption((o) =>
 			o.setName('query').setDescription('Username, ID, or URL').setRequired(true),
-		),
+		)
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'user',
 		description: 'Look up a Modrinth user',

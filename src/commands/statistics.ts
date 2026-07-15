@@ -1,5 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
@@ -14,7 +15,9 @@ interface ModrinthStatistics {
 export const statisticsCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('statistics')
-		.setDescription('Show Modrinth and bot statistics'),
+		.setDescription('Show Modrinth and bot statistics')
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'statistics',
 		description: 'Show Modrinth and bot statistics',

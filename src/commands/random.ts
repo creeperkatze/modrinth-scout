@@ -1,6 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { buildProjectCard, error } from '../utils/embeds/index.js'
@@ -16,7 +17,9 @@ async function randomProject(): Promise<Labrinth.Projects.v3.Project | undefined
 export const randomCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('random')
-		.setDescription('Returns a random project from Modrinth'),
+		.setDescription('Returns a random project from Modrinth')
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'random',
 		description: 'Returns a random project from Modrinth',

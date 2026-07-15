@@ -3,10 +3,12 @@ import { fileURLToPath } from 'node:url'
 
 import {
 	ActionRowBuilder,
+	ApplicationIntegrationType,
 	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	EmbedBuilder,
+	InteractionContextType,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js'
@@ -63,7 +65,9 @@ export const supportCommand: ChatInputCommand = {
 		)
 		.addSubcommand((sub) =>
 			sub.setName('status').setDescription('Check the supporter status of this server'),
-		),
+		)
+		.setContexts(InteractionContextType.Guild)
+		.setIntegrationTypes(ApplicationIntegrationType.GuildInstall),
 	meta: {
 		name: 'support',
 		description: 'Support the development of this bot',

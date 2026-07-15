@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { buildVersionNotification, error } from '../utils/embeds/index.js'
@@ -11,7 +12,9 @@ export const versionCommand: ChatInputCommand = {
 		.setDescription('Look up a version of a Modrinth project')
 		.addStringOption((o) =>
 			o.setName('query').setDescription('Version ID or URL').setRequired(true),
-		),
+		)
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'version',
 		description: 'Look up a version of a Modrinth project',

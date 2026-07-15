@@ -1,4 +1,11 @@
-import { ChannelType, EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js'
+import {
+	ApplicationIntegrationType,
+	ChannelType,
+	EmbedBuilder,
+	InteractionContextType,
+	PermissionFlagsBits,
+	SlashCommandBuilder,
+} from 'discord.js'
 
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
@@ -113,7 +120,9 @@ export const trackingCommand: ChatInputCommand = {
 		)
 		.addSubcommand((sub) =>
 			sub.setName('disable').setDescription('Disable tracking and remove all tracked projects'),
-		),
+		)
+		.setContexts(InteractionContextType.Guild)
+		.setIntegrationTypes(ApplicationIntegrationType.GuildInstall),
 	meta: {
 		name: 'tracking',
 		description: 'Manage project update tracking for this server',

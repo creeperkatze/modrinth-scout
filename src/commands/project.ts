@@ -1,5 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
@@ -16,7 +17,9 @@ export const projectCommand: ChatInputCommand = {
 				.setDescription('Project name, slug, ID, or URL')
 				.setRequired(true)
 				.setAutocomplete(true),
-		),
+		)
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'project',
 		description: 'Look up a Modrinth project',

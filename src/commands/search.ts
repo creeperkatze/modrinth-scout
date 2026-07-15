@@ -8,6 +8,7 @@ import {
 	StringSelectMenuBuilder,
 } from 'discord.js'
 
+import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../config/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
@@ -136,9 +137,9 @@ export const searchCommand: ChatInputCommand = {
 				.setDescription('Filter by project type')
 				.addChoices(PROJECT_TYPES.map((t) => ({ name: t.name, value: t.value }))),
 		)
-		.addStringOption((o) =>
-			o.setName('sort').setDescription('Sort order').addChoices(SORT_OPTIONS),
-		),
+		.addStringOption((o) => o.setName('sort').setDescription('Sort order').addChoices(SORT_OPTIONS))
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'search',
 		description: 'Search for projects on Modrinth',
