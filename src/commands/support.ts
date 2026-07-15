@@ -19,7 +19,7 @@ import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/icons/kofi.png'), {
+const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png'), {
 	name: 'kofi.png',
 })
 
