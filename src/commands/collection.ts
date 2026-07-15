@@ -40,6 +40,6 @@ export const collectionCommand: ChatInputCommand = {
 			return
 		}
 
-		await interaction.editReply(buildCollectionCard(collection, projects))
+		await interaction.editReply(await buildCollectionCard(collection, projects))
 	},
 }

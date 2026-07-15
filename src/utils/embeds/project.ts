@@ -5,18 +5,22 @@ import { modrinthClient } from '../api.js'
 import { emojiRefs, emojis } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTags } from '../tags.js'
-import { formatDiscordDate, toDate } from '../time.js'
+import { formatDiscordDate } from '../time.js'
 import { typeLabel } from './helpers.js'
 import type { CardPayload } from './types.js'
 
 const log = createModuleLogger('embeds:project')
 
-async function getOwnerAvatarUrl(teamId: string): Promise<string | undefined> {
+async function getOwner(
+	teamId: string,
+): Promise<{ name: string; avatarUrl: string | undefined } | undefined> {
 	try {
 		const [members] = await modrinthClient.labrinth.teams_v3.getMultiple([teamId])
-		return members?.find((m) => m.is_owner)?.user.avatar_url ?? undefined
+		const owner = members?.find((m) => m.is_owner)?.user
+		if (!owner) return undefined
+		return { name: owner.username, avatarUrl: owner.avatar_url ?? undefined }
 	} catch (err) {
-		log.warn({ err, teamId }, 'Failed to fetch team owner avatar')
+		log.warn({ err, teamId }, 'Failed to fetch team owner')
 		return undefined
 	}
 }
@@ -35,7 +39,7 @@ export async function buildProjectCard(
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
 	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
 	const categories = [...(project.categories ?? []), ...(project.additional_categories ?? [])]
-	const ownerAvatarUrl = await getOwnerAvatarUrl(project.team_id)
+	const owner = await getOwner(project.team_id)
 
 	const embed = new EmbedBuilder()
 		.setTitle(project.name)
@@ -47,8 +51,7 @@ export async function buildProjectCard(
 			{ name: 'Release', value: formatDiscordDate(project.published), inline: true },
 			{ name: 'Updated', value: formatDiscordDate(project.updated), inline: true },
 		)
-		.setFooter({ text: 'Updated', iconURL: ownerAvatarUrl })
-		.setTimestamp(toDate(project.updated))
+		.setFooter({ text: owner?.name ?? 'Unknown', iconURL: owner?.avatarUrl })
 
 	if (loaders.length > 0)
 		embed.addFields({ name: 'Loaders', value: formatPlainTags(loaders), inline: true })
