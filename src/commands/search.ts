@@ -13,7 +13,7 @@ import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
 import { error, TYPE_LABELS } from '../utils/embeds/index.js'
 import { emojis, LOADERS } from '../utils/emojis.js'
-import { formatTags } from '../utils/loaders.js'
+import { formatPlainTags } from '../utils/loaders.js'
 
 export const SEARCH_LIMIT = 5
 
@@ -74,10 +74,11 @@ export async function buildSearchPayload(
 			maximumFractionDigits: 1,
 		})
 		const loaderTags = hit.categories.filter((c) => LOADERS.has(c.toLowerCase()))
-		const otherTags = [hitType, ...hit.categories.filter((c) => !loaderTags.includes(c))]
-			.map((t) => `\`${t.charAt(0).toUpperCase() + t.slice(1)}\``)
-			.join(' ')
-		const tags = [formatTags(loaderTags), otherTags].filter(Boolean).join(' ')
+		const categoryTags = hit.categories.filter((c) => !loaderTags.includes(c))
+		const typeValue = `${emojis[rawType] ?? ''} ${hitType}`.trim()
+		const tags = [typeValue, formatPlainTags(loaderTags), formatPlainTags(categoryTags)]
+			.filter(Boolean)
+			.join(' · ')
 		return new EmbedBuilder()
 			.setAuthor({ name: hit.title, iconURL: hit.icon_url || undefined, url })
 			.setDescription(
