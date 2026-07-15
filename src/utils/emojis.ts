@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import type { ApplicationEmoji, Client } from 'discord.js'
+import type { Client } from 'discord.js'
 
 import { logger } from './logger.js'
 
@@ -154,99 +153,64 @@ const CATEGORY_NAMES = [
 export const emojis: Record<string, string> = {}
 export const emojiRefs: Record<string, { id: string; name: string }> = {}
 
-const HASH_LENGTH = 8
-const NAMED_HASH_RE = /^(.+)_([0-9a-f]{8})$/
-
-function hashFile(file: string): string {
-	return createHash('sha1').update(readFileSync(file)).digest('hex').slice(0, HASH_LENGTH)
-}
-
 export async function syncEmojis(client: Client): Promise<void> {
 	const existing = await client.application!.emojis.fetch()
 
 	const defs = [
 		...LOADER_NAMES.map((n) => ({
 			key: n,
-			baseName: n.replace(/-/g, ''),
+			emojiName: n.replace(/-/g, ''),
 			file: join(__dirname, `../assets/loaders/${n}.png`),
 		})),
 		...CHANNEL_NAMES.map((n) => ({
 			key: n,
-			baseName: n,
+			emojiName: n,
 			file: join(__dirname, `../assets/channels/${n}.png`),
 		})),
 		...PROJECT_TYPE_NAMES.map((n) => ({
 			key: n,
-			baseName: n,
+			emojiName: n,
 			file: join(__dirname, `../assets/project-types/${n}.png`),
 		})),
 		...STAT_NAMES.map((n) => ({
 			key: n,
-			baseName: n,
+			emojiName: n,
 			file: join(__dirname, `../assets/stats/${n}.png`),
 		})),
 		...BRAND_NAMES.map((n) => ({
 			key: n,
-			baseName: n,
+			emojiName: n,
 			file: join(__dirname, `../assets/brand/${n}.png`),
 		})),
 		...ICON_NAMES.map((n) => ({
 			key: n,
-			baseName: n,
+			emojiName: n,
 			file: join(__dirname, `../assets/icons/${n}.png`),
 		})),
 		...CATEGORY_NAMES.map((n) => ({
 			key: n,
-			baseName: n.replace(/-/g, ''),
+			emojiName: n.replace(/-/g, ''),
 			file: join(__dirname, `../assets/categories/${n}.png`),
 		})),
-	].map((d) => ({ ...d, hash: hashFile(d.file) }))
+	]
 
-	// Existing managed emojis are named `${baseName}_${hash}`; index by baseName so we can
-	// tell an unchanged icon (hash still matches, reuse it) from a stale one (hash differs,
-	// or the def no longer exists, delete it) without ever touching unmanaged emojis.
-	const existingByBase = new Map<string, ApplicationEmoji>()
+	const managedNames = new Set(defs.map((d) => d.emojiName))
+	let cleared = 0
 	for (const emoji of existing.values()) {
-		const match = NAMED_HASH_RE.exec(emoji.name)
-		if (match) existingByBase.set(match[1], emoji)
-	}
-
-	const baseNames = new Set(defs.map((d) => d.baseName))
-	let removed = 0
-	for (const [baseName, emoji] of existingByBase) {
-		if (baseNames.has(baseName)) continue
+		if (!managedNames.has(emoji.name)) continue
 		try {
 			await emoji.delete()
-			removed++
+			cleared++
 		} catch (err) {
-			log.warn({ name: emoji.name, err }, 'Failed to remove orphaned emoji')
+			log.warn({ name: emoji.name, err }, 'Failed to clear stale emoji')
 		}
 	}
 
 	let uploaded = 0
-	let reused = 0
-	for (const { key, baseName, file, hash } of defs) {
-		const fullName = `${baseName}_${hash}`
-		const current = existingByBase.get(baseName)
-
-		if (current?.name === fullName) {
-			reused++
-			emojis[key] = `<:${current.name}:${current.id}>`
-			emojiRefs[key] = { id: current.id, name: current.name }
-			continue
-		}
-
-		if (current) {
-			try {
-				await current.delete()
-			} catch (err) {
-				log.warn({ name: current.name, err }, 'Failed to clear stale emoji')
-			}
-		}
-
+	for (const { key, emojiName, file } of defs) {
 		try {
 			const emoji = await client.application!.emojis.create({
-				name: fullName,
+				name: emojiName,
 				attachment: readFileSync(file),
 			})
 			uploaded++
@@ -257,5 +221,5 @@ export async function syncEmojis(client: Client): Promise<void> {
 		}
 	}
 
-	log.info({ count: Object.keys(emojis).length, uploaded, reused, removed }, 'Emojis synced')
+	log.info({ count: Object.keys(emojis).length, uploaded, cleared }, 'Emojis synced')
 }
