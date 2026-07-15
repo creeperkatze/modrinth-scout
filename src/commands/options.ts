@@ -54,7 +54,7 @@ function buildOptionsPayload(config: ServerConfig) {
 		const enabled = t.isEnabled(config)
 		return new ButtonBuilder()
 			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${t.id}`)
-			.setLabel(`${t.label}: ${enabled ? 'On' : 'Off'}`)
+			.setLabel(t.label)
 			.setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
 	})
 
