@@ -7,6 +7,7 @@ const serverSchema = new Schema(
 		trackingChannelId: { type: String, default: null },
 		trackingRoleId: { type: String, default: null },
 		trackingPaused: { type: Boolean, default: false },
+		autoEmbedsEnabled: { type: Boolean, default: false },
 	},
 	{ collection: 'servers', timestamps: true },
 )

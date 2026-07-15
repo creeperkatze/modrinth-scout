@@ -127,6 +127,13 @@ export const queries = {
 	resumeTracking: (guildId: string) =>
 		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: false } }),
 
+	setAutoEmbeds: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { autoEmbedsEnabled: enabled } },
+			{ upsert: true },
+		),
+
 	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 
 	countUniqueTrackedProjects: () => ProjectModel.distinct('projectId').then((ids) => ids.length),

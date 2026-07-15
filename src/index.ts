@@ -5,6 +5,7 @@ import { Client, Events, GatewayIntentBits } from 'discord.js'
 import { commands } from './commands/index.js'
 import { connectDb } from './db/index.js'
 import { queries } from './db/queries.js'
+import { handleMessageCreate } from './utils/autoEmbeds.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
 import { createModuleLogger } from './utils/logger.js'
@@ -12,7 +13,13 @@ import { guildCount } from './utils/metrics.js'
 import { startPoller } from './utils/poller.js'
 import { startWebServer } from './web/index.js'
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] })
+const client = new Client({
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+	],
+})
 const { onInteractionCreate } = createCommandRegistry(commands)
 const log = createModuleLogger('app')
 
@@ -86,6 +93,15 @@ client.on(Events.Invalidated, () => {
 })
 
 client.on(Events.InteractionCreate, onInteractionCreate)
+
+client.on(Events.MessageCreate, (message) => {
+	handleMessageCreate(message).catch((err) =>
+		log.error(
+			{ err, messageId: message.id, guildId: message.guildId },
+			'Auto embed handling failed',
+		),
+	)
+})
 
 process.on('unhandledRejection', (reason) => {
 	log.fatal({ err: reason }, 'Unhandled promise rejection')

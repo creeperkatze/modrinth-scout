@@ -14,6 +14,7 @@ import { usesSupporterPerks } from '../config/supporterPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 import { collectionCommand } from './collection.js'
+import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
 import { projectCommand } from './project.js'
@@ -68,6 +69,10 @@ const sections: Section[] = [
 				} satisfies Section,
 			]
 		: []),
+	{
+		heading: 'Options',
+		entries: [optionsCommand].map((c) => ({ name: c.meta.name, description: c.meta.description })),
+	},
 	{
 		heading: 'Miscellaneous',
 		entries: [statisticsCommand, pingCommand].map((c) => ({

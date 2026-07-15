@@ -15,6 +15,7 @@ import {
 } from 'discord.js'
 
 import { HELP_SUPPORT_BUTTON_ID } from '../commands/help.js'
+import { handleOptionsButton, OPTIONS_BUTTON_PREFIX } from '../commands/options.js'
 import {
 	buildSearchId,
 	buildSearchPayload,
@@ -67,6 +68,11 @@ export function createCommandRegistry(
 
 		if (customId === HELP_SUPPORT_BUTTON_ID) {
 			await interaction.reply({ ...buildSupportInfoReply(), flags: 'Ephemeral' })
+			return
+		}
+
+		if (customId.startsWith(OPTIONS_BUTTON_PREFIX)) {
+			await handleOptionsButton(interaction)
 			return
 		}
 
