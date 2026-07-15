@@ -3,7 +3,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 
 import { modrinthClient } from '../api.js'
 import { emojiRefs, emojis } from '../emojis.js'
-import { formatPlainTags } from '../loaders.js'
+import { formatPlainTags, formatTags } from '../loaders.js'
 import { createModuleLogger } from '../logger.js'
 import { formatDiscordDate, toDate } from '../time.js'
 import { typeLabel } from './helpers.js'
@@ -27,10 +27,10 @@ export async function buildProjectCard(
 	const type = project.project_types[0] ?? 'project'
 	const url = `https://modrinth.com/${type}/${project.slug}`
 	const gameVersions = (project.game_versions as string[] | undefined) ?? []
-	const recentVersions = gameVersions.slice(-3).reverse()
+	const recentVersions = gameVersions.slice(-8).reverse()
 	const extraVersions = gameVersions.length - recentVersions.length
 	const versionsText =
-		formatPlainTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
+		formatTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
 	const rawLoaders = project.loaders ?? []
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
 	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
