@@ -13,14 +13,20 @@ const log = createModuleLogger('embeds:project')
 
 async function getOwner(
 	teamId: string,
+	organizationId: string | undefined,
 ): Promise<{ name: string; avatarUrl: string | undefined } | undefined> {
 	try {
+		if (organizationId) {
+			const organization = await modrinthClient.labrinth.organizations_v3.get(organizationId)
+			return { name: organization.name, avatarUrl: organization.icon_url ?? undefined }
+		}
+
 		const [members] = await modrinthClient.labrinth.teams_v3.getMultiple([teamId])
 		const owner = members?.find((m) => m.is_owner)?.user
 		if (!owner) return undefined
 		return { name: owner.username, avatarUrl: owner.avatar_url ?? undefined }
 	} catch (err) {
-		log.warn({ err, teamId }, 'Failed to fetch team owner')
+		log.warn({ err, teamId, organizationId }, 'Failed to fetch project owner')
 		return undefined
 	}
 }
@@ -39,7 +45,7 @@ export async function buildProjectCard(
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
 	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
 	const categories = [...(project.categories ?? []), ...(project.additional_categories ?? [])]
-	const owner = await getOwner(project.team_id)
+	const owner = await getOwner(project.team_id, project.organization)
 
 	const embed = new EmbedBuilder()
 		.setTitle(project.name)
