@@ -51,6 +51,12 @@ const BRAND_NAMES = [
 	'codeberg',
 	'bitbucket',
 	'sourcehut',
+	'wikigg',
+	'fandom',
+	'gitbook',
+	'readthedocs',
+	'curseforge',
+	'miraheze',
 ]
 
 const BUTTON_NAMES = ['download']

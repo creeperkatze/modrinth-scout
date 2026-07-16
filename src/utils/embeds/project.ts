@@ -28,6 +28,27 @@ const SOURCE_HOST_EMOJIS: Record<string, string> = {
 	'git.sr.ht': 'sourcehut',
 }
 
+const WIKI_HOST_EMOJIS: Record<string, string> = {
+	'github.com': 'github',
+	'github.io': 'github',
+	'gitlab.com': 'gitlab',
+	'codeberg.org': 'codeberg',
+	'wiki.gg': 'wikigg',
+	'fandom.com': 'fandom',
+	'gitbook.io': 'gitbook',
+	'readthedocs.io': 'readthedocs',
+	'curseforge.com': 'curseforge',
+	'miraheze.org': 'miraheze',
+}
+
+function hostEmoji(
+	url: string,
+	table: Record<string, string>,
+): { id: string; name: string } | undefined {
+	const emojiKey = Object.entries(table).find(([host]) => urlMatchesHost(url, host))?.[1]
+	return emojiKey ? emojiRefs[emojiKey] : undefined
+}
+
 async function getOwner(
 	teamId: string,
 	organizationId: string | undefined,
@@ -101,13 +122,16 @@ export async function buildProjectCard(
 		links['source'] &&
 		new ButtonBuilder().setLabel('Source').setURL(links['source'].url).setStyle(ButtonStyle.Link)
 	if (sourceButton) {
-		const sourceUrl = links['source']!.url
-		const emojiKey = Object.entries(SOURCE_HOST_EMOJIS).find(([host]) =>
-			urlMatchesHost(sourceUrl, host),
-		)?.[1]
-		const emojiRef = emojiKey && emojiRefs[emojiKey]
-		if (emojiRef) sourceButton.setEmoji(emojiRef)
-		else sourceButton.setEmoji('💻')
+		const emojiRef = hostEmoji(links['source']!.url, SOURCE_HOST_EMOJIS)
+		sourceButton.setEmoji(emojiRef ?? '💻')
+	}
+
+	const wikiButton =
+		links['wiki'] &&
+		new ButtonBuilder().setLabel('Wiki').setURL(links['wiki'].url).setStyle(ButtonStyle.Link)
+	if (wikiButton) {
+		const emojiRef = hostEmoji(links['wiki']!.url, WIKI_HOST_EMOJIS)
+		wikiButton.setEmoji(emojiRef ?? '📖')
 	}
 
 	const buttons = [
@@ -119,12 +143,7 @@ export async function buildProjectCard(
 				.setEmoji('🐛')
 				.setURL(links['issues'].url)
 				.setStyle(ButtonStyle.Link),
-		links['wiki'] &&
-			new ButtonBuilder()
-				.setLabel('Wiki')
-				.setEmoji('📖')
-				.setURL(links['wiki'].url)
-				.setStyle(ButtonStyle.Link),
+		wikiButton,
 		discordButton,
 	].filter(Boolean) as ButtonBuilder[]
 
