@@ -203,10 +203,12 @@ export async function syncEmojis(client: Client): Promise<void> {
 		})),
 	]
 
+	const existingByName = new Map(existing.map((e) => [e.name, e]))
 	const managedNames = new Set(defs.map((d) => d.emojiName))
+
 	let cleared = 0
 	for (const emoji of existing.values()) {
-		if (!managedNames.has(emoji.name)) continue
+		if (managedNames.has(emoji.name)) continue
 		try {
 			await emoji.delete()
 			cleared++
@@ -217,6 +219,13 @@ export async function syncEmojis(client: Client): Promise<void> {
 
 	let uploaded = 0
 	for (const { key, emojiName, file } of defs) {
+		const existingEmoji = existingByName.get(emojiName)
+		if (existingEmoji) {
+			emojis[key] = `<:${existingEmoji.name}:${existingEmoji.id}>`
+			emojiRefs[key] = { id: existingEmoji.id, name: existingEmoji.name! }
+			continue
+		}
+
 		try {
 			const emoji = await client.application!.emojis.create({
 				name: emojiName,
