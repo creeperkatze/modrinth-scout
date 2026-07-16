@@ -87,6 +87,10 @@ export async function buildVersionNotification(
 		viewVersionButton.setEmoji(emojiRefs['modrinth'])
 		viewProjectButton.setEmoji(emojiRefs['modrinth'])
 	}
+	const downloadButton = primaryFile
+		? new ButtonBuilder().setLabel('Download').setURL(primaryFile.url).setStyle(ButtonStyle.Link)
+		: undefined
+	if (downloadButton && emojiRefs['download']) downloadButton.setEmoji(emojiRefs['download'])
 
 	return {
 		embeds: [embed],
@@ -94,15 +98,7 @@ export async function buildVersionNotification(
 			new ActionRowBuilder<ButtonBuilder>().addComponents([
 				viewVersionButton,
 				viewProjectButton,
-				...(primaryFile
-					? [
-							new ButtonBuilder()
-								.setLabel('Download')
-								.setEmoji('⬇️')
-								.setURL(primaryFile.url)
-								.setStyle(ButtonStyle.Link),
-						]
-					: []),
+				...(downloadButton ? [downloadButton] : []),
 			]),
 		],
 	}
