@@ -41,6 +41,15 @@ const WIKI_HOST_EMOJIS: Record<string, string> = {
 	'miraheze.org': 'miraheze',
 }
 
+const ISSUES_HOST_EMOJIS: Record<string, string> = {
+	'github.com': 'github',
+	'gitlab.com': 'gitlab',
+	'codeberg.org': 'codeberg',
+	'bitbucket.org': 'bitbucket',
+	'todo.sr.ht': 'sourcehut',
+	'curseforge.com': 'curseforge',
+}
+
 function hostEmoji(
 	url: string,
 	table: Record<string, string>,
@@ -134,18 +143,17 @@ export async function buildProjectCard(
 		wikiButton.setEmoji(emojiRef ?? '📖')
 	}
 
-	const buttons = [
-		viewProjectButton,
-		sourceButton,
+	const issuesButton =
 		links['issues'] &&
-			new ButtonBuilder()
-				.setLabel('Issues')
-				.setEmoji('🐛')
-				.setURL(links['issues'].url)
-				.setStyle(ButtonStyle.Link),
-		wikiButton,
-		discordButton,
-	].filter(Boolean) as ButtonBuilder[]
+		new ButtonBuilder().setLabel('Issues').setURL(links['issues'].url).setStyle(ButtonStyle.Link)
+	if (issuesButton) {
+		const emojiRef = hostEmoji(links['issues']!.url, ISSUES_HOST_EMOJIS)
+		issuesButton.setEmoji(emojiRef ?? '🐛')
+	}
+
+	const buttons = [viewProjectButton, sourceButton, issuesButton, wikiButton, discordButton].filter(
+		Boolean,
+	) as ButtonBuilder[]
 
 	return {
 		embeds: [embed],
