@@ -25,6 +25,7 @@ const SOURCE_HOST_EMOJIS: Record<string, string> = {
 	'gitlab.com': 'gitlab',
 	'codeberg.org': 'codeberg',
 	'bitbucket.org': 'bitbucket',
+	'git.sr.ht': 'sourcehut',
 }
 
 async function getOwner(

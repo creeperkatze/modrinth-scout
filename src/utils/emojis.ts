@@ -50,6 +50,7 @@ const BRAND_NAMES = [
 	'gitlab',
 	'codeberg',
 	'bitbucket',
+	'sourcehut',
 ]
 
 const BUTTON_NAMES = ['download']
