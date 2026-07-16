@@ -61,7 +61,7 @@ async function pauseTrackingForUnreachableChannel(
 	if (config?.trackingPaused) return
 
 	await queries.pauseTracking(guildId)
-	log.warn({ guildId, channelId }, 'Tracking auto-paused, notification channel is unreachable')
+	log.warn({ guildId, channelId }, 'Tracking paused, notification channel is unreachable')
 
 	const guild = client.guilds.cache.get(guildId)
 	const systemChannel = guild?.systemChannel
@@ -70,7 +70,7 @@ async function pauseTrackingForUnreachableChannel(
 	try {
 		await systemChannel.send({ embeds: [buildTrackingPausedNotice(channelId)] })
 	} catch (err) {
-		log.debug({ guildId, err }, 'Could not post auto-pause notice to system channel')
+		log.debug({ guildId, err }, 'Could not post pause notice to system channel')
 	}
 }
 
