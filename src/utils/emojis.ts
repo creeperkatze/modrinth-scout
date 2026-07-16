@@ -41,7 +41,16 @@ const PROJECT_TYPE_NAMES = [
 
 const STAT_NAMES = ['downloads', 'follows']
 
-const BRAND_NAMES = ['modrinth', 'topgg', 'discord', 'kofi']
+const BRAND_NAMES = [
+	'modrinth',
+	'topgg',
+	'discord',
+	'kofi',
+	'github',
+	'gitlab',
+	'codeberg',
+	'bitbucket',
+]
 
 const BUTTON_NAMES = ['download']
 

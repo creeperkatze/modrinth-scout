@@ -11,6 +11,22 @@ import type { CardPayload } from './types.js'
 
 const log = createModuleLogger('embeds:project')
 
+function urlMatchesHost(url: string, host: string): boolean {
+	try {
+		const { hostname } = new URL(url)
+		return hostname === host || hostname.endsWith(`.${host}`)
+	} catch {
+		return false
+	}
+}
+
+const SOURCE_HOST_EMOJIS: Record<string, string> = {
+	'github.com': 'github',
+	'gitlab.com': 'gitlab',
+	'codeberg.org': 'codeberg',
+	'bitbucket.org': 'bitbucket',
+}
+
 async function getOwner(
 	teamId: string,
 	organizationId: string | undefined,
@@ -80,14 +96,22 @@ export async function buildProjectCard(
 		new ButtonBuilder().setLabel('Discord').setURL(links['discord'].url).setStyle(ButtonStyle.Link)
 	if (discordButton && emojiRefs['discord']) discordButton.setEmoji(emojiRefs['discord'])
 
+	const sourceButton =
+		links['source'] &&
+		new ButtonBuilder().setLabel('Source').setURL(links['source'].url).setStyle(ButtonStyle.Link)
+	if (sourceButton) {
+		const sourceUrl = links['source']!.url
+		const emojiKey = Object.entries(SOURCE_HOST_EMOJIS).find(([host]) =>
+			urlMatchesHost(sourceUrl, host),
+		)?.[1]
+		const emojiRef = emojiKey && emojiRefs[emojiKey]
+		if (emojiRef) sourceButton.setEmoji(emojiRef)
+		else sourceButton.setEmoji('💻')
+	}
+
 	const buttons = [
 		viewProjectButton,
-		links['source'] &&
-			new ButtonBuilder()
-				.setLabel('Source')
-				.setEmoji('💻')
-				.setURL(links['source'].url)
-				.setStyle(ButtonStyle.Link),
+		sourceButton,
 		links['issues'] &&
 			new ButtonBuilder()
 				.setLabel('Issues')
