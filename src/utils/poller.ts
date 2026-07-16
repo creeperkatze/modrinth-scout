@@ -1,11 +1,11 @@
 import type { Labrinth } from '@modrinth/api-client'
-import type { Client, TextChannel } from 'discord.js'
+import { type Client, DiscordAPIError, type TextChannel } from 'discord.js'
 
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { modrinthClient } from './api.js'
-import { buildVersionNotification } from './embeds/index.js'
+import { buildTrackingPausedNotice, buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from './metrics.js'
 
@@ -15,38 +15,66 @@ const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
 const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
+// 403/404 mean the channel needs an admin fix on the Discord server owners side, not ours
+function isUnreachableChannelError(err: unknown): err is DiscordAPIError {
+	return err instanceof DiscordAPIError && (err.status === 403 || err.status === 404)
+}
+
 type ProjectEntry = {
 	slug: string
 	lastUpdated: Date
 	guildIds: string[]
-	channels: { channelId: string; roleId?: string | null; releaseType: string[] }[]
+	channels: { guildId: string; channelId: string; roleId?: string | null; releaseType: string[] }[]
 }
 
 function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 	const map = new Map<string, ProjectEntry>()
 	for (const row of rows) {
 		const entry = map.get(row.projectId)
+		const channel = {
+			guildId: row.guildId,
+			channelId: row.channelId,
+			roleId: row.roleId,
+			releaseType: row.releaseType,
+		}
 		if (entry) {
 			entry.guildIds.push(row.guildId)
-			entry.channels.push({
-				channelId: row.channelId,
-				roleId: row.roleId,
-				releaseType: row.releaseType,
-			})
+			entry.channels.push(channel)
 		} else {
 			map.set(row.projectId, {
 				slug: row.slug,
 				lastUpdated: row.lastUpdated,
 				guildIds: [row.guildId],
-				channels: [{ channelId: row.channelId, roleId: row.roleId, releaseType: row.releaseType }],
+				channels: [channel],
 			})
 		}
 	}
 	return map
 }
 
+async function pauseTrackingForUnreachableChannel(
+	client: Client,
+	guildId: string,
+	channelId: string,
+) {
+	const config = await queries.getServerConfig(guildId)
+	if (config?.trackingPaused) return
+
+	await queries.pauseTracking(guildId)
+	log.warn({ guildId, channelId }, 'Tracking auto-paused, notification channel is unreachable')
+
+	const guild = client.guilds.cache.get(guildId)
+	const systemChannel = guild?.systemChannel
+	if (!systemChannel?.isTextBased()) return
+
+	try {
+		await systemChannel.send({ embeds: [buildTrackingPausedNotice(channelId)] })
+	} catch (err) {
+		log.debug({ guildId, err }, 'Could not post auto-pause notice to system channel')
+	}
+}
+
 async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Project[]> {
-	// Modrinth's endpoint caps at ~810 IDs per request, 512 keeps us safe
 	const chunks: string[][] = []
 	for (let i = 0; i < ids.length; i += 512) chunks.push(ids.slice(i, i + 512))
 	const t0 = Date.now()
@@ -67,26 +95,42 @@ async function notifyChannels(
 	channels: ProjectEntry['channels'],
 ) {
 	const notified: string[] = []
-	for (const { channelId, roleId, releaseType } of channels) {
+	for (const { guildId, channelId, roleId, releaseType } of channels) {
 		const filtered = newVersions.filter((v) => releaseType.includes(v.version_type))
 		if (filtered.length === 0) continue
 
 		const channel = client.channels.cache.get(channelId) as TextChannel | undefined
 		if (!channel?.isTextBased()) {
-			log.warn({ projectId: project.id, channelId, roleId }, 'Channel not found or not text-based')
+			log.warn(
+				{ projectId: project.id, guildId, channelId, roleId },
+				'Channel not found or not text-based',
+			)
+			await pauseTrackingForUnreachableChannel(client, guildId, channelId)
 			continue
 		}
 
 		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
 
-		for (let i = 0; i < filtered.length; i++) {
-			const payload = await buildVersionNotification(project, filtered[i])
-			const isFirst = i === 0
-			await channel.send({
-				content: isFirst ? mention : undefined,
-				embeds: payload.embeds,
-				components: payload.components,
-			})
+		try {
+			for (let i = 0; i < filtered.length; i++) {
+				const payload = await buildVersionNotification(project, filtered[i])
+				const isFirst = i === 0
+				await channel.send({
+					content: isFirst ? mention : undefined,
+					embeds: payload.embeds,
+					components: payload.components,
+				})
+			}
+		} catch (err) {
+			if (isUnreachableChannelError(err)) {
+				log.warn(
+					{ projectId: project.id, guildId, channelId, err },
+					'Failed to notify channel, unreachable',
+				)
+				await pauseTrackingForUnreachableChannel(client, guildId, channelId)
+				continue
+			}
+			throw err
 		}
 		notified.push(channelId)
 	}
