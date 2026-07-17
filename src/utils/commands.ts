@@ -232,15 +232,8 @@ export function createCommandRegistry(
 	return { onInteractionCreate }
 }
 
-export async function deployCommands(commands: ChatInputCommand[]) {
-	const { DISCORD_CLIENT_ID, DISCORD_TOKEN, DISCORD_GUILD_ID } = process.env
-
-	if (!DISCORD_CLIENT_ID || !DISCORD_TOKEN) {
-		throw new Error('Missing DISCORD_CLIENT_ID or DISCORD_TOKEN in environment')
-	}
-
-	const rest = new REST().setToken(DISCORD_TOKEN)
-	const data = commands.map((c) => {
+export function getSlashCommandsData(commands: ChatInputCommand[]) {
+	return commands.map((c) => {
 		const builder = c.data as SlashCommandBuilder
 		if (c.meta.defaultMemberPermissions !== undefined) {
 			builder.setDefaultMemberPermissions(
@@ -249,6 +242,17 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 		}
 		return builder.toJSON()
 	})
+}
+
+export async function deployCommands(commands: ChatInputCommand[]) {
+	const { DISCORD_CLIENT_ID, DISCORD_TOKEN, DISCORD_GUILD_ID } = process.env
+
+	if (!DISCORD_CLIENT_ID || !DISCORD_TOKEN) {
+		throw new Error('Missing DISCORD_CLIENT_ID or DISCORD_TOKEN in environment')
+	}
+
+	const rest = new REST().setToken(DISCORD_TOKEN)
+	const data = getSlashCommandsData(commands)
 	const startedAt = Date.now()
 
 	if (DISCORD_GUILD_ID) {
