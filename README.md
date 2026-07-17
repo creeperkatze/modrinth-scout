@@ -54,6 +54,7 @@ The `/help` command shows:
 
 ### Miscellaneous
 
+- `/options` · Manage server bot options
 - `/statistics` · Show Modrinth and bot statistics
 - `/ping` · Replies with Pong!
 
