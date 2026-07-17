@@ -52,9 +52,12 @@ The `/help` command shows:
 - `/support activate` · Activate supporter perks using your Ko-fi account
 - `/support status` · Check the supporter status of this server
 
-### Miscellaneous
+### Options
 
 - `/options` · Manage server bot options
+
+### Miscellaneous
+
 - `/statistics` · Show Modrinth and bot statistics
 - `/ping` · Replies with Pong!
 
