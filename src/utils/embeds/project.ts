@@ -98,7 +98,9 @@ export async function buildProjectCard(
 		.setTitle(project.name)
 		.setDescription(project.summary)
 		.addFields(
-			{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true },
+			...((type as string) === 'minecraft_java_server'
+				? []
+				: [{ name: 'Downloads', value: project.downloads.toLocaleString('en-US'), inline: true }]),
 			{ name: 'Followers', value: project.followers.toLocaleString('en-US'), inline: true },
 			{ name: 'Type', value: typeValue, inline: true },
 			{ name: 'Released', value: formatDiscordDate(project.published), inline: true },
