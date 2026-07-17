@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { emojis } from '../src/utils/emojis.js'
-import { formatTags } from '../src/utils/tags.js'
+import { formatPlainTags, formatTags } from '../src/utils/tags.js'
 
 beforeEach(() => {
 	delete emojis['fabric']
@@ -37,5 +37,31 @@ describe('formatTags', () => {
 		emojis['quilt'] = '<:quilt:456>'
 		const result = formatTags(['fabric', 'quilt'])
 		expect(result).toBe('<:fabric:123> `Fabric` <:quilt:456> `Quilt`')
+	})
+})
+
+describe('formatPlainTags', () => {
+	it('returns empty string for an empty array', () => {
+		expect(formatPlainTags([])).toBe('')
+	})
+
+	it('formats a tag without backticks or emoji when none is synced', () => {
+		expect(formatPlainTags(['fabric'])).toBe('Fabric')
+	})
+
+	it('formats a tag with emoji when synced', () => {
+		emojis['fabric'] = '<:fabric:123>'
+		expect(formatPlainTags(['fabric'])).toBe('<:fabric:123> Fabric')
+	})
+
+	it('capitalizes the first letter of the tag', () => {
+		expect(formatPlainTags(['forge'])).toBe('Forge')
+	})
+
+	it('joins multiple tags with spaces', () => {
+		emojis['fabric'] = '<:fabric:123>'
+		emojis['quilt'] = '<:quilt:456>'
+		const result = formatPlainTags(['fabric', 'quilt'])
+		expect(result).toBe('<:fabric:123> Fabric <:quilt:456> Quilt')
 	})
 })
