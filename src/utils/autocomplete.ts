@@ -25,7 +25,7 @@ function formatCount(count: number): string {
 export function formatHitLabels(hits: AutocompleteHit[]): string[] {
 	const types = hits.map(resolveType)
 	return hits.map((h, i) =>
-		`${h.title} · □ ${types[i]} · Ꙫ ${h.author} · ↓ ${formatCount(h.downloads)} · ♡ ${formatCount(h.follows)}`.slice(
+		`${h.title} · ▢ ${types[i]} · Ꙫ ${h.author} · ↓ ${formatCount(h.downloads)} · ♡ ${formatCount(h.follows)}`.slice(
 			0,
 			100,
 		),
