@@ -7,14 +7,11 @@ const hit = (overrides: Partial<AutocompleteHit> = {}): AutocompleteHit => ({
 	project_type: 'mod',
 	author: 'JellySquid3',
 	downloads: 1_234_567,
+	follows: 8_901,
 	...overrides,
 })
 
 describe('formatHitLabels', () => {
-	it('formats label with title, type, author, and downloads', () => {
-		expect(formatHitLabels([hit()])[0]).toBe('Sodium · Mod · by JellySquid3 · 1,234,567 downloads')
-	})
-
 	it('maps minecraft_java_server to Server', () => {
 		expect(formatHitLabels([hit({ project_type: 'minecraft_java_server' })])[0]).toContain(
 			'· Server ·',

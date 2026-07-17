@@ -7,7 +7,7 @@ import { typeLabel } from './embeds/index.js'
 
 export type AutocompleteHit = Pick<
 	Labrinth.Projects.v2.SearchResultHit,
-	'title' | 'author' | 'downloads'
+	'title' | 'author' | 'downloads' | 'follows'
 > & {
 	project_type?: Labrinth.Projects.v2.SearchResultHit['project_type'] | ProjectType
 }
@@ -16,10 +16,16 @@ function resolveType(hit: AutocompleteHit): string {
 	return typeLabel(hit.project_type ?? 'project')
 }
 
+function formatCount(count: number): string {
+	if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+	if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K`
+	return `${count}`
+}
+
 export function formatHitLabels(hits: AutocompleteHit[]): string[] {
 	const types = hits.map(resolveType)
 	return hits.map((h, i) =>
-		`${h.title} · ${types[i]} · by ${h.author} · ${h.downloads.toLocaleString('en-US')} downloads`.slice(
+		`${h.title} · ▢ ${types[i]} · Ꙫ ${h.author} · ↓ ${formatCount(h.downloads)} · ♡ ${formatCount(h.follows)}`.slice(
 			0,
 			100,
 		),
