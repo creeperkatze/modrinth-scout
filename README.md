@@ -34,7 +34,7 @@ The `/help` command shows:
 - `/user` · Look up a Modrinth user
 - `/organization` · Look up a Modrinth organization
 - `/collection` · Look up a Modrinth collection
-- `/scan` · Identify a mod file by uploading it
+- `/identify` · Identify a mod file by uploading it
 
 ### Tracking
 
@@ -53,12 +53,9 @@ The `/help` command shows:
 - `/support activate` · Activate supporter perks using your Ko-fi account
 - `/support status` · Check the supporter status of this server
 
-### Options
-
-- `/options` · Manage server bot options
-
 ### Miscellaneous
 
+- `/options` · Manage server bot options
 - `/statistics` · Show Modrinth and bot statistics
 - `/vote` · Vote for the bot on top.gg
 - `/ping` · Replies with Pong!

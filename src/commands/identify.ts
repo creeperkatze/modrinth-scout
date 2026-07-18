@@ -9,13 +9,13 @@ import { modrinthClient } from '../utils/api.js'
 import { buildVersionNotification, error } from '../utils/embeds/index.js'
 import { createModuleLogger } from '../utils/logger.js'
 
-const log = createModuleLogger('scan')
+const log = createModuleLogger('identify')
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024
 
-export const scanCommand: ChatInputCommand = {
+export const identifyCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
-		.setName('scan')
+		.setName('identify')
 		.setDescription('Identify a mod file by uploading it')
 		.addAttachmentOption((o) =>
 			o.setName('file').setDescription('The mod file to identify').setRequired(true),
@@ -23,7 +23,7 @@ export const scanCommand: ChatInputCommand = {
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
-		name: 'scan',
+		name: 'identify',
 		description: 'Identify a mod file by uploading it',
 		category: 'utility',
 		cooldownSeconds: 10,
