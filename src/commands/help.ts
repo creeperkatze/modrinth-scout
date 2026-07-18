@@ -6,6 +6,7 @@ import {
 	ButtonBuilder,
 	ButtonStyle,
 	EmbedBuilder,
+	InteractionContextType,
 	SlashCommandBuilder,
 } from 'discord.js'
 
@@ -34,8 +35,29 @@ const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PR
 
 export const HELP_SUPPORT_BUTTON_ID = 'help:support'
 
-type Entry = { name: string; description: string }
+type Entry = { name: string; description: string; dmUsable: boolean }
 type Section = { heading: string; entries: Entry[] }
+
+// Subcommands inherit their parent command's contexts; Discord has no per-subcommand contexts.
+function isDmUsable(cmd: ChatInputCommand): boolean {
+	const contexts = cmd.data.toJSON().contexts
+	if (!contexts) return true
+	return (
+		contexts.includes(InteractionContextType.BotDM) ||
+		contexts.includes(InteractionContextType.PrivateChannel)
+	)
+}
+
+function toEntry(cmd: ChatInputCommand): Entry {
+	return { name: cmd.meta.name, description: cmd.meta.description, dmUsable: isDmUsable(cmd) }
+}
+
+function toSubcommandEntries(cmd: ChatInputCommand): Entry[] {
+	const dmUsable = isDmUsable(cmd)
+	return (cmd.data.toJSON().options ?? [])
+		.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
+		.map((o) => ({ name: `${cmd.meta.name} ${o.name}`, description: o.description, dmUsable }))
+}
 
 const sections: Section[] = [
 	{
@@ -48,37 +70,22 @@ const sections: Section[] = [
 			organizationCommand,
 			collectionCommand,
 			searchCommand,
-		].map((c) => ({ name: c.meta.name, description: c.meta.description })),
+		].map(toEntry),
 	},
 	{
 		heading: 'Tracking',
-		entries: (trackingCommand.data.toJSON().options ?? [])
-			.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
-			.map((o) => ({ name: `${trackingCommand.meta.name} ${o.name}`, description: o.description })),
+		entries: toSubcommandEntries(trackingCommand),
 	},
 	...(usesSupporterPerks
-		? [
-				{
-					heading: 'Support',
-					entries: (supportCommand.data.toJSON().options ?? [])
-						.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
-						.map((o) => ({
-							name: `${supportCommand.meta.name} ${o.name}`,
-							description: o.description,
-						})),
-				} satisfies Section,
-			]
+		? [{ heading: 'Support', entries: toSubcommandEntries(supportCommand) } satisfies Section]
 		: []),
 	{
 		heading: 'Options',
-		entries: [optionsCommand].map((c) => ({ name: c.meta.name, description: c.meta.description })),
+		entries: [optionsCommand].map(toEntry),
 	},
 	{
 		heading: 'Miscellaneous',
-		entries: [statisticsCommand, pingCommand].map((c) => ({
-			name: c.meta.name,
-			description: c.meta.description,
-		})),
+		entries: [statisticsCommand, pingCommand].map(toEntry),
 	},
 ]
 
@@ -94,7 +101,14 @@ export const helpCommand: ChatInputCommand = {
 		category: 'general',
 	},
 	async execute(interaction) {
-		const description = sections
+		const usableSections = sections
+			.map((section) => ({
+				...section,
+				entries: section.entries.filter((e) => e.dmUsable || interaction.inGuild()),
+			}))
+			.filter((section) => section.entries.length > 0)
+
+		const description = usableSections
 			.map(
 				({ heading, entries }) =>
 					`### ${heading}\n` + entries.map((e) => `**/${e.name}** · ${e.description}`).join('\n'),
