@@ -83,12 +83,8 @@ const sections: Section[] = [
 		? [{ heading: 'Support', entries: toSubcommandEntries(supportCommand) } satisfies Section]
 		: []),
 	{
-		heading: 'Options',
-		entries: [optionsCommand].map(toEntry),
-	},
-	{
 		heading: 'Miscellaneous',
-		entries: [statisticsCommand, voteCommand, pingCommand].map(toEntry),
+		entries: [optionsCommand, statisticsCommand, voteCommand, pingCommand].map(toEntry),
 	},
 ]
 
