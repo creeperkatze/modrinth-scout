@@ -44,4 +44,10 @@ describe('formatHitLabels', () => {
 		expect(labels[0]).toContain('A')
 		expect(labels[1]).toContain('B')
 	})
+
+	it('omits downloads for server projects', () => {
+		const [label] = formatHitLabels([hit({ project_type: 'minecraft_java_server' })])
+		expect(label).not.toContain('↓')
+		expect(label).toBe('Sodium · ▢ Server · Ꙫ jellysquid3 · ♡ 56')
+	})
 })

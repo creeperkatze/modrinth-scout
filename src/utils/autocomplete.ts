@@ -24,12 +24,14 @@ function formatCount(count: number): string {
 
 export function formatHitLabels(hits: AutocompleteHit[]): string[] {
 	const types = hits.map(resolveType)
-	return hits.map((h, i) =>
-		`${h.title} · ▢ ${types[i]} · Ꙫ ${h.author} · ↓ ${formatCount(h.downloads)} · ♡ ${formatCount(h.follows)}`.slice(
+	return hits.map((h, i) => {
+		const isServer = (h.project_type ?? undefined) === 'minecraft_java_server'
+		const downloads = isServer ? '' : ` · ↓ ${formatCount(h.downloads)}`
+		return `${h.title} · ▢ ${types[i]} · Ꙫ ${h.author}${downloads} · ♡ ${formatCount(h.follows)}`.slice(
 			0,
 			100,
-		),
-	)
+		)
+	})
 }
 
 export async function respondWithProjectSearch(
