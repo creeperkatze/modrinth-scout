@@ -26,6 +26,7 @@ import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
 import { versionCommand } from './version.js'
+import { voteCommand } from './vote.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../../package.json') as { version: string }
@@ -85,7 +86,7 @@ const sections: Section[] = [
 	},
 	{
 		heading: 'Miscellaneous',
-		entries: [statisticsCommand, pingCommand].map(toEntry),
+		entries: [statisticsCommand, voteCommand, pingCommand].map(toEntry),
 	},
 ]
 

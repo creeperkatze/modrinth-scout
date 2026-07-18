@@ -13,6 +13,7 @@ import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
 import { versionCommand } from './version.js'
+import { voteCommand } from './vote.js'
 
 export const commands: ChatInputCommand[] = [
 	pingCommand,
@@ -27,5 +28,6 @@ export const commands: ChatInputCommand[] = [
 	trackingCommand,
 	optionsCommand,
 	statisticsCommand,
+	voteCommand,
 	helpCommand,
 ]

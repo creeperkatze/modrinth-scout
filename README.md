@@ -59,6 +59,7 @@ The `/help` command shows:
 ### Miscellaneous
 
 - `/statistics` · Show Modrinth and bot statistics
+- `/vote` · Vote for the bot on top.gg
 - `/ping` · Replies with Pong!
 
 ## 🚀 Self-hosting
