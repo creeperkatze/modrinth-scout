@@ -7,6 +7,7 @@ import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
 import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
+import { scanCommand } from './scan.js'
 import { searchCommand } from './search.js'
 import { statisticsCommand } from './statistics.js'
 import { supportCommand } from './support.js'
@@ -19,6 +20,7 @@ export const commands: ChatInputCommand[] = [
 	pingCommand,
 	randomCommand,
 	searchCommand,
+	scanCommand,
 	projectCommand,
 	versionCommand,
 	userCommand,
