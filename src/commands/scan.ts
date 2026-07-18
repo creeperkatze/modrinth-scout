@@ -66,11 +66,12 @@ export const scanCommand: ChatInputCommand = {
 		}
 
 		try {
-			// The hash lookup is v2-only, so the id it returns is re-fetched as v3
-			// to build the same card the /version command uses.
+			// The v2 match already has project_id, so fetch v3 version and project in parallel.
 			const match = await modrinthClient.labrinth.versions_v2.getVersionFromFileHash(hash, 'sha1')
-			const version = await modrinthClient.labrinth.versions_v3.getVersion(match.id)
-			const project = await modrinthClient.labrinth.projects_v3.get(version.project_id)
+			const [version, project] = await Promise.all([
+				modrinthClient.labrinth.versions_v3.getVersion(match.id),
+				modrinthClient.labrinth.projects_v3.get(match.project_id),
+			])
 
 			log.info(
 				{ userId: interaction.user.id, projectId: project.id, versionId: version.id },
