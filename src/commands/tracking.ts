@@ -1,3 +1,4 @@
+import { ModrinthApiError } from '@modrinth/api-client'
 import {
 	ApplicationIntegrationType,
 	ChannelType,
@@ -214,8 +215,14 @@ export const trackingCommand: ChatInputCommand = {
 			let project
 			try {
 				project = await modrinthClient.labrinth.projects_v3.get(input)
-			} catch {
-				await interaction.editReply({ embeds: [error(`No project found for \`${input}\`.`)] })
+			} catch (err) {
+				const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+				const message = notFound
+					? `No project found for \`${input}\`.`
+					: err instanceof Error
+						? err.message
+						: String(err)
+				await interaction.editReply({ embeds: [error(message)] })
 				return
 			}
 
@@ -270,25 +277,25 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'remove') {
 			const raw = interaction.options.getString('query', true).trim()
 			const parsed = parseModrinthUrl(raw)
-			const projectId =
-				parsed?.type === 'project'
-					? await modrinthClient.labrinth.projects_v3
-							.get(parsed.slug)
-							.then((project) => project.id)
-							.catch(async () => {
-								await interaction.reply({
-									embeds: [error(`No project found for \`${parsed.slug}\`.`)],
-									flags: 'Ephemeral',
-								})
-								return null
-							})
-					: await modrinthClient.labrinth.projects_v3
-							.get(raw)
-							.then((project) => project.id)
-							.catch(() => raw)
+			const query = parsed?.type === 'project' ? parsed.slug : raw
 
-			if (!projectId) {
-				return
+			let projectId: string
+			try {
+				projectId = (await modrinthClient.labrinth.projects_v3.get(query)).id
+			} catch (err) {
+				const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+				if (parsed?.type === 'project' || !notFound) {
+					const message = notFound
+						? `No project found for \`${query}\`.`
+						: err instanceof Error
+							? err.message
+							: String(err)
+					await interaction.reply({ embeds: [error(message)], flags: 'Ephemeral' })
+					return
+				}
+				// Not a URL and Modrinth doesn't recognize it (e.g. the project was deleted) —
+				// fall back to treating the input itself as the tracked project ID.
+				projectId = raw
 			}
 
 			const entry = await queries.findTrackedProjectById(guildId, projectId)

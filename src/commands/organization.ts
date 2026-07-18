@@ -1,3 +1,4 @@
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -34,8 +35,14 @@ export const organizationCommand: ChatInputCommand = {
 				modrinthClient.labrinth.organizations_v3.get(slug),
 				modrinthClient.labrinth.organizations_v3.getProjects(slug),
 			])
-		} catch {
-			await interaction.editReply({ embeds: [error(`No organization found for \`${slug}\`.`)] })
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `No organization found for \`${slug}\`.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 			return
 		}
 

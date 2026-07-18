@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -76,10 +77,14 @@ export const scanCommand: ChatInputCommand = {
 				'File identified',
 			)
 			await interaction.editReply(await buildVersionNotification(project, version))
-		} catch {
-			await interaction.editReply({
-				embeds: [error(`\`${attachment.name}\` was not found on Modrinth.`)],
-			})
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `\`${attachment.name}\` was not found on Modrinth.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 		}
 	},
 }

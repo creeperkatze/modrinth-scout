@@ -1,3 +1,4 @@
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -40,8 +41,14 @@ export const projectCommand: ChatInputCommand = {
 		let project
 		try {
 			project = await modrinthClient.labrinth.projects_v3.get(slug)
-		} catch {
-			await interaction.editReply({ embeds: [error(`No project found for \`${slug}\`.`)] })
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `No project found for \`${slug}\`.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 			return
 		}
 

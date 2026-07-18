@@ -1,3 +1,4 @@
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -35,8 +36,14 @@ export const collectionCommand: ChatInputCommand = {
 				collection.projects.length > 0
 					? await modrinthClient.labrinth.projects_v3.getMultiple(collection.projects)
 					: []
-		} catch {
-			await interaction.editReply({ embeds: [error(`No collection found for \`${id}\`.`)] })
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `No collection found for \`${id}\`.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 			return
 		}
 

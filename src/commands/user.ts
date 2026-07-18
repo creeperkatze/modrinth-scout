@@ -1,4 +1,4 @@
-import type { Labrinth } from '@modrinth/api-client'
+import { type Labrinth, ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -39,8 +39,14 @@ export const userCommand: ChatInputCommand = {
 					method: 'GET',
 				}),
 			])
-		} catch {
-			await interaction.editReply({ embeds: [error(`No user found for \`${username}\`.`)] })
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `No user found for \`${username}\`.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 			return
 		}
 

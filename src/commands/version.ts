@@ -1,3 +1,4 @@
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -28,9 +29,17 @@ export const versionCommand: ChatInputCommand = {
 		const parsed = parseModrinthUrl(raw)
 
 		if (parsed?.type === 'version') {
-			const project = await modrinthClient.labrinth.projects_v3
-				.get(parsed.projectSlug)
-				.catch(() => null)
+			let project = null
+			try {
+				project = await modrinthClient.labrinth.projects_v3.get(parsed.projectSlug)
+			} catch (err) {
+				if (!(err instanceof ModrinthApiError && err.statusCode === 404)) {
+					await interaction.editReply({
+						embeds: [error(err instanceof Error ? err.message : String(err))],
+					})
+					return
+				}
+			}
 
 			if (project) {
 				const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
@@ -55,10 +64,14 @@ export const versionCommand: ChatInputCommand = {
 			const project = await modrinthClient.labrinth.projects_v3.get(version.project_id)
 			await interaction.editReply(await buildVersionNotification(project, version))
 			return
-		} catch {
-			await interaction.editReply({
-				embeds: [error(`No version found for \`${raw}\`.`)],
-			})
+		} catch (err) {
+			const notFound = err instanceof ModrinthApiError && err.statusCode === 404
+			const message = notFound
+				? `No version found for \`${raw}\`.`
+				: err instanceof Error
+					? err.message
+					: String(err)
+			await interaction.editReply({ embeds: [error(message)] })
 		}
 	},
 }
