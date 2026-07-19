@@ -4,6 +4,7 @@ import { SlashCommandBuilder } from 'discord.js'
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api.js'
+import { respondWithUserSearch } from '../utils/autocomplete.js'
 import { buildUserCard, error } from '../utils/embeds/index.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
@@ -12,7 +13,11 @@ export const userCommand: ChatInputCommand = {
 		.setName('user')
 		.setDescription('Look up a Modrinth user')
 		.addStringOption((o) =>
-			o.setName('query').setDescription('Username, ID, or URL').setRequired(true),
+			o
+				.setName('query')
+				.setDescription('Username, ID, or URL')
+				.setRequired(true)
+				.setAutocomplete(true),
 		)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
@@ -22,6 +27,10 @@ export const userCommand: ChatInputCommand = {
 		category: 'utility',
 		cooldownSeconds: 5,
 	},
+	async autocomplete(interaction) {
+		await respondWithUserSearch(interaction)
+	},
+
 	async execute(interaction) {
 		await interaction.deferReply()
 

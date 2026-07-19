@@ -56,3 +56,13 @@ export async function respondWithProjectSearch(
 		await interaction.respond([])
 	}
 }
+
+export async function respondWithUserSearch(interaction: AutocompleteInteraction): Promise<void> {
+	try {
+		const query = interaction.options.getFocused()
+		const users = query ? await modrinthClient.labrinth.users_v3.search(query) : []
+		await interaction.respond(users.map((u) => ({ name: u.username, value: u.username })))
+	} catch {
+		await interaction.respond([])
+	}
+}
