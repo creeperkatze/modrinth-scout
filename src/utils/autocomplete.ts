@@ -3,7 +3,7 @@ import { AutocompleteInteraction } from 'discord.js'
 
 import { ProjectType } from '../config/modrinth.js'
 import { modrinthClient } from './api.js'
-import { typeLabel } from './embeds/index.js'
+import { BADGE_LABELS, resolveBadges, typeLabel } from './embeds/index.js'
 
 export type AutocompleteHit = Pick<
 	Labrinth.Projects.v2.SearchResultHit,
@@ -57,11 +57,40 @@ export async function respondWithProjectSearch(
 	}
 }
 
+function formatUserLabel(username: string, details?: Labrinth.Users.v2.User): string {
+	if (!details) return username
+	const badges = resolveBadges(details).map((key) => BADGE_LABELS[key])
+	const parts = [
+		username,
+		`⚑ ${new Date(details.created).getFullYear()}`,
+		badges.length > 0 ? `★ ${badges.join(', ')}` : undefined,
+	].filter(Boolean)
+	return parts.join(' · ').slice(0, 100)
+}
+
 export async function respondWithUserSearch(interaction: AutocompleteInteraction): Promise<void> {
 	try {
 		const query = interaction.options.getFocused()
 		const users = query ? await modrinthClient.labrinth.users_v3.search(query) : []
-		await interaction.respond(users.map((u) => ({ name: u.username, value: u.username })))
+		if (users.length === 0) {
+			await interaction.respond([])
+			return
+		}
+
+		let detailsById = new Map<string, Labrinth.Users.v2.User>()
+		try {
+			const details = await modrinthClient.labrinth.users_v2.getMultiple(users.map((u) => u.id))
+			detailsById = new Map(details.map((d) => [d.id, d]))
+		} catch {
+			// Enrichment is best-effort; fall back to bare usernames below.
+		}
+
+		await interaction.respond(
+			users.map((u) => ({
+				name: formatUserLabel(u.username, detailsById.get(u.id)),
+				value: u.username,
+			})),
+		)
 	} catch {
 		await interaction.respond([])
 	}

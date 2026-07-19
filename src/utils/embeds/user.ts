@@ -16,7 +16,7 @@ const BADGE_BITS = {
 	'badge-alpha': 1 << 4, // ALPHA_TESTER
 }
 
-const BADGE_LABELS: Record<string, string> = {
+export const BADGE_LABELS: Record<string, string> = {
 	'badge-staff': 'Staff',
 	'badge-moderator': 'Moderator',
 	'badge-plus': 'Modrinth+',
@@ -26,7 +26,7 @@ const BADGE_LABELS: Record<string, string> = {
 	'badge-early-plugin': 'Early Plugin Adopter',
 }
 
-function resolveBadges(user: Labrinth.Users.v3.User): string[] {
+export function resolveBadges(user: Pick<Labrinth.Users.v3.User, 'role' | 'badges'>): string[] {
 	const badges: string[] = []
 	if (user.role === 'admin') badges.push('badge-staff')
 	else if (user.role === 'moderator') badges.push('badge-moderator')
