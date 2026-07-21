@@ -11,7 +11,7 @@ import {
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../config/modrinth.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { modrinthClient } from '../utils/api.js'
+import { modrinthClient } from '../utils/api/modrinth.js'
 import { error, typeLabel } from '../utils/embeds/index.js'
 import { emojis, LOADERS } from '../utils/emojis.js'
 import { formatPlainTags } from '../utils/tags.js'

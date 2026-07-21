@@ -2,10 +2,10 @@ import { createRequire } from 'node:module'
 
 import { GenericModrinthClient } from '@modrinth/api-client'
 
-import { MetricsFeature } from './metrics.js'
+import { MetricsFeature } from '../metrics.js'
 
 const require = createRequire(import.meta.url)
-const { version } = require('../../package.json') as { version: string }
+const { version } = require('../../../package.json') as { version: string }
 
 const USER_AGENT = `creeperkatze/modrinth-scout/${version} (contact@creeperkatze.dev)`
 

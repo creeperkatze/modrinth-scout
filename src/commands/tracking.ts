@@ -11,7 +11,7 @@ import {
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { modrinthClient } from '../utils/api.js'
+import { modrinthClient } from '../utils/api/modrinth.js'
 import { respondWithProjectSearch } from '../utils/autocomplete.js'
 import { error, success } from '../utils/embeds/index.js'
 import { logger } from '../utils/logger.js'

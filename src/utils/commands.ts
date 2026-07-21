@@ -24,7 +24,7 @@ import {
 } from '../commands/search.js'
 import { buildSupportInfoReply } from '../commands/support.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { modrinthClient } from './api.js'
+import { modrinthClient } from './api/modrinth.js'
 import { buildProjectCard } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 import { commandDurationSeconds, commandsTotal } from './metrics.js'

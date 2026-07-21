@@ -2,7 +2,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { AutocompleteInteraction } from 'discord.js'
 
 import { ProjectType } from '../config/modrinth.js'
-import { modrinthClient } from './api.js'
+import { modrinthClient } from './api/modrinth.js'
 import { BADGE_LABELS, resolveBadges, typeLabel } from './embeds/index.js'
 
 export type AutocompleteHit = Pick<

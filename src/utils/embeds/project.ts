@@ -1,7 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import { modrinthClient } from '../api.js'
+import { modrinthClient } from '../api/modrinth.js'
 import { emojiRefs, emojis } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTags } from '../tags.js'

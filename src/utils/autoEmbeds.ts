@@ -2,7 +2,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { type Message, PermissionFlagsBits } from 'discord.js'
 
 import { queries } from '../db/queries.js'
-import { modrinthClient } from './api.js'
+import { modrinthClient } from './api/modrinth.js'
 import {
 	buildCollectionCard,
 	buildOrganizationCard,
