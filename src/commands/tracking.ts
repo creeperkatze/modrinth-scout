@@ -60,10 +60,7 @@ export const TRACKING_LIST_PAUSE_ID = 'tracking-list-pause'
 export const TRACKING_LIST_CHANNEL_SELECT_ID = 'tracking-list-channel'
 export const TRACKING_LIST_ROLE_SELECT_ID = 'tracking-list-role'
 
-// Components V2 caps a message at 40 total components (including nested ones); each
-// tracked project needs 3 (Section + TextDisplay + Button), plus a fixed ~10 for the
-// header/status/channel-select/role-select, so above this we fall back to a plain
-// read-only list instead.
+// Components V2 caps messages at 40 total components, so large lists use a read-only embed.
 const MAX_INTERACTIVE_TRACKED = 8
 
 function projectDetailsLabel(p: {
@@ -168,11 +165,7 @@ async function buildTrackingListPayload(
 
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
-		.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(
-				`## Tracked Projects\n${tracked.length} / ${limit} tracked`,
-			),
-		)
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Tracked Projects'))
 
 	const paused = Boolean(config?.trackingPaused)
 	const statusButton = new ButtonBuilder()
@@ -208,6 +201,9 @@ async function buildTrackingListPayload(
 	container.addSeparatorComponents(
 		new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
 	)
+	container.addTextDisplayComponents(
+		new TextDisplayBuilder().setContent(`**${tracked.length} / ${limit} tracked**`),
+	)
 
 	if (tracked.length === 0) {
 		container.addTextDisplayComponents(
@@ -218,7 +214,7 @@ async function buildTrackingListPayload(
 	} else {
 		const projectsById = await fetchProjectsById(tracked.map((p) => p.projectId))
 
-		for (const p of tracked) {
+		tracked.forEach((p, i) => {
 			const full = projectsById.get(p.projectId)
 			const headerText = buildProjectHeaderText(p, full)
 			const detailsLabel = projectDetailsLabel(p)
@@ -233,7 +229,13 @@ async function buildTrackingListPayload(
 				.addTextDisplayComponents(new TextDisplayBuilder().setContent(text))
 				.setButtonAccessory(button)
 			container.addSectionComponents(section)
-		}
+
+			if (i < tracked.length - 1) {
+				container.addSeparatorComponents(
+					new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+				)
+			}
+		})
 	}
 
 	return { embeds: [], components: [container], flags: ['IsComponentsV2'] as const }
