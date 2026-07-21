@@ -11,6 +11,9 @@ importers:
       '@modrinth/api-client':
         specifier: ^0.33.0
         version: 0.33.0
+      '@openrouter/sdk':
+        specifier: ^0.13.67
+        version: 0.13.67
       discord.js:
         specifier: ^14.27.0
         version: 14.27.0
@@ -380,6 +383,9 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@openrouter/sdk@0.13.67':
+    resolution: {integrity: sha512-kUVaFYA9Xehq67ndTk98i+tRLfYH/F6xSf/WuC8dsukBzcgBvYQydoeKw4Xe+peXG/wOVtDxukWt5SqzhbloKw==}
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -1817,6 +1823,9 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@babel/helper-string-parser@7.29.7': {}
@@ -2051,6 +2060,10 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.3
     optional: true
+
+  '@openrouter/sdk@0.13.67':
+    dependencies:
+      zod: 4.4.3
 
   '@opentelemetry/api@1.9.1': {}
 
@@ -3406,3 +3419,5 @@ snapshots:
   ws@8.21.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.4.3: {}
