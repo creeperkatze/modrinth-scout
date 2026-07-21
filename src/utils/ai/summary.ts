@@ -5,7 +5,7 @@ const MIN_CHANGELOG_LENGTH = 80
 const MAX_CHANGELOG_INPUT_LENGTH = 4000
 
 const SYSTEM_PROMPT =
-	'You summarize Minecraft mod/plugin changelogs for a Discord update notification. ' +
+	'You summarize changelogs of Minecraft mods, resource packs, data packs, shaders, plugins or modpacks for a Discord update notification. ' +
 	'Reply with a single plain-English sentence (max 25 words) describing what changed. ' +
 	'No markdown, no preamble, no quotes. If the changelog has no meaningful content, reply with exactly: NONE'
 
