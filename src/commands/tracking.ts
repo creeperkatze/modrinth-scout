@@ -170,8 +170,8 @@ async function buildTrackingListPayload(
 	const paused = Boolean(config?.trackingPaused)
 	const statusButton = new ButtonBuilder()
 		.setCustomId(TRACKING_LIST_PAUSE_ID)
-		.setLabel(paused ? 'Unpause' : 'Pause')
-		.setStyle(paused ? ButtonStyle.Secondary : ButtonStyle.Success)
+		.setLabel(paused ? 'Resume' : 'Pause')
+		.setStyle(paused ? ButtonStyle.Success : ButtonStyle.Secondary)
 	const statusSection = new SectionBuilder()
 		.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(`**Status**\n-# ${paused ? '⏸ Paused' : '▶ Active'}`),
@@ -388,7 +388,7 @@ export const trackingCommand: ChatInputCommand = {
 				),
 		)
 		.addSubcommand((sub) =>
-			sub.setName('list').setDescription('Show all projects tracked in this server'),
+			sub.setName('manage').setDescription('Manage projects tracked in this server'),
 		)
 		.addSubcommand((sub) =>
 			sub
@@ -590,7 +590,7 @@ export const trackingCommand: ChatInputCommand = {
 			return
 		}
 
-		if (sub === 'list') {
+		if (sub === 'manage') {
 			const [tracked, config] = await Promise.all([
 				queries.getTrackedProjects(guildId),
 				queries.getServerConfig(guildId),

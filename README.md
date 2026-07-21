@@ -41,7 +41,7 @@ The `/help` command shows:
 - `/tracking setup` · Set the channel where update notifications will be posted
 - `/tracking add` · Start tracking a Modrinth project
 - `/tracking remove` · Stop tracking a project
-- `/tracking list` · Show all projects tracked in this server
+- `/tracking manage` · Manage projects tracked in this server
 - `/tracking pause` · Pause tracking notifications without removing tracked projects
 - `/tracking resume` · Resume tracking notifications for this server
 - `/tracking disable` · Disable tracking and remove all tracked projects
