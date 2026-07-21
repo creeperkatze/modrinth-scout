@@ -1,3 +1,4 @@
+import type { Labrinth } from '@modrinth/api-client'
 import { ModrinthApiError } from '@modrinth/api-client'
 import {
 	ActionRowBuilder,
@@ -27,6 +28,7 @@ import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import { respondWithProjectSearch, respondWithTrackedProjectSearch } from '../utils/autocomplete.js'
 import { error, success } from '../utils/embeds/index.js'
+import { emojis } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
@@ -59,7 +61,7 @@ export const TRACKING_LIST_CHANNEL_SELECT_ID = 'tracking-list-channel'
 export const TRACKING_LIST_ROLE_SELECT_ID = 'tracking-list-role'
 
 // Components V2 caps a message at 40 total components (including nested ones); each
-// tracked project needs 3 (Section + TextDisplay + Button), plus a fixed ~11 for the
+// tracked project needs 3 (Section + TextDisplay + Button), plus a fixed ~10 for the
 // header/status/channel-select/role-select, so above this we fall back to a plain
 // read-only list instead.
 const MAX_INTERACTIVE_TRACKED = 8
@@ -77,7 +79,59 @@ function projectDetailsLabel(p: {
 	return details.join(', ')
 }
 
-function buildTrackingListPayload(
+async function fetchProjectsById(
+	ids: string[],
+): Promise<Map<string, Labrinth.Projects.v3.Project>> {
+	if (ids.length === 0) return new Map()
+	try {
+		const projects = await modrinthClient.labrinth.projects_v3.getMultiple(ids)
+		return new Map(projects.map((project) => [project.id, project]))
+	} catch (err) {
+		log.warn({ err }, 'Failed to fetch tracked project details')
+		return new Map()
+	}
+}
+
+type TrackedProjectDoc = { projectId: string; name: string; slug: string } & Parameters<
+	typeof projectDetailsLabel
+>[0]
+
+function buildProjectHeaderText(
+	p: TrackedProjectDoc,
+	full: Labrinth.Projects.v3.Project | undefined,
+): string {
+	const typeEmoji = full ? emojis[full.project_types[0] ?? 'project'] : undefined
+	const lines = [
+		`**${typeEmoji ? `${typeEmoji} ` : ''}[${p.name}](https://modrinth.com/project/${p.slug})**`,
+	]
+
+	if (full) {
+		const downloads = full.downloads.toLocaleString('en-US', {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		})
+		const followers = full.followers.toLocaleString('en-US', {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		})
+		const rawLoaders = full.loaders ?? []
+		const loaders = rawLoaders.filter((l) => l !== 'minecraft' || rawLoaders.length === 1)
+		const loaderEmojis = loaders
+			.map((l) => emojis[l])
+			.filter(Boolean)
+			.join(' ')
+		const stats = [
+			`${emojis['downloads'] ?? '↓'} ${downloads}`,
+			`${emojis['follows'] ?? '♡'} ${followers}`,
+			loaderEmojis,
+		].filter(Boolean)
+		lines.push(`-# ${stats.join(' · ')}`)
+	}
+
+	return lines.join('\n')
+}
+
+async function buildTrackingListPayload(
 	tracked: Awaited<ReturnType<typeof queries.getTrackedProjects>>,
 	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
 	limit: number,
@@ -162,10 +216,13 @@ function buildTrackingListPayload(
 			),
 		)
 	} else {
+		const projectsById = await fetchProjectsById(tracked.map((p) => p.projectId))
+
 		for (const p of tracked) {
+			const full = projectsById.get(p.projectId)
+			const headerText = buildProjectHeaderText(p, full)
 			const detailsLabel = projectDetailsLabel(p)
-			const text = [`### [${p.name}](https://modrinth.com/project/${p.slug})`]
-			if (detailsLabel) text.push(`# ${detailsLabel}`)
+			const text = detailsLabel ? `${headerText}\n-# ${detailsLabel}` : headerText
 
 			const button = new ButtonBuilder()
 				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${p.projectId}`)
@@ -173,9 +230,8 @@ function buildTrackingListPayload(
 				.setStyle(ButtonStyle.Danger)
 
 			const section = new SectionBuilder()
-				.addTextDisplayComponents(new TextDisplayBuilder().setContent(text.join('\n')))
+				.addTextDisplayComponents(new TextDisplayBuilder().setContent(text))
 				.setButtonAccessory(button)
-
 			container.addSectionComponents(section)
 		}
 	}
@@ -205,7 +261,7 @@ async function refreshTrackingList(interaction: TrackingListInteraction, guildId
 	const limit =
 		!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 
-	await interaction.update(buildTrackingListPayload(tracked, config, limit))
+	await interaction.update(await buildTrackingListPayload(tracked, config, limit))
 }
 
 export async function handleTrackingListRemoveButton(interaction: ButtonInteraction) {
@@ -541,7 +597,7 @@ export const trackingCommand: ChatInputCommand = {
 			const limit =
 				!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 
-			const payload = buildTrackingListPayload(tracked, config, limit)
+			const payload = await buildTrackingListPayload(tracked, config, limit)
 			await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
 			return
 		}
