@@ -2,6 +2,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { AutocompleteInteraction } from 'discord.js'
 
 import { ProjectType } from '../config/modrinth.js'
+import { queries } from '../db/queries.js'
 import { modrinthClient } from './api/modrinth.js'
 import { BADGE_LABELS, resolveBadges, typeLabel } from './embeds/index.js'
 
@@ -55,6 +56,25 @@ export async function respondWithProjectSearch(
 	} catch {
 		await interaction.respond([])
 	}
+}
+
+export async function respondWithTrackedProjectSearch(
+	interaction: AutocompleteInteraction,
+): Promise<void> {
+	const guildId = interaction.guildId
+	if (!guildId) {
+		await interaction.respond([])
+		return
+	}
+
+	const focused = interaction.options.getFocused()
+	const tracked = await queries.getTrackedProjects(guildId)
+	const choices = tracked
+		.filter((p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()))
+		.slice(0, 25)
+		.map((p) => ({ name: p.name, value: p.projectId }))
+
+	await interaction.respond(choices)
 }
 
 function formatUserLabel(username: string, details?: Labrinth.Users.v2.User): string {

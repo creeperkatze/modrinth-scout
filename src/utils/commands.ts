@@ -23,6 +23,10 @@ import {
 	SEARCH_LIMIT,
 } from '../commands/search.js'
 import { buildSupportInfoReply } from '../commands/support.js'
+import {
+	handleTrackingListRemoveButton,
+	TRACKING_LIST_REMOVE_PREFIX,
+} from '../commands/tracking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
 import { buildProjectCard } from './embeds/index.js'
@@ -73,6 +77,11 @@ export function createCommandRegistry(
 
 		if (customId.startsWith(OPTIONS_BUTTON_PREFIX)) {
 			await handleOptionsButton(interaction)
+			return
+		}
+
+		if (customId.startsWith(TRACKING_LIST_REMOVE_PREFIX)) {
+			await handleTrackingListRemoveButton(interaction)
 			return
 		}
 

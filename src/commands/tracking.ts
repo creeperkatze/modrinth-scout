@@ -1,18 +1,26 @@
 import { ModrinthApiError } from '@modrinth/api-client'
 import {
 	ApplicationIntegrationType,
+	ButtonBuilder,
+	ButtonInteraction,
+	ButtonStyle,
 	ChannelType,
+	ContainerBuilder,
 	EmbedBuilder,
 	InteractionContextType,
 	PermissionFlagsBits,
+	SectionBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
 	SlashCommandBuilder,
+	TextDisplayBuilder,
 } from 'discord.js'
 
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
-import { respondWithProjectSearch } from '../utils/autocomplete.js'
+import { respondWithProjectSearch, respondWithTrackedProjectSearch } from '../utils/autocomplete.js'
 import { error, success } from '../utils/embeds/index.js'
 import { logger } from '../utils/logger.js'
 import { parseModrinthUrl } from '../utils/url.js'
@@ -39,6 +47,143 @@ function formatReleaseTypeLabel(releaseTypes: string[]): string {
 }
 
 const log = logger.child({ module: 'tracking' })
+
+export const TRACKING_LIST_REMOVE_PREFIX = 'tracking-list-remove:'
+
+// Components V2 caps a message at 40 total components (including nested ones); each
+// tracked project needs 3 (Section + TextDisplay + Button), plus a few fixed for the
+// header/footer, so above this we fall back to a plain read-only list instead.
+const MAX_INTERACTIVE_TRACKED = 10
+
+function projectDetailsLabel(p: {
+	releaseType?: string[] | null
+	channelId?: string | null
+	roleId?: string | null
+}): string {
+	const types = p.releaseType ?? ['release', 'beta', 'alpha']
+	const details: string[] = []
+	if (types.length !== 3) details.push(formatReleaseTypeLabel(types))
+	if (p.channelId) details.push(`to <#${p.channelId}>`)
+	if (p.roleId) details.push(`pinging <@&${p.roleId}>`)
+	return details.join(', ')
+}
+
+function buildTrackingListPayload(
+	tracked: Awaited<ReturnType<typeof queries.getTrackedProjects>>,
+	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
+	limit: number,
+) {
+	if (tracked.length > MAX_INTERACTIVE_TRACKED) {
+		const projectList = tracked
+			.map((p) => {
+				const detailsLabel = projectDetailsLabel(p)
+				return `• [${p.name}](https://modrinth.com/project/${p.slug})${detailsLabel ? ` (${detailsLabel})` : ''}`
+			})
+			.join('\n')
+
+		const defaultConfigValue = [
+			`Notifications are posted in <#${config?.trackingChannelId}>.`,
+			...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
+		].join('\n')
+
+		const embed = new EmbedBuilder()
+			.setTitle('Tracked Projects')
+			.setDescription(
+				[
+					`${tracked.length} / ${limit} tracked`,
+					config?.trackingPaused ? '⏸ Tracking is paused.' : null,
+					projectList,
+				]
+					.filter(Boolean)
+					.join('\n\n'),
+			)
+			.addFields({ name: 'Default configuration', value: defaultConfigValue })
+			.setColor(0x1bd96a)
+
+		return { embeds: [embed], components: [], flags: [] as const }
+	}
+
+	const headerLines = ['## Tracked Projects', `-# ${tracked.length} / ${limit} tracked`]
+	if (config?.trackingPaused) headerLines.push('⏸ Tracking is paused.')
+
+	const container = new ContainerBuilder()
+		.setAccentColor(0x1bd96a)
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent(headerLines.join('\n')))
+
+	if (tracked.length === 0) {
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(
+				'No projects are being tracked.\nUse `/tracking add` to start.',
+			),
+		)
+	} else {
+		for (const p of tracked) {
+			const detailsLabel = projectDetailsLabel(p)
+			const text = [`**[${p.name}](https://modrinth.com/project/${p.slug})**`]
+			if (detailsLabel) text.push(`-# ${detailsLabel}`)
+
+			const button = new ButtonBuilder()
+				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${p.projectId}`)
+				.setLabel('Remove')
+				.setStyle(ButtonStyle.Danger)
+
+			const section = new SectionBuilder()
+				.addTextDisplayComponents(new TextDisplayBuilder().setContent(text.join('\n')))
+				.setButtonAccessory(button)
+
+			container.addSectionComponents(section)
+		}
+
+		const defaultConfigLine = [
+			`Notifications are posted in <#${config?.trackingChannelId}>.`,
+			...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
+		].join(' ')
+
+		container.addSeparatorComponents(
+			new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+		)
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`-# ${defaultConfigLine}`),
+		)
+	}
+
+	return { embeds: [], components: [container], flags: ['IsComponentsV2'] as const }
+}
+
+export async function handleTrackingListRemoveButton(interaction: ButtonInteraction) {
+	if (!interaction.inGuild()) return
+
+	if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+		await interaction.reply({
+			embeds: [error('You need the Manage Server permission to do that.')],
+			flags: 'Ephemeral',
+		})
+		return
+	}
+
+	const guildId = interaction.guildId
+	const projectId = interaction.customId.slice(TRACKING_LIST_REMOVE_PREFIX.length)
+
+	const entry = await queries.findTrackedProjectById(guildId, projectId)
+	if (entry) {
+		await queries.removeTrackedProject(guildId, projectId)
+		log.info(
+			{ guildId, projectId, slug: entry.slug, userId: interaction.user.id },
+			'Project untracked',
+		)
+	}
+
+	const [tracked, config] = await Promise.all([
+		queries.getTrackedProjects(guildId),
+		queries.getServerConfig(guildId),
+	])
+	const limit =
+		!usesSupporterPerks || Boolean(config?.isSupporter)
+			? MAX_TRACKED_SUPPORTER
+			: MAX_TRACKED_PER_GUILD
+
+	await interaction.update(buildTrackingListPayload(tracked, config, limit))
+}
 
 export const trackingCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -134,7 +279,6 @@ export const trackingCommand: ChatInputCommand = {
 
 	async autocomplete(interaction) {
 		const sub = interaction.options.getSubcommand()
-		const focused = interaction.options.getFocused()
 
 		if (sub === 'add') {
 			await respondWithProjectSearch(interaction)
@@ -142,15 +286,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'remove') {
-			const guildId = interaction.guildId!
-			const tracked = await queries.getTrackedProjects(guildId)
-			const choices = tracked
-				.filter(
-					(p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()),
-				)
-				.slice(0, 25)
-				.map((p) => ({ name: p.name, value: p.projectId }))
-			await interaction.respond(choices)
+			await respondWithTrackedProjectSearch(interaction)
 		}
 	},
 
@@ -331,46 +467,8 @@ export const trackingCommand: ChatInputCommand = {
 					? MAX_TRACKED_SUPPORTER
 					: MAX_TRACKED_PER_GUILD
 
-			if (tracked.length === 0) {
-				await interaction.reply({
-					embeds: [success('No projects are being tracked.\nUse `/tracking add` to start.')],
-					flags: 'Ephemeral',
-				})
-				return
-			}
-
-			const projectList = tracked
-				.map((p) => {
-					const types = p.releaseType ?? ['release', 'beta', 'alpha']
-					const details = []
-					if (types.length !== 3) {
-						details.push(formatReleaseTypeLabel(types))
-					}
-					if (p.channelId) {
-						details.push(`to <#${p.channelId}>`)
-					}
-					if (p.roleId) {
-						details.push(`pinging <@&${p.roleId}>`)
-					}
-					const detailsLabel = details.length > 0 ? ` (${details.join(', ')})` : ''
-					return `• [${p.name}](https://modrinth.com/project/${p.slug})${detailsLabel}`
-				})
-				.join('\n')
-
-			const defaultConfigValue = [
-				`Notifications are posted in <#${config?.trackingChannelId}>.`,
-				...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
-			].join('\n')
-
-			const embed = new EmbedBuilder()
-				.setTitle(`Tracked Projects · ${tracked.length} / ${limit}`)
-				.setDescription(
-					config?.trackingPaused ? `⏸ Tracking is paused.\n\n${projectList}` : projectList,
-				)
-				.addFields({ name: 'Default configuration', value: defaultConfigValue })
-				.setColor(0x1bd96a)
-
-			await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
+			const payload = buildTrackingListPayload(tracked, config, limit)
+			await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
 			return
 		}
 
