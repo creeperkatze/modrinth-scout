@@ -32,6 +32,7 @@ export async function buildVersionNotification(
 	project: Labrinth.Projects.v3.Project,
 	version: Labrinth.Versions.v3.Version,
 	versionLabel = 'View Version',
+	summary?: string | null,
 ): Promise<CardPayload> {
 	const type = project.project_types[0] ?? 'project'
 	const projectUrl = `https://modrinth.com/${type}/${project.slug}`
@@ -57,7 +58,9 @@ export async function buildVersionNotification(
 		.setColor(project.color ?? 0x1bd96a)
 		.setFooter({ text: author?.name ?? 'Unknown', iconURL: author?.avatarUrl })
 
-	if (changelog) embed.setDescription(changelog)
+	const summaryBlock = summary ? `> ✨ **Summary:** ${summary}` : null
+	const description = [summaryBlock, changelog].filter(Boolean).join('\n\n')
+	if (description) embed.setDescription(description)
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
 
 	if (version.game_versions.length > 0)

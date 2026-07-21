@@ -1,21 +1,23 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { type Client, DiscordAPIError, type TextChannel } from 'discord.js'
 
+import { aiSummariesEnabled } from '../config/ai.js'
 import { usesSupporterPerks } from '../config/supporterPerks.js'
 import { queries } from '../db/queries.js'
 import type { ProjectWithChannel } from '../db/schemas/project.js'
 import { modrinthClient } from './api.js'
+import { summarizeChangelog } from './changelogSummary.js'
 import { buildTrackingPausedNotice, buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from './metrics.js'
 
 const log = createModuleLogger('poller')
 
-const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
+const POLL_INTERVAL_MS = 1 * 10 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
 const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
-// 403/404 mean the channel needs an admin fix on the Discord server owners side, not ours
+// These error codes mean the channel needs a fix on the Discord server owners side, not ours
 function isUnreachableChannelError(err: unknown): err is DiscordAPIError {
 	return err instanceof DiscordAPIError && (err.status === 403 || err.status === 404)
 }
@@ -24,7 +26,13 @@ type ProjectEntry = {
 	slug: string
 	lastUpdated: Date
 	guildIds: string[]
-	channels: { guildId: string; channelId: string; roleId?: string | null; releaseType: string[] }[]
+	channels: {
+		guildId: string
+		channelId: string
+		roleId?: string | null
+		releaseType: string[]
+		changelogSummariesEnabled: boolean
+	}[]
 }
 
 function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
@@ -36,6 +44,7 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 			channelId: row.channelId,
 			roleId: row.roleId,
 			releaseType: row.releaseType,
+			changelogSummariesEnabled: row.changelogSummariesEnabled,
 		}
 		if (entry) {
 			entry.guildIds.push(row.guildId)
@@ -93,9 +102,10 @@ async function notifyChannels(
 	project: Labrinth.Projects.v3.Project,
 	newVersions: Labrinth.Versions.v3.Version[],
 	channels: ProjectEntry['channels'],
+	summaries: Map<string, string | null>,
 ) {
 	const notified: string[] = []
-	for (const { guildId, channelId, roleId, releaseType } of channels) {
+	for (const { guildId, channelId, roleId, releaseType, changelogSummariesEnabled } of channels) {
 		const filtered = newVersions.filter((v) => releaseType.includes(v.version_type))
 		if (filtered.length === 0) continue
 
@@ -113,7 +123,12 @@ async function notifyChannels(
 
 		try {
 			for (let i = 0; i < filtered.length; i++) {
-				const payload = await buildVersionNotification(project, filtered[i])
+				const payload = await buildVersionNotification(
+					project,
+					filtered[i],
+					undefined,
+					changelogSummariesEnabled ? summaries.get(filtered[i].id) : null,
+				)
 				const isFirst = i === 0
 				await channel.send({
 					content: isFirst ? mention : undefined,
@@ -193,7 +208,25 @@ async function poll(client: Client, supporterOnly?: boolean) {
 				}
 				newVersionsFound += newVersions.length
 
-				const notified = await notifyChannels(client, project, newVersions, info.channels)
+				const wantsSummaries =
+					aiSummariesEnabled && info.channels.some((c) => c.changelogSummariesEnabled)
+				const summaries = wantsSummaries
+					? new Map<string, string | null>(
+							await Promise.all(
+								newVersions.map(
+									async (v) => [v.id, await summarizeChangelog(project.name, v.changelog)] as const,
+								),
+							),
+						)
+					: new Map<string, string | null>()
+
+				const notified = await notifyChannels(
+					client,
+					project,
+					newVersions,
+					info.channels,
+					summaries,
+				)
 				notificationsSent += notified.length
 				log.info(
 					{

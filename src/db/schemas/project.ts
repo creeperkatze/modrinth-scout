@@ -22,5 +22,6 @@ export type Project = InferSchemaType<typeof projectSchema>
 export type ProjectWithChannel = Project & {
 	channelId: string
 	roleId?: string | null
+	changelogSummariesEnabled: boolean
 }
 export const ProjectModel = model('Project', projectSchema)

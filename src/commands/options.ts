@@ -10,6 +10,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { aiSummariesEnabled } from '../config/ai.js'
 import { queries } from '../db/queries.js'
 import type { Server } from '../db/schemas/server.js'
 import type { ChatInputCommand } from '../types/index.js'
@@ -20,7 +21,7 @@ const log = createModuleLogger('options')
 
 export const OPTIONS_BUTTON_PREFIX = 'options:'
 
-type ServerConfig = Pick<Server, 'autoEmbedsEnabled'> | null
+type ServerConfig = Pick<Server, 'autoEmbedsEnabled' | 'changelogSummariesEnabled'> | null
 
 type Toggle = {
 	id: string
@@ -28,6 +29,7 @@ type Toggle = {
 	description: string
 	isEnabled: (config: ServerConfig) => boolean
 	setEnabled: (guildId: string, enabled: boolean) => Promise<unknown>
+	available?: boolean
 }
 
 const TOGGLES: Toggle[] = [
@@ -38,19 +40,32 @@ const TOGGLES: Toggle[] = [
 		isEnabled: (config) => Boolean(config?.autoEmbedsEnabled),
 		setEnabled: (guildId, enabled) => queries.setAutoEmbeds(guildId, enabled),
 	},
+	{
+		id: 'changelog-summaries',
+		label: 'AI Changelog Summaries',
+		description: 'Add a short AI-generated summary above changelogs in tracking notifications.',
+		isEnabled: (config) => Boolean(config?.changelogSummariesEnabled),
+		setEnabled: (guildId, enabled) => queries.setChangelogSummaries(guildId, enabled),
+		available: aiSummariesEnabled,
+	},
 ]
 
+function availableToggles() {
+	return TOGGLES.filter((t) => t.available !== false)
+}
+
 function buildOptionsPayload(config: ServerConfig) {
+	const toggles = availableToggles()
 	const embed = new EmbedBuilder()
 		.setTitle('Options')
 		.setColor(0x1bd96a)
 		.setDescription(
-			TOGGLES.map(
-				(t) => `${t.isEnabled(config) ? '✅' : '❌'} **${t.label}** · ${t.description}`,
-			).join('\n\n'),
+			toggles
+				.map((t) => `${t.isEnabled(config) ? '✅' : '❌'} **${t.label}** · ${t.description}`)
+				.join('\n\n'),
 		)
 
-	const buttons = TOGGLES.map((t) => {
+	const buttons = toggles.map((t) => {
 		const enabled = t.isEnabled(config)
 		return new ButtonBuilder()
 			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${t.id}`)
@@ -76,7 +91,7 @@ export async function handleOptionsButton(interaction: ButtonInteraction) {
 	}
 
 	const id = interaction.customId.slice(OPTIONS_BUTTON_PREFIX.length)
-	const toggle = TOGGLES.find((t) => t.id === id)
+	const toggle = availableToggles().find((t) => t.id === id)
 	if (!toggle) return
 
 	const guildId = interaction.guildId

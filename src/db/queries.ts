@@ -11,6 +11,7 @@ type ServerPollingConfig = {
 	_id: string
 	trackingChannelId: string
 	trackingRoleId: Server['trackingRoleId']
+	changelogSummariesEnabled: boolean
 }
 
 export const queries = {
@@ -71,7 +72,7 @@ export const queries = {
 			trackingChannelId: { $ne: null },
 			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
 		})
-			.select('_id trackingChannelId trackingRoleId')
+			.select('_id trackingChannelId trackingRoleId changelogSummariesEnabled')
 			.lean<ServerPollingConfig[]>()
 
 		if (servers.length === 0) {
@@ -99,6 +100,7 @@ export const queries = {
 					...project,
 					channelId,
 					roleId: project.roleId ?? config.trackingRoleId,
+					changelogSummariesEnabled: config.changelogSummariesEnabled,
 				},
 			]
 		})
@@ -131,6 +133,13 @@ export const queries = {
 		ServerModel.updateOne(
 			{ _id: guildId },
 			{ $set: { autoEmbedsEnabled: enabled } },
+			{ upsert: true },
+		),
+
+	setChangelogSummaries: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { changelogSummariesEnabled: enabled } },
 			{ upsert: true },
 		),
 

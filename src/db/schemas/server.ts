@@ -8,6 +8,7 @@ const serverSchema = new Schema(
 		trackingRoleId: { type: String, default: null },
 		trackingPaused: { type: Boolean, default: false },
 		autoEmbedsEnabled: { type: Boolean, default: false },
+		changelogSummariesEnabled: { type: Boolean, default: false },
 	},
 	{ collection: 'servers', timestamps: true },
 )
