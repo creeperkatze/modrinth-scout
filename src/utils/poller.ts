@@ -13,7 +13,7 @@ import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from './m
 
 const log = createModuleLogger('poller')
 
-const POLL_INTERVAL_MS = 1 * 10 * 1000 // 5 minutes
+const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
 const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
