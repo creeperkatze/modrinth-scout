@@ -1,13 +1,16 @@
 import {
-	ActionRowBuilder,
 	ApplicationIntegrationType,
 	ButtonBuilder,
 	ButtonInteraction,
 	ButtonStyle,
-	EmbedBuilder,
+	ContainerBuilder,
 	InteractionContextType,
 	PermissionFlagsBits,
+	SectionBuilder,
+	SeparatorBuilder,
+	SeparatorSpacingSize,
 	SlashCommandBuilder,
+	TextDisplayBuilder,
 } from 'discord.js'
 
 import { aiSummariesEnabled } from '../config/ai.js'
@@ -35,14 +38,14 @@ type Toggle = {
 const TOGGLES: Toggle[] = [
 	{
 		id: 'autoembeds',
-		label: 'Auto Embeds',
+		label: '⚡ Auto Embeds',
 		description: 'Replace plain Modrinth links posted in chat with rich embeds.',
 		isEnabled: (config) => Boolean(config?.autoEmbedsEnabled),
 		setEnabled: (guildId, enabled) => queries.setAutoEmbeds(guildId, enabled),
 	},
 	{
 		id: 'changelog-summaries',
-		label: 'AI Changelog Summaries',
+		label: '✨ Changelog Summaries',
 		description: 'Add a short AI-generated summary above changelogs in tracking notifications.',
 		isEnabled: (config) => Boolean(config?.changelogSummariesEnabled),
 		setEnabled: (guildId, enabled) => queries.setChangelogSummaries(guildId, enabled),
@@ -56,26 +59,37 @@ function availableToggles() {
 
 function buildOptionsPayload(config: ServerConfig) {
 	const toggles = availableToggles()
-	const embed = new EmbedBuilder()
-		.setTitle('Options')
-		.setColor(0x1bd96a)
-		.setDescription(
-			toggles
-				.map((t) => `${t.isEnabled(config) ? '✅' : '❌'} **${t.label}** · ${t.description}`)
-				.join('\n\n'),
-		)
 
-	const buttons = toggles.map((t) => {
-		const enabled = t.isEnabled(config)
-		return new ButtonBuilder()
-			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${t.id}`)
-			.setLabel(t.label)
+	const container = new ContainerBuilder()
+		.setAccentColor(0x1bd96a)
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Options'))
+
+	toggles.forEach((toggle, i) => {
+		const enabled = toggle.isEnabled(config)
+
+		const button = new ButtonBuilder()
+			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${toggle.id}`)
+			.setLabel(enabled ? 'Enabled' : 'Disabled')
 			.setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+
+		const section = new SectionBuilder()
+			.addTextDisplayComponents(
+				new TextDisplayBuilder().setContent(`**${toggle.label}**\n-# ${toggle.description}`),
+			)
+			.setButtonAccessory(button)
+
+		container.addSectionComponents(section)
+
+		if (i < toggles.length - 1) {
+			container.addSeparatorComponents(
+				new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+			)
+		}
 	})
 
 	return {
-		embeds: [embed],
-		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)],
+		components: [container],
+		flags: ['IsComponentsV2'] as const,
 	}
 }
 
@@ -122,6 +136,7 @@ export const optionsCommand: ChatInputCommand = {
 	async execute(interaction) {
 		const guildId = interaction.guildId!
 		const config = await queries.getServerConfig(guildId)
-		await interaction.reply({ ...buildOptionsPayload(config), flags: 'Ephemeral' })
+		const payload = buildOptionsPayload(config)
+		await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
 	},
 }
