@@ -1,17 +1,13 @@
-import { createHash } from 'node:crypto'
-
 import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { modrinthClient } from '../utils/api/modrinth.js'
 import { buildVersionNotification, error } from '../utils/embeds/index.js'
+import { hashAttachment, identifyByHash, MAX_JAR_FILE_BYTES } from '../utils/identify.js'
 import { createModuleLogger } from '../utils/logger.js'
 
 const log = createModuleLogger('identify')
-
-const MAX_FILE_BYTES = 100 * 1024 * 1024
 
 export const identifyCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
@@ -40,9 +36,11 @@ export const identifyCommand: ChatInputCommand = {
 			return
 		}
 
-		if (attachment.size > MAX_FILE_BYTES) {
+		if (attachment.size > MAX_JAR_FILE_BYTES) {
 			await interaction.reply({
-				embeds: [error(`That file is too large. The limit is ${MAX_FILE_BYTES / 1024 / 1024} MB.`)],
+				embeds: [
+					error(`That file is too large. The limit is ${MAX_JAR_FILE_BYTES / 1024 / 1024} MB.`),
+				],
 				flags: 'Ephemeral',
 			})
 			return
@@ -52,13 +50,7 @@ export const identifyCommand: ChatInputCommand = {
 
 		let hash: string
 		try {
-			const response = await fetch(attachment.url)
-			if (!response.ok) throw new Error(`Download failed with status ${response.status}`)
-			if (!response.body) throw new Error('Download returned an empty body')
-			// Hashed as it streams so a large upload never sits in memory whole.
-			const hasher = createHash('sha1')
-			for await (const chunk of response.body) hasher.update(chunk)
-			hash = hasher.digest('hex')
+			hash = await hashAttachment(attachment.url)
 		} catch (err) {
 			log.warn({ err, name: attachment.name }, 'Failed to download attachment')
 			await interaction.editReply({ embeds: [error('Could not download that attachment.')] })
@@ -66,12 +58,7 @@ export const identifyCommand: ChatInputCommand = {
 		}
 
 		try {
-			// The v2 match already has project_id, so fetch v3 version and project in parallel.
-			const match = await modrinthClient.labrinth.versions_v2.getVersionFromFileHash(hash, 'sha1')
-			const [version, project] = await Promise.all([
-				modrinthClient.labrinth.versions_v3.getVersion(match.id),
-				modrinthClient.labrinth.projects_v3.get(match.project_id),
-			])
+			const { project, version } = await identifyByHash(hash)
 
 			log.info(
 				{ userId: interaction.user.id, projectId: project.id, versionId: version.id },

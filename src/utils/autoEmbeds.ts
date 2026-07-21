@@ -1,5 +1,5 @@
 import type { Labrinth } from '@modrinth/api-client'
-import { type Message, PermissionFlagsBits } from 'discord.js'
+import { type Attachment, type Message, PermissionFlagsBits } from 'discord.js'
 
 import { queries } from '../db/queries.js'
 import { modrinthClient } from './api/modrinth.js'
@@ -11,12 +11,14 @@ import {
 	buildVersionNotification,
 } from './embeds/index.js'
 import type { CardPayload } from './embeds/types.js'
+import { hashAttachment, identifyByHash, MAX_JAR_FILE_BYTES } from './identify.js'
 import { createModuleLogger } from './logger.js'
 import { type ParsedModrinthUrl, parseModrinthUrl } from './url.js'
 
 const log = createModuleLogger('auto-embeds')
 
 const MAX_LINKS_PER_MESSAGE = 3
+const MAX_JAR_ATTACHMENTS_PER_MESSAGE = 3
 const MODRINTH_URL_REGEX = /https?:\/\/modrinth\.com\/\S+/gi
 
 function extractModrinthUrls(content: string): string[] {
@@ -72,13 +74,18 @@ async function resolveCard(parsed: ParsedModrinthUrl): Promise<CardPayload | nul
 	}
 }
 
-export async function handleMessageCreate(message: Message) {
-	if (message.author.bot || !message.inGuild()) return
-	if (!message.content.includes('modrinth.com')) return
+async function resolveJarCard(attachment: Attachment): Promise<CardPayload | null> {
+	try {
+		const hash = await hashAttachment(attachment.url)
+		const { project, version } = await identifyByHash(hash)
+		return await buildVersionNotification(project, version)
+	} catch {
+		// Most posted jars won't match anything on Modrinth; that's expected, not an error.
+		return null
+	}
+}
 
-	const config = await queries.getServerConfig(message.guildId)
-	if (!config?.autoEmbedsEnabled) return
-
+async function handleAutoEmbeds(message: Message<true>) {
 	const parsedUrls = extractModrinthUrls(message.content)
 		.map(parseModrinthUrl)
 		.filter((parsed): parsed is ParsedModrinthUrl => parsed !== null)
@@ -106,5 +113,50 @@ export async function handleMessageCreate(message: Message) {
 		await message
 			.suppressEmbeds(true)
 			.catch((err) => log.warn({ err, messageId: message.id }, 'Failed to suppress original embed'))
+	}
+}
+
+async function handleJarIdentify(message: Message<true>, attachments: Attachment[]) {
+	const candidates = attachments
+		.filter((a) => a.size <= MAX_JAR_FILE_BYTES)
+		.slice(0, MAX_JAR_ATTACHMENTS_PER_MESSAGE)
+	if (candidates.length === 0) return
+
+	const cards = (await Promise.all(candidates.map(resolveJarCard))).filter(
+		(card): card is CardPayload => card !== null,
+	)
+	if (cards.length === 0) return
+
+	try {
+		await message.reply({
+			content: 'This file has been identified',
+			embeds: cards.flatMap((card) => card.embeds),
+			components: cards.flatMap((card) => card.components),
+			allowedMentions: { repliedUser: false },
+		})
+	} catch (err) {
+		log.warn(
+			{ err, messageId: message.id, guildId: message.guildId },
+			'Failed to send jar identify reply',
+		)
+	}
+}
+
+export async function handleMessageCreate(message: Message) {
+	if (message.author.bot || !message.inGuild()) return
+
+	const jarAttachments = message.attachments.filter((a) => a.name.toLowerCase().endsWith('.jar'))
+	const hasModrinthLink = message.content.includes('modrinth.com')
+	if (jarAttachments.size === 0 && !hasModrinthLink) return
+
+	const config = await queries.getServerConfig(message.guildId)
+	if (!config) return
+
+	if (jarAttachments.size > 0 && config.jarIdentifyEnabled) {
+		await handleJarIdentify(message, [...jarAttachments.values()])
+	}
+
+	if (hasModrinthLink && config.autoEmbedsEnabled) {
+		await handleAutoEmbeds(message)
 	}
 }

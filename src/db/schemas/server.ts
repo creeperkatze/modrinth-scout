@@ -9,6 +9,7 @@ const serverSchema = new Schema(
 		trackingPaused: { type: Boolean, default: false },
 		autoEmbedsEnabled: { type: Boolean, default: false },
 		changelogSummariesEnabled: { type: Boolean, default: false },
+		jarIdentifyEnabled: { type: Boolean, default: false },
 	},
 	{ collection: 'servers', timestamps: true },
 )

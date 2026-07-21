@@ -146,6 +146,13 @@ export const queries = {
 			{ upsert: true },
 		),
 
+	setJarIdentify: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { jarIdentifyEnabled: enabled } },
+			{ upsert: true },
+		),
+
 	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 
 	countUniqueTrackedProjects: () => ProjectModel.distinct('projectId').then((ids) => ids.length),

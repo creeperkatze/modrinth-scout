@@ -24,7 +24,10 @@ const log = createModuleLogger('options')
 
 export const OPTIONS_BUTTON_PREFIX = 'options:'
 
-type ServerConfig = Pick<Server, 'autoEmbedsEnabled' | 'changelogSummariesEnabled'> | null
+type ServerConfig = Pick<
+	Server,
+	'autoEmbedsEnabled' | 'changelogSummariesEnabled' | 'jarIdentifyEnabled'
+> | null
 
 type Toggle = {
 	id: string
@@ -42,6 +45,13 @@ const TOGGLES: Toggle[] = [
 		description: 'Replace plain Modrinth links posted in chat with rich embeds.',
 		isEnabled: (config) => Boolean(config?.autoEmbedsEnabled),
 		setEnabled: (guildId, enabled) => queries.setAutoEmbeds(guildId, enabled),
+	},
+	{
+		id: 'jar-identify',
+		label: '🔍 Jar Identify',
+		description: 'Identify `.jar` files posted in chat, same as the `/identify` command.',
+		isEnabled: (config) => Boolean(config?.jarIdentifyEnabled),
+		setEnabled: (guildId, enabled) => queries.setJarIdentify(guildId, enabled),
 	},
 	{
 		id: 'changelog-summaries',
