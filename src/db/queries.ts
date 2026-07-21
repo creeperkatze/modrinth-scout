@@ -4,7 +4,7 @@ import type { Server } from './schemas/server.js'
 import { ServerModel } from './schemas/server.js'
 import { SupporterModel } from './schemas/supporter.js'
 
-export const MAX_TRACKED_PER_GUILD = 5
+export const MAX_TRACKED = 5
 export const MAX_TRACKED_SUPPORTER = 100
 
 type ServerPollingConfig = {
@@ -31,6 +31,9 @@ export const queries = {
 			},
 			{ returnDocument: 'after', upsert: true },
 		),
+
+	setTrackingRole: (guildId: string, roleId: string | null) =>
+		ServerModel.updateOne({ _id: guildId }, { $set: { trackingRoleId: roleId } }, { upsert: true }),
 
 	deleteServer: (guildId: string) =>
 		Promise.all([ServerModel.findByIdAndDelete(guildId), ProjectModel.deleteMany({ guildId })]),

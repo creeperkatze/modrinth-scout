@@ -1,12 +1,14 @@
 import {
 	ActionRowBuilder,
 	ButtonInteraction,
+	ChannelSelectMenuInteraction,
 	Collection,
 	Interaction,
 	ModalBuilder,
 	ModalSubmitInteraction,
 	PermissionsBitField,
 	REST,
+	RoleSelectMenuInteraction,
 	Routes,
 	SlashCommandBuilder,
 	StringSelectMenuInteraction,
@@ -24,8 +26,14 @@ import {
 } from '../commands/search.js'
 import { buildSupportInfoReply } from '../commands/support.js'
 import {
+	handleTrackingListChannelSelect,
+	handleTrackingListPauseButton,
 	handleTrackingListRemoveButton,
+	handleTrackingListRoleSelect,
+	TRACKING_LIST_CHANNEL_SELECT_ID,
+	TRACKING_LIST_PAUSE_ID,
 	TRACKING_LIST_REMOVE_PREFIX,
+	TRACKING_LIST_ROLE_SELECT_ID,
 } from '../commands/tracking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
@@ -85,6 +93,11 @@ export function createCommandRegistry(
 			return
 		}
 
+		if (customId === TRACKING_LIST_PAUSE_ID) {
+			await handleTrackingListPauseButton(interaction)
+			return
+		}
+
 		if (customId.startsWith('search:')) {
 			const { action, offset, query, type, index } = parseSearchId(customId)
 
@@ -131,6 +144,18 @@ export function createCommandRegistry(
 			await showProjectCard(interaction, value.slice(colon + 1))
 	}
 
+	async function handleChannelSelectMenu(interaction: ChannelSelectMenuInteraction) {
+		if (interaction.customId === TRACKING_LIST_CHANNEL_SELECT_ID) {
+			await handleTrackingListChannelSelect(interaction)
+		}
+	}
+
+	async function handleRoleSelectMenu(interaction: RoleSelectMenuInteraction) {
+		if (interaction.customId === TRACKING_LIST_ROLE_SELECT_ID) {
+			await handleTrackingListRoleSelect(interaction)
+		}
+	}
+
 	async function handleModal(interaction: ModalSubmitInteraction) {
 		if (!interaction.customId.startsWith('search:modal:')) return
 
@@ -167,6 +192,16 @@ export function createCommandRegistry(
 
 		if (interaction.isStringSelectMenu()) {
 			await handleSelectMenu(interaction)
+			return
+		}
+
+		if (interaction.isChannelSelectMenu()) {
+			await handleChannelSelectMenu(interaction)
+			return
+		}
+
+		if (interaction.isRoleSelectMenu()) {
+			await handleRoleSelectMenu(interaction)
 			return
 		}
 

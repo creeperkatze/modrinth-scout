@@ -1,14 +1,19 @@
 import { ModrinthApiError } from '@modrinth/api-client'
 import {
+	ActionRowBuilder,
 	ApplicationIntegrationType,
 	ButtonBuilder,
 	ButtonInteraction,
 	ButtonStyle,
+	ChannelSelectMenuBuilder,
+	ChannelSelectMenuInteraction,
 	ChannelType,
 	ContainerBuilder,
 	EmbedBuilder,
 	InteractionContextType,
 	PermissionFlagsBits,
+	RoleSelectMenuBuilder,
+	RoleSelectMenuInteraction,
 	SectionBuilder,
 	SeparatorBuilder,
 	SeparatorSpacingSize,
@@ -17,7 +22,7 @@ import {
 } from 'discord.js'
 
 import { usesSupporterPerks } from '../config/supporterPerks.js'
-import { MAX_TRACKED_PER_GUILD, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
+import { MAX_TRACKED, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import { respondWithProjectSearch, respondWithTrackedProjectSearch } from '../utils/autocomplete.js'
@@ -49,11 +54,15 @@ function formatReleaseTypeLabel(releaseTypes: string[]): string {
 const log = logger.child({ module: 'tracking' })
 
 export const TRACKING_LIST_REMOVE_PREFIX = 'tracking-list-remove:'
+export const TRACKING_LIST_PAUSE_ID = 'tracking-list-pause'
+export const TRACKING_LIST_CHANNEL_SELECT_ID = 'tracking-list-channel'
+export const TRACKING_LIST_ROLE_SELECT_ID = 'tracking-list-role'
 
 // Components V2 caps a message at 40 total components (including nested ones); each
-// tracked project needs 3 (Section + TextDisplay + Button), plus a few fixed for the
-// header/footer, so above this we fall back to a plain read-only list instead.
-const MAX_INTERACTIVE_TRACKED = 10
+// tracked project needs 3 (Section + TextDisplay + Button), plus a fixed ~11 for the
+// header/status/channel-select/role-select, so above this we fall back to a plain
+// read-only list instead.
+const MAX_INTERACTIVE_TRACKED = 8
 
 function projectDetailsLabel(p: {
 	releaseType?: string[] | null
@@ -103,12 +112,48 @@ function buildTrackingListPayload(
 		return { embeds: [embed], components: [], flags: [] as const }
 	}
 
-	const headerLines = ['## Tracked Projects', `-# ${tracked.length} / ${limit} tracked`]
-	if (config?.trackingPaused) headerLines.push('⏸ Tracking is paused.')
-
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
-		.addTextDisplayComponents(new TextDisplayBuilder().setContent(headerLines.join('\n')))
+		.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(
+				`## Tracked Projects\n${tracked.length} / ${limit} tracked`,
+			),
+		)
+
+	const paused = Boolean(config?.trackingPaused)
+	const statusButton = new ButtonBuilder()
+		.setCustomId(TRACKING_LIST_PAUSE_ID)
+		.setLabel(paused ? 'Unpause' : 'Pause')
+		.setStyle(paused ? ButtonStyle.Secondary : ButtonStyle.Success)
+	const statusSection = new SectionBuilder()
+		.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(`**Status**\n-# ${paused ? '⏸ Paused' : '▶ Active'}`),
+		)
+		.setButtonAccessory(statusButton)
+	container.addSectionComponents(statusSection)
+
+	const channelSelect = new ChannelSelectMenuBuilder()
+		.setCustomId(TRACKING_LIST_CHANNEL_SELECT_ID)
+		.setPlaceholder('Notification channel')
+		.addChannelTypes(ChannelType.GuildText)
+	if (config?.trackingChannelId) channelSelect.setDefaultChannels(config.trackingChannelId)
+	container.addActionRowComponents(
+		new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(channelSelect),
+	)
+
+	const roleSelect = new RoleSelectMenuBuilder()
+		.setCustomId(TRACKING_LIST_ROLE_SELECT_ID)
+		.setPlaceholder('Ping role (optional)')
+		.setMinValues(0)
+		.setMaxValues(1)
+	if (config?.trackingRoleId) roleSelect.setDefaultRoles(config.trackingRoleId)
+	container.addActionRowComponents(
+		new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
+	)
+
+	container.addSeparatorComponents(
+		new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+	)
 
 	if (tracked.length === 0) {
 		container.addTextDisplayComponents(
@@ -119,8 +164,8 @@ function buildTrackingListPayload(
 	} else {
 		for (const p of tracked) {
 			const detailsLabel = projectDetailsLabel(p)
-			const text = [`**[${p.name}](https://modrinth.com/project/${p.slug})**`]
-			if (detailsLabel) text.push(`-# ${detailsLabel}`)
+			const text = [`### [${p.name}](https://modrinth.com/project/${p.slug})`]
+			if (detailsLabel) text.push(`# ${detailsLabel}`)
 
 			const button = new ButtonBuilder()
 				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${p.projectId}`)
@@ -133,35 +178,40 @@ function buildTrackingListPayload(
 
 			container.addSectionComponents(section)
 		}
-
-		const defaultConfigLine = [
-			`Notifications are posted in <#${config?.trackingChannelId}>.`,
-			...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
-		].join(' ')
-
-		container.addSeparatorComponents(
-			new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
-		)
-		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(`-# ${defaultConfigLine}`),
-		)
 	}
 
 	return { embeds: [], components: [container], flags: ['IsComponentsV2'] as const }
 }
 
+type TrackingListInteraction =
+	ButtonInteraction | ChannelSelectMenuInteraction | RoleSelectMenuInteraction
+
+async function requireManageGuild(interaction: TrackingListInteraction): Promise<boolean> {
+	if (!interaction.inGuild()) return false
+	if (interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) return true
+
+	await interaction.reply({
+		embeds: [error('You need the Manage Server permission to do that.')],
+		flags: 'Ephemeral',
+	})
+	return false
+}
+
+async function refreshTrackingList(interaction: TrackingListInteraction, guildId: string) {
+	const [tracked, config] = await Promise.all([
+		queries.getTrackedProjects(guildId),
+		queries.getServerConfig(guildId),
+	])
+	const limit =
+		!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
+
+	await interaction.update(buildTrackingListPayload(tracked, config, limit))
+}
+
 export async function handleTrackingListRemoveButton(interaction: ButtonInteraction) {
-	if (!interaction.inGuild()) return
+	if (!(await requireManageGuild(interaction))) return
 
-	if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-		await interaction.reply({
-			embeds: [error('You need the Manage Server permission to do that.')],
-			flags: 'Ephemeral',
-		})
-		return
-	}
-
-	const guildId = interaction.guildId
+	const guildId = interaction.guildId!
 	const projectId = interaction.customId.slice(TRACKING_LIST_REMOVE_PREFIX.length)
 
 	const entry = await queries.findTrackedProjectById(guildId, projectId)
@@ -173,16 +223,42 @@ export async function handleTrackingListRemoveButton(interaction: ButtonInteract
 		)
 	}
 
-	const [tracked, config] = await Promise.all([
-		queries.getTrackedProjects(guildId),
-		queries.getServerConfig(guildId),
-	])
-	const limit =
-		!usesSupporterPerks || Boolean(config?.isSupporter)
-			? MAX_TRACKED_SUPPORTER
-			: MAX_TRACKED_PER_GUILD
+	await refreshTrackingList(interaction, guildId)
+}
 
-	await interaction.update(buildTrackingListPayload(tracked, config, limit))
+export async function handleTrackingListPauseButton(interaction: ButtonInteraction) {
+	if (!(await requireManageGuild(interaction))) return
+
+	const guildId = interaction.guildId!
+	const config = await queries.getServerConfig(guildId)
+	const paused = !config?.trackingPaused
+	await (paused ? queries.pauseTracking(guildId) : queries.resumeTracking(guildId))
+	log.info({ guildId, userId: interaction.user.id, paused }, 'Tracking pause toggled')
+
+	await refreshTrackingList(interaction, guildId)
+}
+
+export async function handleTrackingListChannelSelect(interaction: ChannelSelectMenuInteraction) {
+	if (!(await requireManageGuild(interaction))) return
+
+	const guildId = interaction.guildId!
+	const channelId = interaction.values[0]
+	const config = await queries.getServerConfig(guildId)
+	await queries.setServerConfig(guildId, channelId, config?.trackingRoleId ?? null)
+	log.info({ guildId, channelId, userId: interaction.user.id }, 'Tracking channel updated')
+
+	await refreshTrackingList(interaction, guildId)
+}
+
+export async function handleTrackingListRoleSelect(interaction: RoleSelectMenuInteraction) {
+	if (!(await requireManageGuild(interaction))) return
+
+	const guildId = interaction.guildId!
+	const roleId = interaction.values[0] ?? null
+	await queries.setTrackingRole(guildId, roleId)
+	log.info({ guildId, roleId, userId: interaction.user.id }, 'Tracking role updated')
+
+	await refreshTrackingList(interaction, guildId)
 }
 
 export const trackingCommand: ChatInputCommand = {
@@ -325,7 +401,7 @@ export const trackingCommand: ChatInputCommand = {
 
 			const count = await queries.countTrackedProjects(guildId)
 			const hasPerks = !usesSupporterPerks || Boolean(config.isSupporter)
-			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED_PER_GUILD
+			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 			if (count >= limit) {
 				await interaction.reply({
 					embeds: [
@@ -463,9 +539,7 @@ export const trackingCommand: ChatInputCommand = {
 			])
 
 			const limit =
-				!usesSupporterPerks || Boolean(config?.isSupporter)
-					? MAX_TRACKED_SUPPORTER
-					: MAX_TRACKED_PER_GUILD
+				!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 
 			const payload = buildTrackingListPayload(tracked, config, limit)
 			await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
