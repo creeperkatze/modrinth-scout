@@ -1,7 +1,7 @@
 import { aiSummariesEnabled } from '../../config/ai.js'
 import { prompt } from '../api/openrouter.js'
 
-const MIN_CHANGELOG_LENGTH = 40
+const MIN_CHANGELOG_LENGTH = 80
 const MAX_CHANGELOG_INPUT_LENGTH = 4000
 
 const SYSTEM_PROMPT =
