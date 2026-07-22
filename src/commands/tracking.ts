@@ -147,7 +147,7 @@ async function buildTrackingListPayload(
 		].join('\n')
 
 		const embed = new EmbedBuilder()
-			.setTitle('Tracked Projects')
+			.setTitle('Tracking')
 			.setDescription(
 				[
 					`${tracked.length} / ${limit} tracked`,
@@ -165,7 +165,7 @@ async function buildTrackingListPayload(
 
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
-		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Tracked Projects'))
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Tracking'))
 
 	const paused = Boolean(config?.trackingPaused)
 	const statusButton = new ButtonBuilder()
