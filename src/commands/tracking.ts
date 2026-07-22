@@ -198,9 +198,6 @@ async function buildTrackingListPayload(
 		new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
 	)
 
-	container.addSeparatorComponents(
-		new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
-	)
 	container.addTextDisplayComponents(
 		new TextDisplayBuilder().setContent(`**${tracked.length} / ${limit} tracked**`),
 	)
