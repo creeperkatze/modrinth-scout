@@ -9,8 +9,6 @@ const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash'
 const REQUEST_TIMEOUT_MS = 10_000
 const MIN_TOKENS_PER_SECOND = 20
 
-const OPENROUTER_SESSION_ID = 'modrinth-scout'
-
 const client = new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
 
 export async function prompt(
@@ -34,7 +32,6 @@ export async function prompt(
 					maxCompletionTokens: maxTokens,
 					temperature: 0.3,
 					stream: false,
-					sessionId: OPENROUTER_SESSION_ID,
 					provider: {
 						preferredMinThroughput: { p90: MIN_TOKENS_PER_SECOND },
 					},
