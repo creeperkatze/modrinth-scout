@@ -214,7 +214,8 @@ async function poll(client: Client, supporterOnly?: boolean) {
 					? new Map<string, string | null>(
 							await Promise.all(
 								newVersions.map(
-									async (v) => [v.id, await summarizeChangelog(project.name, v.changelog)] as const,
+									async (version) =>
+										[version.id, await summarizeChangelog(project, version)] as const,
 								),
 							),
 						)
