@@ -27,13 +27,15 @@ import {
 import { buildSupportInfoReply } from '../commands/support.js'
 import {
 	handleTrackingListChannelSelect,
+	handleTrackingListPageButton,
 	handleTrackingListPauseButton,
 	handleTrackingListRemoveButton,
 	handleTrackingListRoleSelect,
-	TRACKING_LIST_CHANNEL_SELECT_ID,
-	TRACKING_LIST_PAUSE_ID,
+	TRACKING_LIST_CHANNEL_SELECT_PREFIX,
+	TRACKING_LIST_PAGE_PREFIX,
+	TRACKING_LIST_PAUSE_PREFIX,
 	TRACKING_LIST_REMOVE_PREFIX,
-	TRACKING_LIST_ROLE_SELECT_ID,
+	TRACKING_LIST_ROLE_SELECT_PREFIX,
 } from '../commands/tracking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
@@ -93,8 +95,13 @@ export function createCommandRegistry(
 			return
 		}
 
-		if (customId === TRACKING_LIST_PAUSE_ID) {
+		if (customId.startsWith(TRACKING_LIST_PAUSE_PREFIX)) {
 			await handleTrackingListPauseButton(interaction)
+			return
+		}
+
+		if (customId.startsWith(TRACKING_LIST_PAGE_PREFIX)) {
+			await handleTrackingListPageButton(interaction)
 			return
 		}
 
@@ -145,13 +152,13 @@ export function createCommandRegistry(
 	}
 
 	async function handleChannelSelectMenu(interaction: ChannelSelectMenuInteraction) {
-		if (interaction.customId === TRACKING_LIST_CHANNEL_SELECT_ID) {
+		if (interaction.customId.startsWith(TRACKING_LIST_CHANNEL_SELECT_PREFIX)) {
 			await handleTrackingListChannelSelect(interaction)
 		}
 	}
 
 	async function handleRoleSelectMenu(interaction: RoleSelectMenuInteraction) {
-		if (interaction.customId === TRACKING_LIST_ROLE_SELECT_ID) {
+		if (interaction.customId.startsWith(TRACKING_LIST_ROLE_SELECT_PREFIX)) {
 			await handleTrackingListRoleSelect(interaction)
 		}
 	}

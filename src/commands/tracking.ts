@@ -10,7 +10,6 @@ import {
 	ChannelSelectMenuInteraction,
 	ChannelType,
 	ContainerBuilder,
-	EmbedBuilder,
 	InteractionContextType,
 	PermissionFlagsBits,
 	RoleSelectMenuBuilder,
@@ -56,12 +55,18 @@ function formatReleaseTypeLabel(releaseTypes: string[]): string {
 const log = logger.child({ module: 'tracking' })
 
 export const TRACKING_LIST_REMOVE_PREFIX = 'tracking-list-remove:'
-export const TRACKING_LIST_PAUSE_ID = 'tracking-list-pause'
-export const TRACKING_LIST_CHANNEL_SELECT_ID = 'tracking-list-channel'
-export const TRACKING_LIST_ROLE_SELECT_ID = 'tracking-list-role'
+export const TRACKING_LIST_PAUSE_PREFIX = 'tracking-list-pause:'
+export const TRACKING_LIST_CHANNEL_SELECT_PREFIX = 'tracking-list-channel:'
+export const TRACKING_LIST_ROLE_SELECT_PREFIX = 'tracking-list-role:'
+export const TRACKING_LIST_PAGE_PREFIX = 'tracking-list-page:'
 
-// Components V2 caps messages at 40 total components, so large lists use a read-only embed.
-const MAX_INTERACTIVE_TRACKED = 8
+// Components V2 caps messages at 40 total components, so page size 7 keeps a full page under the cap.
+const PAGE_SIZE = 7
+
+function parsePage(value: string | undefined): number {
+	const page = parseInt(value ?? '', 10)
+	return Number.isFinite(page) && page >= 0 ? page : 0
+}
 
 function projectDetailsLabel(p: {
 	releaseType?: string[] | null
@@ -132,36 +137,11 @@ async function buildTrackingListPayload(
 	tracked: Awaited<ReturnType<typeof queries.getTrackedProjects>>,
 	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
 	limit: number,
+	requestedPage = 0,
 ) {
-	if (tracked.length > MAX_INTERACTIVE_TRACKED) {
-		const projectList = tracked
-			.map((p) => {
-				const detailsLabel = projectDetailsLabel(p)
-				return `• [${p.name}](https://modrinth.com/project/${p.slug})${detailsLabel ? ` (${detailsLabel})` : ''}`
-			})
-			.join('\n')
-
-		const defaultConfigValue = [
-			`Notifications are posted in <#${config?.trackingChannelId}>.`,
-			...(config?.trackingRoleId ? [`<@&${config?.trackingRoleId}> is pinged by default.`] : []),
-		].join('\n')
-
-		const embed = new EmbedBuilder()
-			.setTitle('Tracking')
-			.setDescription(
-				[
-					`${tracked.length} / ${limit} tracked`,
-					config?.trackingPaused ? '⏸ Tracking is paused.' : null,
-					projectList,
-				]
-					.filter(Boolean)
-					.join('\n\n'),
-			)
-			.addFields({ name: 'Default configuration', value: defaultConfigValue })
-			.setColor(0x1bd96a)
-
-		return { embeds: [embed], components: [], flags: [] as const }
-	}
+	const totalPages = Math.max(1, Math.ceil(tracked.length / PAGE_SIZE))
+	const page = Math.min(Math.max(requestedPage, 0), totalPages - 1)
+	const pageItems = tracked.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
 
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
@@ -169,7 +149,7 @@ async function buildTrackingListPayload(
 
 	const paused = Boolean(config?.trackingPaused)
 	const statusButton = new ButtonBuilder()
-		.setCustomId(TRACKING_LIST_PAUSE_ID)
+		.setCustomId(`${TRACKING_LIST_PAUSE_PREFIX}${page}`)
 		.setLabel(paused ? 'Resume' : 'Pause')
 		.setStyle(paused ? ButtonStyle.Success : ButtonStyle.Secondary)
 	const statusSection = new SectionBuilder()
@@ -180,7 +160,7 @@ async function buildTrackingListPayload(
 	container.addSectionComponents(statusSection)
 
 	const channelSelect = new ChannelSelectMenuBuilder()
-		.setCustomId(TRACKING_LIST_CHANNEL_SELECT_ID)
+		.setCustomId(`${TRACKING_LIST_CHANNEL_SELECT_PREFIX}${page}`)
 		.setPlaceholder('Notification channel')
 		.addChannelTypes(ChannelType.GuildText)
 	if (config?.trackingChannelId) channelSelect.setDefaultChannels(config.trackingChannelId)
@@ -189,7 +169,7 @@ async function buildTrackingListPayload(
 	)
 
 	const roleSelect = new RoleSelectMenuBuilder()
-		.setCustomId(TRACKING_LIST_ROLE_SELECT_ID)
+		.setCustomId(`${TRACKING_LIST_ROLE_SELECT_PREFIX}${page}`)
 		.setPlaceholder('Ping role (optional)')
 		.setMinValues(0)
 		.setMaxValues(1)
@@ -198,8 +178,9 @@ async function buildTrackingListPayload(
 		new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
 	)
 
+	const pageLabel = totalPages > 1 ? ` · Page ${page + 1} / ${totalPages}` : ''
 	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`**${tracked.length} / ${limit} tracked**`),
+		new TextDisplayBuilder().setContent(`**${tracked.length} / ${limit} tracked**${pageLabel}`),
 	)
 
 	if (tracked.length === 0) {
@@ -209,16 +190,16 @@ async function buildTrackingListPayload(
 			),
 		)
 	} else {
-		const projectsById = await fetchProjectsById(tracked.map((p) => p.projectId))
+		const projectsById = await fetchProjectsById(pageItems.map((p) => p.projectId))
 
-		tracked.forEach((p, i) => {
+		pageItems.forEach((p, i) => {
 			const full = projectsById.get(p.projectId)
 			const headerText = buildProjectHeaderText(p, full)
 			const detailsLabel = projectDetailsLabel(p)
 			const text = detailsLabel ? `${headerText}\n-# ${detailsLabel}` : headerText
 
 			const button = new ButtonBuilder()
-				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${p.projectId}`)
+				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${page}:${p.projectId}`)
 				.setLabel('Remove')
 				.setStyle(ButtonStyle.Danger)
 
@@ -227,7 +208,7 @@ async function buildTrackingListPayload(
 				.setButtonAccessory(button)
 			container.addSectionComponents(section)
 
-			if (i < tracked.length - 1) {
+			if (i < pageItems.length - 1) {
 				container.addSeparatorComponents(
 					new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
 				)
@@ -235,7 +216,23 @@ async function buildTrackingListPayload(
 		})
 	}
 
-	return { embeds: [], components: [container], flags: ['IsComponentsV2'] as const }
+	if (totalPages > 1) {
+		const prevButton = new ButtonBuilder()
+			.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${page - 1}`)
+			.setLabel('◀ Prev')
+			.setStyle(ButtonStyle.Secondary)
+			.setDisabled(page === 0)
+		const nextButton = new ButtonBuilder()
+			.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${page + 1}`)
+			.setLabel('Next ▶')
+			.setStyle(ButtonStyle.Secondary)
+			.setDisabled(page >= totalPages - 1)
+		container.addActionRowComponents(
+			new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton),
+		)
+	}
+
+	return { components: [container], flags: ['IsComponentsV2'] as const }
 }
 
 type TrackingListInteraction =
@@ -252,7 +249,11 @@ async function requireManageGuild(interaction: TrackingListInteraction): Promise
 	return false
 }
 
-async function refreshTrackingList(interaction: TrackingListInteraction, guildId: string) {
+async function refreshTrackingList(
+	interaction: TrackingListInteraction,
+	guildId: string,
+	page: number,
+) {
 	const [tracked, config] = await Promise.all([
 		queries.getTrackedProjects(guildId),
 		queries.getServerConfig(guildId),
@@ -260,14 +261,17 @@ async function refreshTrackingList(interaction: TrackingListInteraction, guildId
 	const limit =
 		!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 
-	await interaction.update(await buildTrackingListPayload(tracked, config, limit))
+	await interaction.update(await buildTrackingListPayload(tracked, config, limit, page))
 }
 
 export async function handleTrackingListRemoveButton(interaction: ButtonInteraction) {
 	if (!(await requireManageGuild(interaction))) return
 
 	const guildId = interaction.guildId!
-	const projectId = interaction.customId.slice(TRACKING_LIST_REMOVE_PREFIX.length)
+	const [pageStr, projectId] = interaction.customId
+		.slice(TRACKING_LIST_REMOVE_PREFIX.length)
+		.split(':')
+	const page = parsePage(pageStr)
 
 	const entry = await queries.findTrackedProjectById(guildId, projectId)
 	if (entry) {
@@ -278,42 +282,54 @@ export async function handleTrackingListRemoveButton(interaction: ButtonInteract
 		)
 	}
 
-	await refreshTrackingList(interaction, guildId)
+	await refreshTrackingList(interaction, guildId, page)
 }
 
 export async function handleTrackingListPauseButton(interaction: ButtonInteraction) {
 	if (!(await requireManageGuild(interaction))) return
 
 	const guildId = interaction.guildId!
+	const page = parsePage(interaction.customId.slice(TRACKING_LIST_PAUSE_PREFIX.length))
 	const config = await queries.getServerConfig(guildId)
 	const paused = !config?.trackingPaused
 	await (paused ? queries.pauseTracking(guildId) : queries.resumeTracking(guildId))
 	log.info({ guildId, userId: interaction.user.id, paused }, 'Tracking pause toggled')
 
-	await refreshTrackingList(interaction, guildId)
+	await refreshTrackingList(interaction, guildId, page)
 }
 
 export async function handleTrackingListChannelSelect(interaction: ChannelSelectMenuInteraction) {
 	if (!(await requireManageGuild(interaction))) return
 
 	const guildId = interaction.guildId!
+	const page = parsePage(interaction.customId.slice(TRACKING_LIST_CHANNEL_SELECT_PREFIX.length))
 	const channelId = interaction.values[0]
 	const config = await queries.getServerConfig(guildId)
 	await queries.setServerConfig(guildId, channelId, config?.trackingRoleId ?? null)
 	log.info({ guildId, channelId, userId: interaction.user.id }, 'Tracking channel updated')
 
-	await refreshTrackingList(interaction, guildId)
+	await refreshTrackingList(interaction, guildId, page)
 }
 
 export async function handleTrackingListRoleSelect(interaction: RoleSelectMenuInteraction) {
 	if (!(await requireManageGuild(interaction))) return
 
 	const guildId = interaction.guildId!
+	const page = parsePage(interaction.customId.slice(TRACKING_LIST_ROLE_SELECT_PREFIX.length))
 	const roleId = interaction.values[0] ?? null
 	await queries.setTrackingRole(guildId, roleId)
 	log.info({ guildId, roleId, userId: interaction.user.id }, 'Tracking role updated')
 
-	await refreshTrackingList(interaction, guildId)
+	await refreshTrackingList(interaction, guildId, page)
+}
+
+export async function handleTrackingListPageButton(interaction: ButtonInteraction) {
+	if (!(await requireManageGuild(interaction))) return
+
+	const guildId = interaction.guildId!
+	const page = parsePage(interaction.customId.slice(TRACKING_LIST_PAGE_PREFIX.length))
+
+	await refreshTrackingList(interaction, guildId, page)
 }
 
 export const trackingCommand: ChatInputCommand = {
@@ -560,8 +576,7 @@ export const trackingCommand: ChatInputCommand = {
 					await interaction.reply({ embeds: [error(message)], flags: 'Ephemeral' })
 					return
 				}
-				// Not a URL and Modrinth doesn't recognize it (e.g. the project was deleted) —
-				// fall back to treating the input itself as the tracked project ID.
+				// Not a URL and unrecognized by Modrinth, so treat the input as the tracked project ID.
 				projectId = raw
 			}
 
