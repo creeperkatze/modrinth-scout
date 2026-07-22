@@ -5,7 +5,7 @@ import { aiSummaryDurationSeconds, aiSummaryRequestsTotal } from '../metrics.js'
 
 const log = createModuleLogger('openrouter')
 
-const OPENROUTER_MODEL = 'qwen/qwen-2.5-7b-instruct'
+const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash'
 const REQUEST_TIMEOUT_MS = 10_000
 
 const client = new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
