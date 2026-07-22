@@ -162,7 +162,7 @@ async function buildTrackingListPayload(
 	const channelSelect = new ChannelSelectMenuBuilder()
 		.setCustomId(`${TRACKING_LIST_CHANNEL_SELECT_PREFIX}${page}`)
 		.setPlaceholder('Notification channel')
-		.addChannelTypes(ChannelType.GuildText)
+		.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
 	if (config?.trackingChannelId) channelSelect.setDefaultChannels(config.trackingChannelId)
 	container.addActionRowComponents(
 		new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(channelSelect),
@@ -344,7 +344,7 @@ export const trackingCommand: ChatInputCommand = {
 					opt
 						.setName('channel')
 						.setDescription('The channel to post notifications in')
-						.addChannelTypes(ChannelType.GuildText)
+						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
 						.setRequired(true),
 				)
 				.addRoleOption((opt) =>
@@ -378,7 +378,7 @@ export const trackingCommand: ChatInputCommand = {
 						.setDescription(
 							'Post updates for this project to a specific channel (overrides server default)',
 						)
-						.addChannelTypes(ChannelType.GuildText)
+						.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
 						.setRequired(false),
 				)
 				.addRoleOption((opt) =>

@@ -1,5 +1,5 @@
 import type { Labrinth } from '@modrinth/api-client'
-import { type Client, DiscordAPIError, type TextChannel } from 'discord.js'
+import { type Client, DiscordAPIError, type NewsChannel, type TextChannel } from 'discord.js'
 
 import { aiSummariesEnabled } from '../config/ai.js'
 import { usesSupporterPerks } from '../config/supporterPerks.js'
@@ -109,7 +109,7 @@ async function notifyChannels(
 		const filtered = newVersions.filter((v) => releaseType.includes(v.version_type))
 		if (filtered.length === 0) continue
 
-		const channel = client.channels.cache.get(channelId) as TextChannel | undefined
+		const channel = client.channels.cache.get(channelId) as TextChannel | NewsChannel | undefined
 		if (!channel?.isTextBased()) {
 			log.warn(
 				{ projectId: project.id, guildId, channelId, roleId },
