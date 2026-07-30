@@ -5,12 +5,10 @@ export const logger = pino({
 	formatters: {
 		level: (label) => ({ level: label }),
 	},
-	...(process.env.NODE_ENV !== 'production' && {
-		transport: {
-			target: 'pino-pretty',
-			options: { colorize: true },
-		},
-	}),
+	transport: {
+		target: 'pino-pretty',
+		options: { colorize: true },
+	},
 })
 
 export function createModuleLogger(module: string, bindings: Bindings = {}) {
