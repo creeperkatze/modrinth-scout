@@ -6,8 +6,7 @@ import { aiSummaryDurationSeconds, aiSummaryRequestsTotal } from '../metrics.js'
 const log = createModuleLogger('openrouter')
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash'
-const REQUEST_TIMEOUT_MS = 10_000
-const MIN_TOKENS_PER_SECOND = 20
+const REQUEST_TIMEOUT_MS = 30_000 // 30s
 
 const client = new OpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
 
@@ -32,9 +31,6 @@ export async function prompt(
 					maxCompletionTokens: maxTokens,
 					temperature: 0.3,
 					stream: false,
-					provider: {
-						preferredMinThroughput: { p90: MIN_TOKENS_PER_SECOND },
-					},
 				},
 			},
 			{ timeoutMs },
