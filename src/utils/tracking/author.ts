@@ -175,7 +175,7 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 		if (rows.length === 0) {
 			log.debug(
 				{ supporterOnly, durationMs: Date.now() - startedAt },
-				'Tracking tick skipped with no tracked creators',
+				'Author tracking tick skipped with no tracked creators',
 			)
 			trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 			return
@@ -184,7 +184,7 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 		const byAuthor = groupByAuthor(rows)
 		log.debug(
 			{ uniqueAuthors: byAuthor.size, supporterOnly, rows: rows.length },
-			'Tracking tick started',
+			'Author tracking tick started',
 		)
 
 		let newProjectsFound = 0
@@ -247,7 +247,7 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 				autoTracked,
 				durationMs: Date.now() - startedAt,
 			},
-			'Tracking tick completed',
+			'Author tracking tick completed',
 		)
 		trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 	} catch (err) {

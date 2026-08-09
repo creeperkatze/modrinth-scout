@@ -135,7 +135,7 @@ export async function pollProjectUpdates(client: Client, supporterOnly?: boolean
 		if (rows.length === 0) {
 			log.debug(
 				{ supporterOnly, durationMs: Date.now() - startedAt },
-				'Tracking tick skipped with no tracked projects',
+				'Project tracking tick skipped with no tracked projects',
 			)
 			trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 			return
@@ -144,7 +144,7 @@ export async function pollProjectUpdates(client: Client, supporterOnly?: boolean
 		const byProject = groupByProject(rows)
 		log.debug(
 			{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
-			'Tracking tick started',
+			'Project tracking tick started',
 		)
 
 		const projects = await fetchProjects([...byProject.keys()])
@@ -231,7 +231,7 @@ export async function pollProjectUpdates(client: Client, supporterOnly?: boolean
 				notificationsSent,
 				durationMs: Date.now() - startedAt,
 			},
-			'Tracking tick completed',
+			'Project tracking tick completed',
 		)
 		trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 	} catch (err) {
