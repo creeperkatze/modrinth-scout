@@ -8,14 +8,14 @@ import { modrinthClient } from '../api/modrinth.js'
 import { buildNewProjectNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
 import {
-	authorPollAutoTrackedTotal,
-	authorPollDurationSeconds,
-	authorPollNotificationsTotal,
-	authorPollTicksTotal,
+	trackingAuthorAutoTrackedTotal,
+	trackingAuthorDurationSeconds,
+	trackingAuthorNotificationsTotal,
+	trackingAuthorTicksTotal,
 } from '../metrics.js'
 import { isUnreachableChannelError, pauseTrackingForUnreachableChannel } from './shared.js'
 
-const log = createModuleLogger('author-poller')
+const log = createModuleLogger('tracking:author')
 
 type AuthorEntry = {
 	authorId: string
@@ -168,23 +168,23 @@ async function autoTrackDiscoveredProject(
 export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean) {
 	const startedAt = Date.now()
 	const supporterLabel = supporterOnly ? 'true' : 'false'
-	const stopTimer = authorPollDurationSeconds.startTimer({ supporter: supporterLabel })
+	const stopTimer = trackingAuthorDurationSeconds.startTimer({ supporter: supporterLabel })
 
 	try {
 		const rows = await queries.getPollingAuthors(supporterOnly)
 		if (rows.length === 0) {
 			log.debug(
 				{ supporterOnly, durationMs: Date.now() - startedAt },
-				'Author poll tick skipped with no tracked creators',
+				'Tracking tick skipped with no tracked creators',
 			)
-			authorPollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+			trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 			return
 		}
 
 		const byAuthor = groupByAuthor(rows)
 		log.debug(
 			{ uniqueAuthors: byAuthor.size, supporterOnly, rows: rows.length },
-			'Author poll tick started',
+			'Tracking tick started',
 		)
 
 		let newProjectsFound = 0
@@ -234,8 +234,8 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 			}
 		}
 
-		authorPollNotificationsTotal.inc(notificationsSent)
-		authorPollAutoTrackedTotal.inc(autoTracked)
+		trackingAuthorNotificationsTotal.inc(notificationsSent)
+		trackingAuthorAutoTrackedTotal.inc(autoTracked)
 		log.info(
 			{
 				supporterOnly,
@@ -247,11 +247,11 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 				autoTracked,
 				durationMs: Date.now() - startedAt,
 			},
-			'Author poll tick completed',
+			'Tracking tick completed',
 		)
-		authorPollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+		trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 	} catch (err) {
-		authorPollTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
+		trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
 		throw err
 	} finally {
 		stopTimer()

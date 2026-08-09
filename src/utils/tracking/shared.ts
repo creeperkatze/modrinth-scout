@@ -4,7 +4,7 @@ import { queries } from '../../db/queries.js'
 import { buildTrackingPausedNotice } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
 
-const log = createModuleLogger('poller')
+const log = createModuleLogger('tracking:shared')
 
 // These error codes mean the channel needs a fix on the Discord server owners side, not ours
 export function isUnreachableChannelError(err: unknown): err is DiscordAPIError {

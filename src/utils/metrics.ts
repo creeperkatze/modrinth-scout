@@ -27,50 +27,50 @@ export const commandDurationSeconds = new client.Histogram({
 	registers: [register],
 })
 
-export const pollTicksTotal = new client.Counter({
-	name: `${PREFIX}poller_ticks_total`,
-	help: 'Total number of poll ticks run',
+export const trackingProjectTicksTotal = new client.Counter({
+	name: `${PREFIX}tracking_project_ticks_total`,
+	help: 'Total number of project tracking ticks run',
 	labelNames: ['supporter', 'status'] as const,
 	registers: [register],
 })
 
-export const pollDurationSeconds = new client.Histogram({
-	name: `${PREFIX}poller_tick_duration_seconds`,
-	help: 'Poll tick duration in seconds',
+export const trackingProjectDurationSeconds = new client.Histogram({
+	name: `${PREFIX}tracking_project_duration_seconds`,
+	help: 'Project tracking tick duration in seconds',
 	labelNames: ['supporter'] as const,
 	buckets: [0.5, 1, 2.5, 5, 10, 30, 60],
 	registers: [register],
 })
 
-export const pollNotificationsTotal = new client.Counter({
-	name: `${PREFIX}poller_notifications_total`,
+export const trackingProjectNotificationsTotal = new client.Counter({
+	name: `${PREFIX}tracking_project_notifications_total`,
 	help: 'Total number of version notifications sent to channels',
 	registers: [register],
 })
 
-export const authorPollTicksTotal = new client.Counter({
-	name: `${PREFIX}author_poller_ticks_total`,
-	help: 'Total number of author poll ticks run',
+export const trackingAuthorTicksTotal = new client.Counter({
+	name: `${PREFIX}tracking_author_ticks_total`,
+	help: 'Total number of author tracking ticks run',
 	labelNames: ['supporter', 'status'] as const,
 	registers: [register],
 })
 
-export const authorPollDurationSeconds = new client.Histogram({
-	name: `${PREFIX}author_poller_tick_duration_seconds`,
-	help: 'Author poll tick duration in seconds',
+export const trackingAuthorDurationSeconds = new client.Histogram({
+	name: `${PREFIX}tracking_author_duration_seconds`,
+	help: 'Author tracking tick duration in seconds',
 	labelNames: ['supporter'] as const,
 	buckets: [0.5, 1, 2.5, 5, 10, 30, 60],
 	registers: [register],
 })
 
-export const authorPollNotificationsTotal = new client.Counter({
-	name: `${PREFIX}author_poller_notifications_total`,
+export const trackingAuthorNotificationsTotal = new client.Counter({
+	name: `${PREFIX}tracking_author_notifications_total`,
 	help: 'Total number of new project notifications sent to channels',
 	registers: [register],
 })
 
-export const authorPollAutoTrackedTotal = new client.Counter({
-	name: `${PREFIX}author_poller_auto_tracked_total`,
+export const trackingAuthorAutoTrackedTotal = new client.Counter({
+	name: `${PREFIX}tracking_author_auto_tracked_total`,
 	help: 'Total number of projects auto-tracked after being discovered from a tracked creator',
 	registers: [register],
 })

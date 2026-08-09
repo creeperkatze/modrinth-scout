@@ -19,19 +19,19 @@ Deploy commands to a dev guild for instant slash-command updates by setting `DIS
 ## Architecture
 
 - `src/index.ts`: entrypoint — Discord client setup, lifecycle events, graceful shutdown
-- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`
-- `src/utils/api.ts`: `modrinthClient`, a `GenericModrinthClient` from `@modrinth/api-client`; import and call it directly wherever Modrinth data is needed
+- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`; `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (creator tracking)
+- `src/utils/api/modrinth.ts`: `modrinthClient`, a `GenericModrinthClient` from `@modrinth/api-client`; import and call it directly wherever Modrinth data is needed
 - `src/config/modrinth.ts`: app-level Modrinth constants (`PROJECT_TYPES`, `SORT_OPTIONS`, `ProjectType`, `SearchIndex`) used to build slash command choices
 - `src/utils/embeds/`: builds Discord embed/component payloads (`CardPayload`) from Modrinth API types
 - `src/utils/commands.ts`: command registry, interaction routing (buttons, select menus, modals, cooldowns), and command deployment
-- `src/utils/poller.ts`: background polling loop that checks tracked projects for new versions and notifies configured channels
-- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, server config, and supporters
+- `src/utils/tracking/`: background polling, run on a shared interval schedule via `startTracking` (`index.ts`) — `project.ts` checks tracked projects for new versions and notifies configured channels; `author.ts` checks tracked users/orgs (creators) for newly published projects, posts a discovery notification, and auto-adds those projects to the guild's tracked-project list (subject to the guild's tracking limit); `shared.ts` holds helpers shared by both (unreachable-channel detection, auto-pausing tracking)
+- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, tracked creators (`schemas/author.ts`), server config, and supporters
 - `src/config/supporterPerks.ts`: gates supporter-only features behind `KOFI_VERIFICATION_TOKEN`
 - `src/web/`: Express server handling the Ko-fi donation webhook (only started when supporter perks are enabled)
 
 ## Key conventions
 
-- **API calls**: use `modrinthClient` from `utils/api.ts` everywhere; it's a plain `GenericModrinthClient` instance, no wrapper layer. Typed endpoints go through `modrinthClient.labrinth.<module>.<method>()`; endpoints without a typed method (random project with facets, user projects as v3 shape, `/statistics`) use `modrinthClient.request<T>(path, { api: 'labrinth', version: 3, method: 'GET', params })` directly at the call site. There is no response caching — every call hits the API.
+- **API calls**: use `modrinthClient` from `utils/api/modrinth.ts` everywhere; it's a plain `GenericModrinthClient` instance, no wrapper layer. Typed endpoints go through `modrinthClient.labrinth.<module>.<method>()`; endpoints without a typed method (random project with facets, user projects as v3 shape, `/statistics`) use `modrinthClient.request<T>(path, { api: 'labrinth', version: 3, method: 'GET', params })` directly at the call site. There is no response caching — every call hits the API.
 - **Types**: use types from `@modrinth/api-client` directly (e.g. `import type { Labrinth } from '@modrinth/api-client'`, then `Labrinth.Projects.v3.Project`). Do not derive local `Modrinth*` type aliases.
 - **`moduleResolution: Bundler`**: `tsconfig.json` intentionally uses `Bundler` resolution (not `NodeNext`) because `@modrinth/api-client`'s published `.d.ts` files use extensionless relative specifiers that fail to resolve under strict `NodeNext` rules. Since this project still ships real ESM output run via `node dist/index.js`, keep writing explicit `.js` extensions on all relative imports in `src/` — `tsc` won't enforce it under `Bundler`, but Node's runtime ESM loader still requires it.
 - **Style**: Prettier — tabs, single quotes, no semicolons, trailing commas, 100-char lines, LF line endings.

@@ -40,7 +40,7 @@ import {
 import { error, success } from '../utils/embeds/index.js'
 import { emojis } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
-import { fetchAuthorProjects } from '../utils/poller/author.js'
+import { fetchAuthorProjects } from '../utils/tracking/author.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 const RELEASE_TYPE_CHOICES = [

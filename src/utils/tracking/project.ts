@@ -2,22 +2,20 @@ import type { Labrinth } from '@modrinth/api-client'
 import { type Client, type NewsChannel, type TextChannel } from 'discord.js'
 
 import { aiSummariesEnabled } from '../../config/ai.js'
-import { usesSupporterPerks } from '../../config/supporterPerks.js'
 import { queries } from '../../db/queries.js'
 import type { ProjectWithChannel } from '../../db/schemas/project.js'
 import { summarizeChangelog } from '../ai/summary.js'
 import { modrinthClient } from '../api/modrinth.js'
 import { buildVersionNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
-import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from '../metrics.js'
-import { pollAuthorUpdates } from './author.js'
+import {
+	trackingProjectDurationSeconds,
+	trackingProjectNotificationsTotal,
+	trackingProjectTicksTotal,
+} from '../metrics.js'
 import { isUnreachableChannelError, pauseTrackingForUnreachableChannel } from './shared.js'
 
-const log = createModuleLogger('poller')
-
-const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
-const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
-const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
+const log = createModuleLogger('tracking:project')
 
 type ProjectEntry = {
 	slug: string
@@ -127,26 +125,26 @@ async function notifyChannels(
 	return notified
 }
 
-async function poll(client: Client, supporterOnly?: boolean) {
+export async function pollProjectUpdates(client: Client, supporterOnly?: boolean) {
 	const startedAt = Date.now()
 	const supporterLabel = supporterOnly ? 'true' : 'false'
-	const stopTimer = pollDurationSeconds.startTimer({ supporter: supporterLabel })
+	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: supporterLabel })
 
 	try {
 		const rows = await queries.getPollingProjects(supporterOnly)
 		if (rows.length === 0) {
 			log.debug(
 				{ supporterOnly, durationMs: Date.now() - startedAt },
-				'Poll tick skipped with no tracked projects',
+				'Tracking tick skipped with no tracked projects',
 			)
-			pollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+			trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 			return
 		}
 
 		const byProject = groupByProject(rows)
 		log.debug(
 			{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
-			'Poll tick started',
+			'Tracking tick started',
 		)
 
 		const projects = await fetchProjects([...byProject.keys()])
@@ -220,7 +218,7 @@ async function poll(client: Client, supporterOnly?: boolean) {
 			}
 		}
 
-		pollNotificationsTotal.inc(notificationsSent)
+		trackingProjectNotificationsTotal.inc(notificationsSent)
 		log.info(
 			{
 				supporterOnly,
@@ -233,54 +231,13 @@ async function poll(client: Client, supporterOnly?: boolean) {
 				notificationsSent,
 				durationMs: Date.now() - startedAt,
 			},
-			'Poll tick completed',
+			'Tracking tick completed',
 		)
-		pollTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+		trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 	} catch (err) {
-		pollTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
+		trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
 		throw err
 	} finally {
 		stopTimer()
-	}
-}
-
-export function startPoller(client: Client) {
-	const createRunner = (supporterOnly: boolean | undefined, intervalMs: number) => {
-		const run = async () => {
-			await Promise.all([
-				poll(client, supporterOnly).catch((err) => log.error({ err }, 'Unhandled error in poll')),
-				pollAuthorUpdates(client, supporterOnly).catch((err) =>
-					log.error({ err }, 'Unhandled error in author poll'),
-				),
-			])
-			setTimeout(run, intervalMs).unref()
-		}
-		setTimeout(run, intervalMs).unref()
-	}
-
-	if (usesSupporterPerks) {
-		createRunner(false, POLL_INTERVAL_MS)
-		createRunner(true, SUPPORTER_POLL_INTERVAL_MS)
-	} else {
-		createRunner(undefined, SUPPORTER_POLL_INTERVAL_MS)
-	}
-	log.info(
-		{
-			intervalMs: usesSupporterPerks ? POLL_INTERVAL_MS : SUPPORTER_POLL_INTERVAL_MS,
-			supporterIntervalMs: usesSupporterPerks ? SUPPORTER_POLL_INTERVAL_MS : null,
-			supportEnabled: usesSupporterPerks,
-		},
-		'Poller started',
-	)
-
-	if (process.env.BETTERSTACK_HEARTBEAT_URL) {
-		const url = process.env.BETTERSTACK_HEARTBEAT_URL
-		setInterval(() => {
-			const startedAt = Date.now()
-			fetch(url)
-				.then(() => log.debug({ durationMs: Date.now() - startedAt }, 'Heartbeat ping succeeded'))
-				.catch((err) => log.warn({ err }, 'Heartbeat ping failed'))
-		}, HEARTBEAT_INTERVAL_MS).unref()
-		log.info({ intervalMs: HEARTBEAT_INTERVAL_MS }, 'Heartbeat started')
 	}
 }
