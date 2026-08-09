@@ -48,6 +48,33 @@ export const pollNotificationsTotal = new client.Counter({
 	registers: [register],
 })
 
+export const authorPollTicksTotal = new client.Counter({
+	name: `${PREFIX}author_poller_ticks_total`,
+	help: 'Total number of author poll ticks run',
+	labelNames: ['supporter', 'status'] as const,
+	registers: [register],
+})
+
+export const authorPollDurationSeconds = new client.Histogram({
+	name: `${PREFIX}author_poller_tick_duration_seconds`,
+	help: 'Author poll tick duration in seconds',
+	labelNames: ['supporter'] as const,
+	buckets: [0.5, 1, 2.5, 5, 10, 30, 60],
+	registers: [register],
+})
+
+export const authorPollNotificationsTotal = new client.Counter({
+	name: `${PREFIX}author_poller_notifications_total`,
+	help: 'Total number of new project notifications sent to channels',
+	registers: [register],
+})
+
+export const authorPollAutoTrackedTotal = new client.Counter({
+	name: `${PREFIX}author_poller_auto_tracked_total`,
+	help: 'Total number of projects auto-tracked after being discovered from a tracked creator',
+	registers: [register],
+})
+
 export const aiSummaryRequestsTotal = new client.Counter({
 	name: `${PREFIX}ai_summary_requests_total`,
 	help: 'Total number of changelog summary requests to the AI provider',

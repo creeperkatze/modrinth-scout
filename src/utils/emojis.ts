@@ -41,6 +41,8 @@ const PROJECT_TYPE_NAMES = [
 
 const STAT_NAMES = ['downloads', 'follows']
 
+const AUTHOR_TYPE_NAMES = ['user', 'organization']
+
 const BRAND_NAMES = [
 	'modrinth',
 	'topgg',
@@ -203,6 +205,11 @@ export async function syncEmojis(client: Client): Promise<void> {
 			key: n,
 			emojiName: n,
 			file: join(__dirname, `../assets/stats/${n}.png`),
+		})),
+		...AUTHOR_TYPE_NAMES.map((n) => ({
+			key: n,
+			emojiName: n,
+			file: join(__dirname, `../assets/authors/${n}.png`),
 		})),
 		...BRAND_NAMES.map((n) => ({
 			key: n,

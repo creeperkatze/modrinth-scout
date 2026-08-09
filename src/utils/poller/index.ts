@@ -1,26 +1,23 @@
 import type { Labrinth } from '@modrinth/api-client'
-import { type Client, DiscordAPIError, type NewsChannel, type TextChannel } from 'discord.js'
+import { type Client, type NewsChannel, type TextChannel } from 'discord.js'
 
-import { aiSummariesEnabled } from '../config/ai.js'
-import { usesSupporterPerks } from '../config/supporterPerks.js'
-import { queries } from '../db/queries.js'
-import type { ProjectWithChannel } from '../db/schemas/project.js'
-import { summarizeChangelog } from './ai/summary.js'
-import { modrinthClient } from './api/modrinth.js'
-import { buildTrackingPausedNotice, buildVersionNotification } from './embeds/index.js'
-import { createModuleLogger } from './logger.js'
-import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from './metrics.js'
+import { aiSummariesEnabled } from '../../config/ai.js'
+import { usesSupporterPerks } from '../../config/supporterPerks.js'
+import { queries } from '../../db/queries.js'
+import type { ProjectWithChannel } from '../../db/schemas/project.js'
+import { summarizeChangelog } from '../ai/summary.js'
+import { modrinthClient } from '../api/modrinth.js'
+import { buildVersionNotification } from '../embeds/index.js'
+import { createModuleLogger } from '../logger.js'
+import { pollDurationSeconds, pollNotificationsTotal, pollTicksTotal } from '../metrics.js'
+import { pollAuthorUpdates } from './author.js'
+import { isUnreachableChannelError, pauseTrackingForUnreachableChannel } from './shared.js'
 
 const log = createModuleLogger('poller')
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
 const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
-
-// These error codes mean the channel needs a fix on the Discord server owners side, not ours
-function isUnreachableChannelError(err: unknown): err is DiscordAPIError {
-	return err instanceof DiscordAPIError && (err.status === 403 || err.status === 404)
-}
 
 type ProjectEntry = {
 	slug: string
@@ -59,28 +56,6 @@ function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
 		}
 	}
 	return map
-}
-
-async function pauseTrackingForUnreachableChannel(
-	client: Client,
-	guildId: string,
-	channelId: string,
-) {
-	const config = await queries.getServerConfig(guildId)
-	if (config?.trackingPaused) return
-
-	await queries.pauseTracking(guildId)
-	log.warn({ guildId, channelId }, 'Tracking paused, notification channel is unreachable')
-
-	const guild = client.guilds.cache.get(guildId)
-	const systemChannel = guild?.systemChannel
-	if (!systemChannel?.isTextBased()) return
-
-	try {
-		await systemChannel.send({ embeds: [buildTrackingPausedNotice(channelId)] })
-	} catch (err) {
-		log.debug({ guildId, err }, 'Could not post pause notice to system channel')
-	}
 }
 
 async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Project[]> {
@@ -272,9 +247,12 @@ async function poll(client: Client, supporterOnly?: boolean) {
 export function startPoller(client: Client) {
 	const createRunner = (supporterOnly: boolean | undefined, intervalMs: number) => {
 		const run = async () => {
-			await poll(client, supporterOnly).catch((err) =>
-				log.error({ err }, 'Unhandled error in poll'),
-			)
+			await Promise.all([
+				poll(client, supporterOnly).catch((err) => log.error({ err }, 'Unhandled error in poll')),
+				pollAuthorUpdates(client, supporterOnly).catch((err) =>
+					log.error({ err }, 'Unhandled error in author poll'),
+				),
+			])
 			setTimeout(run, intervalMs).unref()
 		}
 		setTimeout(run, intervalMs).unref()

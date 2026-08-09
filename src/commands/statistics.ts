@@ -27,36 +27,32 @@ export const statisticsCommand: ChatInputCommand = {
 	async execute(interaction) {
 		await interaction.deferReply()
 
-		const [modrinthStats, trackedTotal] = await Promise.all([
+		const [modrinthStats, trackedTotal, trackedAuthorsTotal] = await Promise.all([
 			modrinthClient.request<ModrinthStatistics>('/statistics', {
 				api: 'labrinth',
 				version: 3,
 				method: 'GET',
 			}),
 			queries.countAllTrackedProjects(),
+			queries.countAllTrackedAuthors(),
 			queries.countConfiguredServers(),
 		])
 
 		const servers = interaction.client.guilds.cache.size
 
 		const lines = [
-			'### Bot',
+			'## Bot',
 			`**Servers** · ${servers.toLocaleString()}`,
 			`**Tracked projects** · ${trackedTotal.toLocaleString()}`,
-			'### Modrinth',
+			`**Tracked creators** · ${trackedAuthorsTotal.toLocaleString()}`,
+			'## Modrinth',
 			`**Projects** · ${modrinthStats.projects.toLocaleString()}`,
 			`**Versions** · ${modrinthStats.versions.toLocaleString()}`,
 			`**Authors** · ${modrinthStats.authors.toLocaleString()}`,
 			`**Files** · ${modrinthStats.files.toLocaleString()}`,
 		]
 
-		const embed = new EmbedBuilder()
-			.setAuthor({
-				name: interaction.client.user.username,
-				iconURL: interaction.client.user.displayAvatarURL(),
-			})
-			.setDescription(lines.join('\n'))
-			.setColor(0x1bd96a)
+		const embed = new EmbedBuilder().setDescription(lines.join('\n')).setColor(0x1bd96a)
 
 		await interaction.editReply({ embeds: [embed] })
 	},

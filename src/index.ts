@@ -10,7 +10,7 @@ import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
 import { createModuleLogger } from './utils/logger.js'
 import { guildCount } from './utils/metrics.js'
-import { startPoller } from './utils/poller.js'
+import { startPoller } from './utils/poller/index.js'
 import { startWebServer } from './web/index.js'
 
 const client = new Client({

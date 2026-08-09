@@ -26,11 +26,15 @@ import {
 } from '../commands/search.js'
 import { buildSupportInfoReply } from '../commands/support.js'
 import {
+	handleTrackingListAuthorPageButton,
+	handleTrackingListAuthorRemoveButton,
 	handleTrackingListChannelSelect,
 	handleTrackingListPageButton,
 	handleTrackingListPauseButton,
 	handleTrackingListRemoveButton,
 	handleTrackingListRoleSelect,
+	TRACKING_LIST_AUTHOR_PAGE_PREFIX,
+	TRACKING_LIST_AUTHOR_REMOVE_PREFIX,
 	TRACKING_LIST_CHANNEL_SELECT_PREFIX,
 	TRACKING_LIST_PAGE_PREFIX,
 	TRACKING_LIST_PAUSE_PREFIX,
@@ -95,6 +99,11 @@ export function createCommandRegistry(
 			return
 		}
 
+		if (customId.startsWith(TRACKING_LIST_AUTHOR_REMOVE_PREFIX)) {
+			await handleTrackingListAuthorRemoveButton(interaction)
+			return
+		}
+
 		if (customId.startsWith(TRACKING_LIST_PAUSE_PREFIX)) {
 			await handleTrackingListPauseButton(interaction)
 			return
@@ -102,6 +111,11 @@ export function createCommandRegistry(
 
 		if (customId.startsWith(TRACKING_LIST_PAGE_PREFIX)) {
 			await handleTrackingListPageButton(interaction)
+			return
+		}
+
+		if (customId.startsWith(TRACKING_LIST_AUTHOR_PAGE_PREFIX)) {
+			await handleTrackingListAuthorPageButton(interaction)
 			return
 		}
 

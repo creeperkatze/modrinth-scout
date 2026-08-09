@@ -1,3 +1,5 @@
+import type { TrackedAuthorWithChannel } from './schemas/author.js'
+import { AuthorModel } from './schemas/author.js'
 import type { ProjectWithChannel } from './schemas/project.js'
 import { ProjectModel } from './schemas/project.js'
 import type { Server } from './schemas/server.js'
@@ -6,6 +8,8 @@ import { SupporterModel } from './schemas/supporter.js'
 
 export const MAX_TRACKED = 5
 export const MAX_TRACKED_SUPPORTER = 100
+export const MAX_TRACKED_AUTHORS = 1
+export const MAX_TRACKED_AUTHORS_SUPPORTER = 10
 
 type ServerPollingConfig = {
 	_id: string
@@ -36,7 +40,11 @@ export const queries = {
 		ServerModel.updateOne({ _id: guildId }, { $set: { trackingRoleId: roleId } }, { upsert: true }),
 
 	deleteServer: (guildId: string) =>
-		Promise.all([ServerModel.findByIdAndDelete(guildId), ProjectModel.deleteMany({ guildId })]),
+		Promise.all([
+			ServerModel.findByIdAndDelete(guildId),
+			ProjectModel.deleteMany({ guildId }),
+			AuthorModel.deleteMany({ guildId }),
+		]),
 
 	getTrackedProjects: (guildId: string) => ProjectModel.find({ guildId }).lean(),
 
@@ -114,6 +122,84 @@ export const queries = {
 
 	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
 
+	getTrackedAuthors: (guildId: string) => AuthorModel.find({ guildId }).lean(),
+
+	findTrackedAuthorById: (guildId: string, authorId: string) =>
+		AuthorModel.findOne({ guildId, authorId }).lean(),
+
+	countTrackedAuthors: (guildId: string) => AuthorModel.countDocuments({ guildId }),
+
+	addTrackedAuthor: (
+		guildId: string,
+		authorId: string,
+		authorType: 'user' | 'organization',
+		username: string,
+		name: string,
+		knownProjectIds: string[],
+		channelId?: string | null,
+		roleId?: string | null,
+	) =>
+		AuthorModel.create({
+			guildId,
+			authorId,
+			authorType,
+			username,
+			name,
+			knownProjectIds,
+			channelId: channelId ?? null,
+			roleId: roleId ?? null,
+		}),
+
+	removeTrackedAuthor: (guildId: string, authorId: string) =>
+		AuthorModel.deleteOne({ guildId, authorId }),
+
+	getPollingAuthors: async (supporterOnly?: boolean): Promise<TrackedAuthorWithChannel[]> => {
+		const servers = await ServerModel.find({
+			trackingPaused: { $ne: true },
+			trackingChannelId: { $ne: null },
+			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
+		})
+			.select('_id trackingChannelId trackingRoleId')
+			.lean<Pick<ServerPollingConfig, '_id' | 'trackingChannelId' | 'trackingRoleId'>[]>()
+
+		if (servers.length === 0) {
+			return []
+		}
+
+		const serverConfigByGuildId = new Map(servers.map((server) => [server._id, server]))
+		const authors = await AuthorModel.find({
+			guildId: { $in: servers.map((server) => server._id) },
+		}).lean()
+
+		return authors.flatMap((author) => {
+			const config = serverConfigByGuildId.get(author.guildId)
+			if (!config) {
+				return []
+			}
+
+			const channelId = author.channelId ?? config.trackingChannelId
+			if (!channelId) {
+				return []
+			}
+
+			return [
+				{
+					...author,
+					channelId,
+					roleId: author.roleId ?? config.trackingRoleId,
+				},
+			]
+		})
+	},
+
+	updateKnownProjects: (authorId: string, projectIds: string[], guildIds: string[]) =>
+		AuthorModel.updateMany(
+			{ authorId, guildId: { $in: guildIds } },
+			{ $set: { knownProjectIds: projectIds } },
+		),
+
+	removeAllTrackedAuthors: (guildId: string) => AuthorModel.deleteMany({ guildId }),
+
 	clearTrackingConfig: (guildId: string) =>
 		ServerModel.updateOne(
 			{ _id: guildId },
@@ -156,6 +242,8 @@ export const queries = {
 	countAllTrackedProjects: () => ProjectModel.countDocuments(),
 
 	countUniqueTrackedProjects: () => ProjectModel.distinct('projectId').then((ids) => ids.length),
+
+	countAllTrackedAuthors: () => AuthorModel.countDocuments(),
 
 	countConfiguredServers: () => ServerModel.countDocuments(),
 

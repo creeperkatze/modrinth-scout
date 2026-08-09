@@ -77,6 +77,27 @@ export async function respondWithTrackedProjectSearch(
 	await interaction.respond(choices)
 }
 
+export async function respondWithTrackedAuthorSearch(
+	interaction: AutocompleteInteraction,
+): Promise<void> {
+	const guildId = interaction.guildId
+	if (!guildId) {
+		await interaction.respond([])
+		return
+	}
+
+	const focused = interaction.options.getFocused().toLowerCase()
+	const tracked = await queries.getTrackedAuthors(guildId)
+	const choices = tracked
+		.filter(
+			(a) => a.username.toLowerCase().includes(focused) || a.name.toLowerCase().includes(focused),
+		)
+		.slice(0, 25)
+		.map((a) => ({ name: `${a.name} (${a.authorType})`, value: a.authorId }))
+
+	await interaction.respond(choices)
+}
+
 function formatUserLabel(username: string, details?: Labrinth.Users.v2.User): string {
 	if (!details) return username
 	const badges = resolveBadges(details).map((key) => BADGE_LABELS[key])
