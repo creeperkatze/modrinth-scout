@@ -9,6 +9,7 @@ const log = createModuleLogger('tracking')
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const SUPPORTER_POLL_INTERVAL_MS = 60 * 1000 // 1 minute
+const HEARTBEAT_INTERVAL_MS = 60 * 1000 // 1 minute
 
 export function startTracking(client: Client) {
 	const createRunner = (supporterOnly: boolean | undefined, intervalMs: number) => {
@@ -40,4 +41,15 @@ export function startTracking(client: Client) {
 		},
 		'Tracking started',
 	)
+
+	if (process.env.BETTERSTACK_HEARTBEAT_URL) {
+		const url = process.env.BETTERSTACK_HEARTBEAT_URL
+		setInterval(() => {
+			const startedAt = Date.now()
+			fetch(url)
+				.then(() => log.debug({ durationMs: Date.now() - startedAt }, 'Heartbeat ping succeeded'))
+				.catch((err) => log.warn({ err }, 'Heartbeat ping failed'))
+		}, HEARTBEAT_INTERVAL_MS).unref()
+		log.info({ intervalMs: HEARTBEAT_INTERVAL_MS }, 'Heartbeat started')
+	}
 }
