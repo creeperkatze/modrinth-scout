@@ -13,7 +13,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
+import { MAX_TRACKED_AUTHORS_SUPPORTER, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
@@ -25,7 +25,7 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png
 })
 
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
-const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
+const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
 
 export function buildSupportInfoReply() {
 	const embed = new EmbedBuilder()
