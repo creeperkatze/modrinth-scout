@@ -129,9 +129,6 @@ async function autoTrackDiscoveredProject(
 	channelId: string,
 	roleId: string | null | undefined,
 ): Promise<boolean> {
-	const existing = await queries.findTrackedProjectById(guildId, project.id)
-	if (existing) return false
-
 	// Author-sourced projects don't count against MAX_TRACKED/MAX_TRACKED_SUPPORTER, so there's no
 	// tracking-limit check here, bounded only by how many authors the server can track.
 	const config = await queries.getServerConfig(guildId)
@@ -142,7 +139,8 @@ async function autoTrackDiscoveredProject(
 	const roleOverride =
 		(roleId ?? null) !== (config?.trackingRoleId ?? null) ? (roleId ?? null) : null
 
-	await queries.addTrackedProject(
+	// Leaves an already-tracked project untouched instead of overwriting it.
+	return queries.addTrackedProjectIfMissing(
 		guildId,
 		project.id,
 		project.slug ?? project.id,
@@ -153,7 +151,6 @@ async function autoTrackDiscoveredProject(
 		roleOverride,
 		authorId,
 	)
-	return true
 }
 
 export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean) {

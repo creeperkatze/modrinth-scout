@@ -786,7 +786,7 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const existing = await queries.findTrackedProjectById(guildId, project.id)
-			if (existing) {
+			if (existing && !existing.sourceAuthorId) {
 				await interaction.editReply({
 					embeds: [error(`**${project.name}** is already being tracked.`)],
 				})
@@ -798,7 +798,8 @@ export const trackingCommand: ChatInputCommand = {
 			const channelOverride = interaction.options.getChannel('channel')
 			const roleOverride = interaction.options.getRole('role')
 
-			await queries.addTrackedProject(
+			// Detaches the project from its author if it was already auto-tracked through one.
+			await queries.trackProjectManually(
 				guildId,
 				project.id,
 				project.slug ?? project.id,
@@ -809,8 +810,16 @@ export const trackingCommand: ChatInputCommand = {
 				roleOverride?.id ?? null,
 			)
 			log.info(
-				{ guildId, projectId: project.id, slug: project.slug, userId: interaction.user.id },
-				'Project tracked',
+				{
+					guildId,
+					projectId: project.id,
+					slug: project.slug,
+					userId: interaction.user.id,
+					convertedFromAuthorId: existing?.sourceAuthorId ?? undefined,
+				},
+				existing?.sourceAuthorId
+					? 'Author-tracked project converted to manual tracking'
+					: 'Project tracked',
 			)
 
 			const releaseTypeLabel =
@@ -821,6 +830,9 @@ export const trackingCommand: ChatInputCommand = {
 			}
 			if (roleOverride) {
 				details.push(`<@&${roleOverride.id}> will be pinged.`)
+			}
+			if (existing?.sourceAuthorId) {
+				details.push(`It will keep being tracked even if you stop tracking its author.`)
 			}
 
 			await interaction.editReply({
@@ -1072,11 +1084,10 @@ async function executeAuthorSubcommand(
 			roleOverride?.id ?? null,
 		)
 
-		// Track everything the author already has out now; the poller only announces + tracks
-		// projects published after this point (see knownProjectIds above).
-		await Promise.all(
+		// Track everything the author already has out now; the poller only tracks projects published after this point.
+		const newlyTracked = await Promise.all(
 			projects.map((project) =>
-				queries.addTrackedProject(
+				queries.addTrackedProjectIfMissing(
 					guildId,
 					project.id,
 					project.slug ?? project.id,
@@ -1089,6 +1100,7 @@ async function executeAuthorSubcommand(
 				),
 			),
 		)
+		const autoTrackedCount = newlyTracked.filter(Boolean).length
 		log.info(
 			{
 				guildId,
@@ -1096,6 +1108,7 @@ async function executeAuthorSubcommand(
 				authorType: author.type,
 				username: author.username,
 				projects: projects.length,
+				autoTracked: autoTrackedCount,
 				userId: interaction.user.id,
 			},
 			'Author tracked',
@@ -1104,11 +1117,16 @@ async function executeAuthorSubcommand(
 		const details = []
 		if (channelOverride) details.push(`Notifications will go to <#${channelOverride.id}>.`)
 		if (roleOverride) details.push(`<@&${roleOverride.id}> will be pinged.`)
+		if (autoTrackedCount < projects.length) {
+			details.push(
+				`${projects.length - autoTrackedCount} of their project${projects.length - autoTrackedCount === 1 ? '' : 's'} ${projects.length - autoTrackedCount === 1 ? 'was' : 'were'} already tracked and kept as-is.`,
+			)
+		}
 
 		await interaction.editReply({
 			embeds: [
 				success(
-					`Now tracking **${author.name}** (${author.type}) and their ${projects.length} project${projects.length === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+					`Now tracking **${author.name}** (${author.type}) and their ${autoTrackedCount} project${autoTrackedCount === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 				),
 			],
 		})

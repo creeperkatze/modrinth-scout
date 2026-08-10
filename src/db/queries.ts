@@ -70,31 +70,65 @@ export const queries = {
 		return new Map(results.map((r) => [r._id, r.count]))
 	},
 
-	addTrackedProject: (
+	// Atomic insert-if-missing so author discovery never overwrites or races an existing entry.
+	addTrackedProjectIfMissing: async (
 		guildId: string,
 		projectId: string,
 		slug: string,
 		name: string,
 		lastUpdated: Date,
-		releaseType?: string[],
-		channelId?: string | null,
-		roleId?: string | null,
-		sourceAuthorId?: string | null,
-	) =>
-		ProjectModel.create({
-			guildId,
-			projectId,
-			slug,
-			name,
-			lastUpdated,
-			releaseType,
-			channelId: channelId ?? null,
-			roleId: roleId ?? null,
-			sourceAuthorId: sourceAuthorId ?? null,
-		}),
+		releaseType: string[] | undefined,
+		channelId: string | null | undefined,
+		roleId: string | null | undefined,
+		sourceAuthorId: string,
+	): Promise<boolean> => {
+		const result = await ProjectModel.updateOne(
+			{ guildId, projectId },
+			{
+				$setOnInsert: {
+					guildId,
+					projectId,
+					slug,
+					name,
+					lastUpdated,
+					releaseType,
+					channelId: channelId ?? null,
+					roleId: roleId ?? null,
+					sourceAuthorId,
+				},
+			},
+			{ upsert: true },
+		)
+		return result.upsertedCount > 0
+	},
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
 		ProjectModel.deleteOne({ guildId, projectId }),
+
+	// Tracks a project manually, detaching it from its source author if it had one.
+	trackProjectManually: (
+		guildId: string,
+		projectId: string,
+		slug: string,
+		name: string,
+		lastUpdated: Date,
+		releaseType: string[],
+		channelId?: string | null,
+		roleId?: string | null,
+	) =>
+		ProjectModel.findOneAndUpdate(
+			{ guildId, projectId },
+			{
+				$set: {
+					releaseType,
+					channelId: channelId ?? null,
+					roleId: roleId ?? null,
+					sourceAuthorId: null,
+				},
+				$setOnInsert: { guildId, projectId, slug, name, lastUpdated },
+			},
+			{ upsert: true, returnDocument: 'after' },
+		).lean(),
 
 	getPollingProjects: async (supporterOnly?: boolean): Promise<ProjectWithChannel[]> => {
 		const servers = await ServerModel.find({
