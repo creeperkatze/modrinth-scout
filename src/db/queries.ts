@@ -62,6 +62,18 @@ export const queries = {
 	countTrackedProjectsByAuthor: (guildId: string, authorId: string) =>
 		ProjectModel.countDocuments({ guildId, sourceAuthorId: authorId }),
 
+	getTrackedProjectCountsByAuthors: async (
+		guildId: string,
+		authorIds: string[],
+	): Promise<Map<string, number>> => {
+		if (authorIds.length === 0) return new Map()
+		const results = await ProjectModel.aggregate<{ _id: string; count: number }>([
+			{ $match: { guildId, sourceAuthorId: { $in: authorIds } } },
+			{ $group: { _id: '$sourceAuthorId', count: { $sum: 1 } } },
+		])
+		return new Map(results.map((r) => [r._id, r.count]))
+	},
+
 	addTrackedProject: (
 		guildId: string,
 		projectId: string,

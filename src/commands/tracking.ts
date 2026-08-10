@@ -166,6 +166,7 @@ function buildProjectHeaderText(
 }
 
 async function buildTrackingListPayload(
+	guildId: string,
 	tracked: Awaited<ReturnType<typeof queries.getTrackedProjects>>,
 	trackedAuthors: Awaited<ReturnType<typeof queries.getTrackedAuthors>>,
 	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
@@ -274,8 +275,13 @@ async function buildTrackingListPayload(
 			),
 		)
 
+		const projectCountsByAuthor = await queries.getTrackedProjectCountsByAuthors(
+			guildId,
+			authorPageItems.map((a) => a.authorId),
+		)
+
 		authorPageItems.forEach((a, i) => {
-			const headerText = buildAuthorHeaderText(a)
+			const headerText = buildAuthorHeaderText(a, projectCountsByAuthor.get(a.authorId) ?? 0)
 			const detailsLabel = authorDetailsLabel(a)
 			const text = detailsLabel ? `${headerText}\n-# ${detailsLabel}` : headerText
 
@@ -369,13 +375,13 @@ function authorDetailsLabel(a: { channelId?: string | null; roleId?: string | nu
 
 function buildAuthorHeaderText(
 	a: Awaited<ReturnType<typeof queries.getTrackedAuthors>>[number],
+	projectCount: number,
 ): string {
 	const typeEmoji = emojis[a.authorType === 'organization' ? 'organization' : 'user']
 	const url =
 		a.authorType === 'organization'
 			? `https://modrinth.com/organization/${a.username}`
 			: `https://modrinth.com/user/${a.username}`
-	const projectCount = a.knownProjectIds.length
 
 	return [
 		`**${typeEmoji ? `${typeEmoji} ` : ''}[${a.name}](${url})**`,
@@ -417,6 +423,7 @@ async function refreshTrackingList(
 
 	await interaction.update(
 		await buildTrackingListPayload(
+			guildId,
 			tracked,
 			trackedAuthors,
 			config,
@@ -857,6 +864,19 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
+			if (entry.sourceAuthorId) {
+				const author = await queries.findTrackedAuthorById(guildId, entry.sourceAuthorId)
+				await interaction.reply({
+					embeds: [
+						error(
+							`**${entry.name}** is tracked automatically through ${author ? `**${author.name}**` : 'a tracked author'}. Use \`/tracking author remove\` to stop tracking it.`,
+						),
+					],
+					flags: 'Ephemeral',
+				})
+				return
+			}
+
 			await queries.removeTrackedProject(guildId, entry.projectId)
 			log.info(
 				{ guildId, projectId: entry.projectId, slug: entry.slug, userId: interaction.user.id },
@@ -884,6 +904,7 @@ export const trackingCommand: ChatInputCommand = {
 					: MAX_TRACKED_AUTHORS
 
 			const payload = await buildTrackingListPayload(
+				guildId,
 				tracked,
 				trackedAuthors,
 				config,

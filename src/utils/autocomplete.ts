@@ -68,7 +68,7 @@ export async function respondWithTrackedProjectSearch(
 	}
 
 	const focused = interaction.options.getFocused()
-	const tracked = await queries.getTrackedProjects(guildId)
+	const tracked = await queries.getManuallyTrackedProjects(guildId)
 	const choices = tracked
 		.filter((p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()))
 		.slice(0, 25)
