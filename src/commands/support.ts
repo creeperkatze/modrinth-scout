@@ -17,6 +17,7 @@ import { MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
+import { supporterGuildCount } from '../utils/metrics.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png'), {
@@ -143,6 +144,8 @@ export const supportCommand: ChatInputCommand = {
 				})
 				return
 			}
+
+			supporterGuildCount.inc()
 
 			await interaction.reply({
 				embeds: [

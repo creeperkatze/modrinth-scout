@@ -247,6 +247,8 @@ export const queries = {
 
 	countConfiguredServers: () => ServerModel.countDocuments(),
 
+	countSupporterServers: () => ServerModel.countDocuments({ isSupporter: true }),
+
 	createDonation: (data: {
 		discordUserId: string | null
 		email: string

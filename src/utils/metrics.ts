@@ -12,6 +12,12 @@ export const guildCount = new client.Gauge({
 	registers: [register],
 })
 
+export const supporterGuildCount = new client.Gauge({
+	name: `${PREFIX}discord_supporter_guild_count`,
+	help: 'Number of guilds with supporter perks active',
+	registers: [register],
+})
+
 export const commandsTotal = new client.Counter({
 	name: `${PREFIX}discord_commands_total`,
 	help: 'Total number of slash commands executed',

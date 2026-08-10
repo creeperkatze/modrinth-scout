@@ -9,7 +9,7 @@ import { handleMessageCreate } from './utils/autoEmbeds.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
 import { createModuleLogger } from './utils/logger.js'
-import { guildCount } from './utils/metrics.js'
+import { guildCount, supporterGuildCount } from './utils/metrics.js'
 import { startTracking } from './utils/tracking/index.js'
 import { startWebServer } from './web/index.js'
 
@@ -47,6 +47,7 @@ async function main() {
 	log.info({ guilds: readyClient.guilds.cache.size }, 'Initializing guild configs')
 	await Promise.all(readyClient.guilds.cache.map((g) => queries.initServerConfig(g.id)))
 	guildCount.set(readyClient.guilds.cache.size)
+	supporterGuildCount.set(await queries.countSupporterServers())
 
 	startTracking(readyClient)
 	startWebServer()
@@ -68,8 +69,10 @@ client.on(Events.GuildCreate, async (guild) => {
 })
 
 client.on(Events.GuildDelete, async (guild) => {
+	const config = await queries.getServerConfig(guild.id)
 	await queries.deleteServer(guild.id)
 	guildCount.dec()
+	if (config?.isSupporter) supporterGuildCount.dec()
 	log.info({ guildId: guild.id }, 'Left guild, cleaned up data')
 })
 
