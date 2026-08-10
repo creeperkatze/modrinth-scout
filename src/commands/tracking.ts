@@ -167,7 +167,7 @@ function buildProjectHeaderText(
 
 async function buildTrackingListPayload(
 	guildId: string,
-	tracked: Awaited<ReturnType<typeof queries.getTrackedProjects>>,
+	tracked: Awaited<ReturnType<typeof queries.getManuallyTrackedProjects>>,
 	trackedAuthors: Awaited<ReturnType<typeof queries.getTrackedAuthors>>,
 	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
 	limit: number,
@@ -446,7 +446,9 @@ export async function handleTrackingListRemoveButton(interaction: ButtonInteract
 	} = parsePageState(interaction.customId.slice(TRACKING_LIST_REMOVE_PREFIX.length))
 
 	const entry = await queries.findTrackedProjectById(guildId, projectId)
-	if (entry) {
+	// The manage list only ever renders manually-tracked projects, so this should be unreachable
+	// for author-sourced ones, guard anyway rather than trust the customId blindly.
+	if (entry && !entry.sourceAuthorId) {
 		await queries.removeTrackedProject(guildId, projectId)
 		log.info(
 			{ guildId, projectId, slug: entry.slug, userId: interaction.user.id },

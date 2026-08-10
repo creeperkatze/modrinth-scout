@@ -46,15 +46,11 @@ export const queries = {
 			AuthorModel.deleteMany({ guildId }),
 		]),
 
-	getTrackedProjects: (guildId: string) => ProjectModel.find({ guildId }).lean(),
-
 	getManuallyTrackedProjects: (guildId: string) =>
 		ProjectModel.find({ guildId, sourceAuthorId: null }).lean(),
 
 	findTrackedProjectById: (guildId: string, projectId: string) =>
 		ProjectModel.findOne({ guildId, projectId }).lean(),
-
-	countTrackedProjects: (guildId: string) => ProjectModel.countDocuments({ guildId }),
 
 	countManuallyTrackedProjects: (guildId: string) =>
 		ProjectModel.countDocuments({ guildId, sourceAuthorId: null }),
