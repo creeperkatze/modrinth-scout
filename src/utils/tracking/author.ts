@@ -1,8 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { type Client, type NewsChannel, type TextChannel } from 'discord.js'
 
-import { usesSupporterPerks } from '../../config/supporterPerks.js'
-import { MAX_TRACKED, MAX_TRACKED_SUPPORTER, queries } from '../../db/queries.js'
+import { queries } from '../../db/queries.js'
 import type { TrackedAuthorWithChannel } from '../../db/schemas/author.js'
 import { modrinthClient } from '../api/modrinth.js'
 import { buildNewProjectNotification } from '../embeds/index.js'
@@ -125,6 +124,7 @@ async function notifyAuthorChannels(
 
 async function autoTrackDiscoveredProject(
 	guildId: string,
+	authorId: string,
 	project: Labrinth.Projects.v3.Project,
 	channelId: string,
 	roleId: string | null | undefined,
@@ -132,19 +132,9 @@ async function autoTrackDiscoveredProject(
 	const existing = await queries.findTrackedProjectById(guildId, project.id)
 	if (existing) return false
 
-	const [config, count] = await Promise.all([
-		queries.getServerConfig(guildId),
-		queries.countTrackedProjects(guildId),
-	])
-	const hasPerks = !usesSupporterPerks || Boolean(config?.isSupporter)
-	const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
-	if (count >= limit) {
-		log.debug(
-			{ guildId, projectId: project.id, count, limit },
-			'Skipped auto-tracking project, server at tracking limit',
-		)
-		return false
-	}
+	// Author-sourced projects don't count against MAX_TRACKED/MAX_TRACKED_SUPPORTER, so there's no
+	// tracking-limit check here, bounded only by how many authors the server can track.
+	const config = await queries.getServerConfig(guildId)
 
 	// Only store an explicit per-project override if it differs from the server default,
 	// so auto-tracked projects keep following the server default if it changes later.
@@ -161,6 +151,7 @@ async function autoTrackDiscoveredProject(
 		undefined,
 		channelOverride,
 		roleOverride,
+		authorId,
 	)
 	return true
 }
@@ -214,7 +205,13 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 					notificationsSent += notified.length
 
 					for (const { guildId, channelId, roleId } of info.channels) {
-						const tracked = await autoTrackDiscoveredProject(guildId, project, channelId, roleId)
+						const tracked = await autoTrackDiscoveredProject(
+							guildId,
+							info.authorId,
+							project,
+							channelId,
+							roleId,
+						)
 						if (tracked) autoTracked += 1
 					}
 				}

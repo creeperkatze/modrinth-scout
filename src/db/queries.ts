@@ -48,10 +48,19 @@ export const queries = {
 
 	getTrackedProjects: (guildId: string) => ProjectModel.find({ guildId }).lean(),
 
+	getManuallyTrackedProjects: (guildId: string) =>
+		ProjectModel.find({ guildId, sourceAuthorId: null }).lean(),
+
 	findTrackedProjectById: (guildId: string, projectId: string) =>
 		ProjectModel.findOne({ guildId, projectId }).lean(),
 
 	countTrackedProjects: (guildId: string) => ProjectModel.countDocuments({ guildId }),
+
+	countManuallyTrackedProjects: (guildId: string) =>
+		ProjectModel.countDocuments({ guildId, sourceAuthorId: null }),
+
+	countTrackedProjectsByAuthor: (guildId: string, authorId: string) =>
+		ProjectModel.countDocuments({ guildId, sourceAuthorId: authorId }),
 
 	addTrackedProject: (
 		guildId: string,
@@ -62,6 +71,7 @@ export const queries = {
 		releaseType?: string[],
 		channelId?: string | null,
 		roleId?: string | null,
+		sourceAuthorId?: string | null,
 	) =>
 		ProjectModel.create({
 			guildId,
@@ -72,6 +82,7 @@ export const queries = {
 			releaseType,
 			channelId: channelId ?? null,
 			roleId: roleId ?? null,
+			sourceAuthorId: sourceAuthorId ?? null,
 		}),
 
 	removeTrackedProject: (guildId: string, projectId: string) =>
@@ -151,7 +162,10 @@ export const queries = {
 		}),
 
 	removeTrackedAuthor: (guildId: string, authorId: string) =>
-		AuthorModel.deleteOne({ guildId, authorId }),
+		Promise.all([
+			AuthorModel.deleteOne({ guildId, authorId }),
+			ProjectModel.deleteMany({ guildId, sourceAuthorId: authorId }),
+		]),
 
 	getPollingAuthors: async (supporterOnly?: boolean): Promise<TrackedAuthorWithChannel[]> => {
 		const servers = await ServerModel.find({

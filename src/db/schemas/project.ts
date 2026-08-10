@@ -10,6 +10,7 @@ const projectSchema = new Schema(
 		channelId: { type: String, default: null },
 		roleId: { type: String, default: null },
 		lastUpdated: { type: Date, required: true },
+		sourceAuthorId: { type: String, default: null },
 	},
 	{ collection: 'projects', timestamps: true },
 )
@@ -17,6 +18,7 @@ const projectSchema = new Schema(
 projectSchema.index({ guildId: 1, projectId: 1 }, { unique: true })
 projectSchema.index({ projectId: 1, guildId: 1 })
 projectSchema.index({ guildId: 1, slug: 1 })
+projectSchema.index({ guildId: 1, sourceAuthorId: 1 })
 
 export type Project = InferSchemaType<typeof projectSchema>
 export type ProjectWithChannel = Project & {

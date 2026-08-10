@@ -404,7 +404,7 @@ async function refreshTrackingList(
 	authorPage: number,
 ) {
 	const [tracked, trackedAuthors, config] = await Promise.all([
-		queries.getTrackedProjects(guildId),
+		queries.getManuallyTrackedProjects(guildId),
 		queries.getTrackedAuthors(guildId),
 		queries.getServerConfig(guildId),
 	])
@@ -737,7 +737,7 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const count = await queries.countTrackedProjects(guildId)
+			const count = await queries.countManuallyTrackedProjects(guildId)
 			const hasPerks = !usesSupporterPerks || Boolean(config.isSupporter)
 			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 			if (count >= limit) {
@@ -871,7 +871,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'manage') {
 			const [tracked, trackedAuthors, config] = await Promise.all([
-				queries.getTrackedProjects(guildId),
+				queries.getManuallyTrackedProjects(guildId),
 				queries.getTrackedAuthors(guildId),
 				queries.getServerConfig(guildId),
 			])
@@ -1026,9 +1026,9 @@ async function executeAuthorSubcommand(
 			return
 		}
 
-		let knownProjectIds: string[]
+		let projects: Labrinth.Projects.v3.Project[]
 		try {
-			knownProjectIds = (await fetchAuthorProjects(author.type, author.id)).map((p) => p.id)
+			projects = await fetchAuthorProjects(author.type, author.id)
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err)
 			await interaction.editReply({ embeds: [error(message)] })
@@ -1044,9 +1044,27 @@ async function executeAuthorSubcommand(
 			author.type,
 			author.username,
 			author.name,
-			knownProjectIds,
+			projects.map((p) => p.id),
 			channelOverride?.id ?? null,
 			roleOverride?.id ?? null,
+		)
+
+		// Track everything the author already has out now; the poller only announces + tracks
+		// projects published after this point (see knownProjectIds above).
+		await Promise.all(
+			projects.map((project) =>
+				queries.addTrackedProject(
+					guildId,
+					project.id,
+					project.slug ?? project.id,
+					project.name,
+					new Date(project.updated),
+					undefined,
+					channelOverride?.id ?? null,
+					roleOverride?.id ?? null,
+					author.id,
+				),
+			),
 		)
 		log.info(
 			{
@@ -1054,6 +1072,7 @@ async function executeAuthorSubcommand(
 				authorId: author.id,
 				authorType: author.type,
 				username: author.username,
+				projects: projects.length,
 				userId: interaction.user.id,
 			},
 			'Author tracked',
@@ -1066,7 +1085,7 @@ async function executeAuthorSubcommand(
 		await interaction.editReply({
 			embeds: [
 				success(
-					`Now tracking **${author.name}** (${author.type}). New projects they publish will be announced and automatically tracked for version updates.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+					`Now tracking **${author.name}** (${author.type}) and their ${projects.length} project${projects.length === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 				),
 			],
 		})
@@ -1094,13 +1113,24 @@ async function executeAuthorSubcommand(
 			return
 		}
 
+		const untrackedProjects = await queries.countTrackedProjectsByAuthor(guildId, entry.authorId)
 		await queries.removeTrackedAuthor(guildId, entry.authorId)
 		log.info(
-			{ guildId, authorId: entry.authorId, username: entry.username, userId: interaction.user.id },
+			{
+				guildId,
+				authorId: entry.authorId,
+				username: entry.username,
+				untrackedProjects,
+				userId: interaction.user.id,
+			},
 			'Author untracked',
 		)
 		await interaction.reply({
-			embeds: [success(`Stopped tracking **${entry.name}**.`)],
+			embeds: [
+				success(
+					`Stopped tracking **${entry.name}**${untrackedProjects > 0 ? ` and untracked ${untrackedProjects} of their project${untrackedProjects === 1 ? '' : 's'}` : ''}.`,
+				),
+			],
 			flags: 'Ephemeral',
 		})
 	}
