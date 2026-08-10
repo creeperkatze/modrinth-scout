@@ -8,6 +8,7 @@ import { queries } from './db/queries.js'
 import { handleMessageCreate } from './utils/autoEmbeds.js'
 import { createCommandRegistry, deployCommands } from './utils/commands.js'
 import { syncEmojis } from './utils/emojis.js'
+import { startHeartbeat } from './utils/heartbeat.js'
 import { createModuleLogger } from './utils/logger.js'
 import { guildCount, supporterGuildCount } from './utils/metrics.js'
 import { startTracking } from './utils/tracking/index.js'
@@ -51,6 +52,7 @@ async function main() {
 
 	startTracking(readyClient)
 	startWebServer()
+	startHeartbeat()
 
 	log.info(
 		{
