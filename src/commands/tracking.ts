@@ -220,17 +220,11 @@ async function buildTrackingListPayload(
 		new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
 	)
 
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(`### Projects · ${tracked.length} / ${limit} tracked`),
-	)
-
-	if (tracked.length === 0) {
+	if (tracked.length > 0) {
 		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(
-				'No projects are being tracked.\nUse `/tracking add` to start.',
-			),
+			new TextDisplayBuilder().setContent(`### Projects · ${tracked.length} / ${limit} tracked`),
 		)
-	} else {
+
 		const projectsById = await fetchProjectsById(pageItems.map((p) => p.projectId))
 
 		pageItems.forEach((p, i) => {
@@ -255,37 +249,31 @@ async function buildTrackingListPayload(
 				)
 			}
 		})
+
+		if (projectTotalPages > 1) {
+			const prevButton = new ButtonBuilder()
+				.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${encodePageState(projectPage - 1, authorPage)}`)
+				.setLabel('◀ Prev')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(projectPage === 0)
+			const nextButton = new ButtonBuilder()
+				.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${encodePageState(projectPage + 1, authorPage)}`)
+				.setLabel('Next ▶')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(projectPage >= projectTotalPages - 1)
+			container.addActionRowComponents(
+				new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton),
+			)
+		}
 	}
 
-	if (projectTotalPages > 1) {
-		const prevButton = new ButtonBuilder()
-			.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${encodePageState(projectPage - 1, authorPage)}`)
-			.setLabel('◀ Prev')
-			.setStyle(ButtonStyle.Secondary)
-			.setDisabled(projectPage === 0)
-		const nextButton = new ButtonBuilder()
-			.setCustomId(`${TRACKING_LIST_PAGE_PREFIX}${encodePageState(projectPage + 1, authorPage)}`)
-			.setLabel('Next ▶')
-			.setStyle(ButtonStyle.Secondary)
-			.setDisabled(projectPage >= projectTotalPages - 1)
-		container.addActionRowComponents(
-			new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton),
-		)
-	}
-
-	container.addTextDisplayComponents(
-		new TextDisplayBuilder().setContent(
-			`### Authors · ${trackedAuthors.length} / ${authorLimit} tracked`,
-		),
-	)
-
-	if (trackedAuthors.length === 0) {
+	if (trackedAuthors.length > 0) {
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
-				'No authors are being tracked.\nUse `/tracking author add` to start.',
+				`### Authors · ${trackedAuthors.length} / ${authorLimit} tracked`,
 			),
 		)
-	} else {
+
 		authorPageItems.forEach((a, i) => {
 			const headerText = buildAuthorHeaderText(a)
 			const detailsLabel = authorDetailsLabel(a)
@@ -307,25 +295,33 @@ async function buildTrackingListPayload(
 				)
 			}
 		})
+
+		if (authorTotalPages > 1) {
+			const prevButton = new ButtonBuilder()
+				.setCustomId(
+					`${TRACKING_LIST_AUTHOR_PAGE_PREFIX}${encodePageState(projectPage, authorPage - 1)}`,
+				)
+				.setLabel('◀ Prev')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(authorPage === 0)
+			const nextButton = new ButtonBuilder()
+				.setCustomId(
+					`${TRACKING_LIST_AUTHOR_PAGE_PREFIX}${encodePageState(projectPage, authorPage + 1)}`,
+				)
+				.setLabel('Next ▶')
+				.setStyle(ButtonStyle.Secondary)
+				.setDisabled(authorPage >= authorTotalPages - 1)
+			container.addActionRowComponents(
+				new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton),
+			)
+		}
 	}
 
-	if (authorTotalPages > 1) {
-		const prevButton = new ButtonBuilder()
-			.setCustomId(
-				`${TRACKING_LIST_AUTHOR_PAGE_PREFIX}${encodePageState(projectPage, authorPage - 1)}`,
-			)
-			.setLabel('◀ Prev')
-			.setStyle(ButtonStyle.Secondary)
-			.setDisabled(authorPage === 0)
-		const nextButton = new ButtonBuilder()
-			.setCustomId(
-				`${TRACKING_LIST_AUTHOR_PAGE_PREFIX}${encodePageState(projectPage, authorPage + 1)}`,
-			)
-			.setLabel('Next ▶')
-			.setStyle(ButtonStyle.Secondary)
-			.setDisabled(authorPage >= authorTotalPages - 1)
-		container.addActionRowComponents(
-			new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, nextButton),
+	if (tracked.length === 0 && trackedAuthors.length === 0) {
+		container.addTextDisplayComponents(
+			new TextDisplayBuilder().setContent(
+				'Nothing is being tracked yet.\nUse `/tracking add` or `/tracking author add` to start.',
+			),
 		)
 	}
 
