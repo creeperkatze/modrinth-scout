@@ -19,13 +19,13 @@ Deploy commands to a dev guild for instant slash-command updates by setting `DIS
 ## Architecture
 
 - `src/index.ts`: entrypoint — Discord client setup, lifecycle events, graceful shutdown
-- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`; `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (creator tracking)
+- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`; `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (author tracking)
 - `src/utils/api/modrinth.ts`: `modrinthClient`, a `GenericModrinthClient` from `@modrinth/api-client`; import and call it directly wherever Modrinth data is needed
 - `src/config/modrinth.ts`: app-level Modrinth constants (`PROJECT_TYPES`, `SORT_OPTIONS`, `ProjectType`, `SearchIndex`) used to build slash command choices
 - `src/utils/embeds/`: builds Discord embed/component payloads (`CardPayload`) from Modrinth API types
 - `src/utils/commands.ts`: command registry, interaction routing (buttons, select menus, modals, cooldowns), and command deployment
-- `src/utils/tracking/`: background polling, run on a shared interval schedule via `startTracking` (`index.ts`) — `project.ts` checks tracked projects for new versions and notifies configured channels; `author.ts` checks tracked users/orgs (creators) for newly published projects, posts a discovery notification, and auto-adds those projects to the guild's tracked-project list (subject to the guild's tracking limit); `shared.ts` holds helpers shared by both (unreachable-channel detection, auto-pausing tracking)
-- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, tracked creators (`schemas/author.ts`), server config, and supporters
+- `src/utils/tracking/`: background polling, run on a shared interval schedule via `startTracking` (`index.ts`) — `project.ts` checks tracked projects for new versions and notifies configured channels; `author.ts` checks tracked users/orgs (authors) for newly published projects, posts a discovery notification, and auto-adds those projects to the guild's tracked-project list (subject to the guild's tracking limit); `shared.ts` holds helpers shared by both (unreachable-channel detection, auto-pausing tracking)
+- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, tracked authors (`schemas/author.ts`), server config, and supporters
 - `src/config/supporterPerks.ts`: gates supporter-only features behind `KOFI_VERIFICATION_TOKEN`
 - `src/web/`: Express server handling the Ko-fi donation webhook (only started when supporter perks are enabled)
 

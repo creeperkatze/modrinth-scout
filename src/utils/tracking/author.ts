@@ -175,7 +175,7 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 		if (rows.length === 0) {
 			log.debug(
 				{ supporterOnly, durationMs: Date.now() - startedAt },
-				'Author tracking tick skipped with no tracked creators',
+				'Author tracking tick skipped with no tracked authors',
 			)
 			trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
 			return

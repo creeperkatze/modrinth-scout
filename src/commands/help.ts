@@ -56,9 +56,38 @@ function toEntry(cmd: ChatInputCommand): Entry {
 
 function toSubcommandEntries(cmd: ChatInputCommand): Entry[] {
 	const dmUsable = isDmUsable(cmd)
-	return (cmd.data.toJSON().options ?? [])
-		.filter((o) => o.type === ApplicationCommandOptionType.Subcommand)
-		.map((o) => ({ name: `${cmd.meta.name} ${o.name}`, description: o.description, dmUsable }))
+	const entries: Entry[] = []
+
+	for (const option of cmd.data.toJSON().options ?? []) {
+		if (option.type === ApplicationCommandOptionType.Subcommand) {
+			entries.push({
+				name: `${cmd.meta.name} ${option.name}`,
+				description: option.description,
+				dmUsable,
+			})
+			continue
+		}
+		if (option.type === ApplicationCommandOptionType.SubcommandGroup) {
+			for (const sub of option.options ?? []) {
+				entries.push({
+					name: `${cmd.meta.name} ${option.name} ${sub.name}`,
+					description: sub.description,
+					dmUsable,
+				})
+			}
+		}
+	}
+
+	return entries
+}
+
+function moveGroupAfter(entries: Entry[], afterName: string): Entry[] {
+	const grouped = entries.filter((e) => e.name.split(' ').length > 2)
+	const rest = entries.filter((e) => !grouped.includes(e))
+	const index = rest.findIndex((e) => e.name === afterName)
+	if (index === -1) return entries
+
+	return [...rest.slice(0, index + 1), ...grouped, ...rest.slice(index + 1)]
 }
 
 const sections: Section[] = [
@@ -77,7 +106,7 @@ const sections: Section[] = [
 	},
 	{
 		heading: 'Tracking',
-		entries: toSubcommandEntries(trackingCommand),
+		entries: moveGroupAfter(toSubcommandEntries(trackingCommand), 'tracking remove'),
 	},
 	...(usesSupporterPerks
 		? [{ heading: 'Support', entries: toSubcommandEntries(supportCommand) } satisfies Section]

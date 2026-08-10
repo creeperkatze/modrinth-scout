@@ -282,7 +282,7 @@ async function buildTrackingListPayload(
 	if (trackedAuthors.length === 0) {
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
-				'No creators are being tracked.\nUse `/tracking author add` to start.',
+				'No authors are being tracked.\nUse `/tracking author add` to start.',
 			),
 		)
 	} else {
@@ -611,27 +611,31 @@ export const trackingCommand: ChatInputCommand = {
 				),
 		)
 		.addSubcommand((sub) =>
-			sub.setName('manage').setDescription('Manage projects tracked in this server'),
+			sub.setName('manage').setDescription('Manage projects and authors tracked in this server'),
 		)
 		.addSubcommand((sub) =>
 			sub
 				.setName('pause')
-				.setDescription('Pause tracking notifications without removing tracked projects'),
+				.setDescription(
+					'Pause tracking notifications without removing tracked projects and authors',
+				),
 		)
 		.addSubcommand((sub) =>
 			sub.setName('resume').setDescription('Resume tracking notifications for this server'),
 		)
 		.addSubcommand((sub) =>
-			sub.setName('disable').setDescription('Disable tracking and remove all tracked projects'),
+			sub
+				.setName('disable')
+				.setDescription('Disable tracking and remove all tracked projects and authors'),
 		)
 		.addSubcommandGroup((group) =>
 			group
 				.setName('author')
-				.setDescription('Track Modrinth creators and auto-track the projects they publish')
+				.setDescription('Track Modrinth authors and auto-track the projects they publish')
 				.addSubcommand((sub) =>
 					sub
 						.setName('add')
-						.setDescription('Track a Modrinth user or organization for new project announcements')
+						.setDescription('Start tracking a Modrinth user or organization')
 						.addStringOption((opt) =>
 							opt
 								.setName('query')
@@ -642,7 +646,7 @@ export const trackingCommand: ChatInputCommand = {
 							opt
 								.setName('channel')
 								.setDescription(
-									'Post announcements for this creator to a specific channel (overrides server default)',
+									'Post announcements for this author to a specific channel (overrides server default)',
 								)
 								.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
 								.setRequired(false),
@@ -650,14 +654,14 @@ export const trackingCommand: ChatInputCommand = {
 						.addRoleOption((opt) =>
 							opt
 								.setName('role')
-								.setDescription('Ping a specific role for this creator (overrides server default)')
+								.setDescription('Ping a specific role for this author (overrides server default)')
 								.setRequired(false),
 						),
 				)
 				.addSubcommand((sub) =>
 					sub
 						.setName('remove')
-						.setDescription('Stop tracking a creator')
+						.setDescription('Stop tracking an author')
 						.addStringOption((opt) =>
 							opt
 								.setName('query')
@@ -960,7 +964,7 @@ export const trackingCommand: ChatInputCommand = {
 			])
 			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
 			await interaction.reply({
-				embeds: [success('All tracked projects, creators, and configuration have been removed.')],
+				embeds: [success('All tracked projects, authors, and configuration have been removed.')],
 				flags: 'Ephemeral',
 			})
 		}
@@ -989,9 +993,9 @@ async function executeAuthorSubcommand(
 			await interaction.reply({
 				embeds: [
 					error(
-						`This server is already tracking the maximum of **${limit}** creators.${
+						`This server is already tracking the maximum of **${limit}** authors.${
 							usesSupporterPerks && !hasPerks
-								? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** creators.`
+								? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors.`
 								: ''
 						}`,
 					),

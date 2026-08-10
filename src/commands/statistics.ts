@@ -44,7 +44,7 @@ export const statisticsCommand: ChatInputCommand = {
 			'## Bot',
 			`**Servers** · ${servers.toLocaleString()}`,
 			`**Tracked projects** · ${trackedTotal.toLocaleString()}`,
-			`**Tracked creators** · ${trackedAuthorsTotal.toLocaleString()}`,
+			`**Tracked authors** · ${trackedAuthorsTotal.toLocaleString()}`,
 			'## Modrinth',
 			`**Projects** · ${modrinthStats.projects.toLocaleString()}`,
 			`**Versions** · ${modrinthStats.versions.toLocaleString()}`,

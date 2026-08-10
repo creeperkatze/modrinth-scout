@@ -71,7 +71,7 @@ export const trackingAuthorNotificationsTotal = new client.Counter({
 
 export const trackingAuthorAutoTrackedTotal = new client.Counter({
 	name: `${PREFIX}tracking_author_auto_tracked_total`,
-	help: 'Total number of projects auto-tracked after being discovered from a tracked creator',
+	help: 'Total number of projects auto-tracked after being discovered from a tracked author',
 	registers: [register],
 })
 
