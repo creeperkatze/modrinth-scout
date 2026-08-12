@@ -34,6 +34,7 @@ const { version } = require('../../package.json') as { version: string }
 
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
 const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
+const TERMS_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/TERMS.md'
 
 export const HELP_SUPPORT_BUTTON_ID = 'help:support'
 
@@ -179,6 +180,12 @@ export const helpCommand: ChatInputCommand = {
 				.setLabel('Privacy')
 				.setEmoji('🔒')
 				.setURL(PRIVACY_URL)
+				.setStyle(ButtonStyle.Link),
+			new ButtonBuilder()
+
+				.setLabel('Terms')
+				.setEmoji('📄')
+				.setURL(TERMS_URL)
 				.setStyle(ButtonStyle.Link),
 			new ButtonBuilder()
 
