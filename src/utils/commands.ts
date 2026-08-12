@@ -268,8 +268,6 @@ export function createCommandRegistry(
 			guildId: interaction.guildId,
 		}
 
-		log.debug(context, 'Command started')
-
 		try {
 			await Promise.resolve(cmd.execute(interaction))
 			log.info({ ...context, durationMs: Date.now() - startedAt }, 'Command completed')
