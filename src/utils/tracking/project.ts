@@ -1,9 +1,8 @@
 import type { Labrinth } from '@modrinth/api-client'
-import { type Client, type NewsChannel, type TextChannel } from 'discord.js'
+import { type Client } from 'discord.js'
 
 import { aiSummariesEnabled } from '../../config/ai.js'
 import { queries } from '../../db/queries.js'
-import type { ProjectWithChannel } from '../../db/schemas/project.js'
 import { summarizeChangelog } from '../ai/summary.js'
 import { modrinthClient } from '../api/modrinth.js'
 import { buildVersionNotification } from '../embeds/index.js'
@@ -13,48 +12,10 @@ import {
 	trackingProjectNotificationsTotal,
 	trackingProjectTicksTotal,
 } from '../metrics.js'
-import { isUnreachableChannelError, pauseTrackingForUnreachableChannel } from './shared.js'
+import { deliver } from './deliver.js'
+import type { TrackingTarget } from './load.js'
 
 const log = createModuleLogger('tracking:project')
-
-type ProjectEntry = {
-	slug: string
-	lastUpdated: Date
-	guildIds: string[]
-	channels: {
-		guildId: string
-		channelId: string
-		roleId?: string | null
-		releaseType: string[]
-		changelogSummariesEnabled: boolean
-	}[]
-}
-
-function groupByProject(rows: ProjectWithChannel[]): Map<string, ProjectEntry> {
-	const map = new Map<string, ProjectEntry>()
-	for (const row of rows) {
-		const entry = map.get(row.projectId)
-		const channel = {
-			guildId: row.guildId,
-			channelId: row.channelId,
-			roleId: row.roleId,
-			releaseType: row.releaseType,
-			changelogSummariesEnabled: row.changelogSummariesEnabled,
-		}
-		if (entry) {
-			entry.guildIds.push(row.guildId)
-			entry.channels.push(channel)
-		} else {
-			map.set(row.projectId, {
-				slug: row.slug,
-				lastUpdated: row.lastUpdated,
-				guildIds: [row.guildId],
-				channels: [channel],
-			})
-		}
-	}
-	return map
-}
 
 async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Project[]> {
 	const chunks: string[][] = []
@@ -70,69 +31,25 @@ async function fetchProjects(ids: string[]): Promise<Labrinth.Projects.v3.Projec
 	return projects
 }
 
-async function notifyChannels(
-	client: Client,
-	project: Labrinth.Projects.v3.Project,
-	newVersions: Labrinth.Versions.v3.Version[],
-	channels: ProjectEntry['channels'],
-	summaries: Map<string, string | null>,
-) {
-	const notified: string[] = []
-	for (const { guildId, channelId, roleId, releaseType, changelogSummariesEnabled } of channels) {
-		const filtered = newVersions.filter((v) => releaseType.includes(v.version_type))
-		if (filtered.length === 0) continue
-
-		const channel = client.channels.cache.get(channelId) as TextChannel | NewsChannel | undefined
-		if (!channel?.isTextBased()) {
-			log.warn(
-				{ projectId: project.id, guildId, channelId, roleId },
-				'Channel not found or not text-based',
-			)
-			await pauseTrackingForUnreachableChannel(client, guildId, channelId)
-			continue
-		}
-
-		const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
-
-		try {
-			for (let i = 0; i < filtered.length; i++) {
-				const payload = await buildVersionNotification(
-					project,
-					filtered[i],
-					undefined,
-					changelogSummariesEnabled ? summaries.get(filtered[i].id) : null,
-				)
-				const isFirst = i === 0
-				await channel.send({
-					content: isFirst ? mention : undefined,
-					embeds: payload.embeds,
-					components: payload.components,
-				})
-			}
-		} catch (err) {
-			if (isUnreachableChannelError(err)) {
-				log.warn(
-					{ projectId: project.id, guildId, channelId, err },
-					'Failed to notify channel, unreachable',
-				)
-				await pauseTrackingForUnreachableChannel(client, guildId, channelId)
-				continue
-			}
-			throw err
-		}
-		notified.push(channelId)
+function oldestCursor(target: TrackingTarget): Date {
+	let oldest = target.subscriptions[0].notifiedThrough
+	for (const subscription of target.subscriptions) {
+		if (subscription.notifiedThrough < oldest) oldest = subscription.notifiedThrough
 	}
-	return notified
+	return oldest
 }
 
-export async function pollProjectUpdates(client: Client, donatorOnly?: boolean) {
+export async function trackProjectUpdates(
+	client: Client,
+	targets: TrackingTarget[],
+	donatorOnly?: boolean,
+) {
 	const startedAt = Date.now()
 	const donatorLabel = donatorOnly ? 'true' : 'false'
 	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: donatorLabel })
 
 	try {
-		const rows = await queries.getPollingProjects(donatorOnly)
-		if (rows.length === 0) {
+		if (targets.length === 0) {
 			log.debug(
 				{ donatorOnly, durationMs: Date.now() - startedAt },
 				'Project tracking tick skipped with no tracked projects',
@@ -141,30 +58,26 @@ export async function pollProjectUpdates(client: Client, donatorOnly?: boolean) 
 			return
 		}
 
-		const byProject = groupByProject(rows)
-		log.debug(
-			{ uniqueProjects: byProject.size, donatorOnly, rows: rows.length },
-			'Project tracking tick started',
-		)
+		const byTargetId = new Map(targets.map((target) => [target.targetId, target]))
+		log.debug({ uniqueProjects: targets.length, donatorOnly }, 'Project tracking tick started')
 
-		const projects = await fetchProjects([...byProject.keys()])
+		const projects = await fetchProjects([...byTargetId.keys()])
 		let changedProjects = 0
 		let failedProjects = 0
 		let newVersionsFound = 0
 		let notificationsSent = 0
 
 		for (const project of projects) {
-			const info = byProject.get(project.id)
-			if (!info) continue
+			const target = byTargetId.get(project.id)
+			if (!target) continue
 
 			const updatedAt = new Date(project.updated)
-			if (updatedAt.getTime() === info.lastUpdated.getTime()) continue
+			// Nothing to do until the project has moved past the least caught-up subscriber
+			if (updatedAt <= oldestCursor(target)) continue
 
 			changedProjects += 1
 			log.debug({ projectId: project.id, slug: project.slug }, 'Change detected, fetching versions')
 			try {
-				await queries.updateLastUpdated(project.id, updatedAt, info.guildIds)
-
 				const t0 = Date.now()
 				const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
 				log.debug(
@@ -172,43 +85,54 @@ export async function pollProjectUpdates(client: Client, donatorOnly?: boolean) 
 					'Versions fetched',
 				)
 
-				const newVersions = versions
-					.filter((v) => new Date(v.date_published) > info.lastUpdated)
-					.reverse()
-				if (newVersions.length === 0) {
-					log.debug({ slug: project.slug }, 'No new versions after date filter, skipping')
-					continue
+				// Computed at most once per version per tick, and only if a subscriber wants them
+				const summaries = new Map<string, Promise<string | null>>()
+				const summaryFor = (version: Labrinth.Versions.v3.Version) => {
+					let summary = summaries.get(version.id)
+					if (!summary) {
+						summary = summarizeChangelog(project, version)
+						summaries.set(version.id, summary)
+					}
+					return summary
 				}
-				newVersionsFound += newVersions.length
 
-				const wantsSummaries =
-					aiSummariesEnabled && info.channels.some((c) => c.changelogSummariesEnabled)
-				const summaries = wantsSummaries
-					? new Map<string, string | null>(
-							await Promise.all(
-								newVersions.map(
-									async (version) =>
-										[version.id, await summarizeChangelog(project, version)] as const,
-								),
+				for (const subscription of target.subscriptions) {
+					if (updatedAt <= subscription.notifiedThrough) continue
+
+					const newVersions = versions
+						.filter((v) => new Date(v.date_published) > subscription.notifiedThrough)
+						.filter((v) => subscription.settings.releaseTypes.includes(v.version_type))
+						.reverse()
+
+					if (newVersions.length === 0) {
+						await queries.advanceNotifiedThrough(subscription.id, updatedAt)
+						continue
+					}
+					newVersionsFound += newVersions.length
+
+					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummariesEnabled
+					const payloads = await Promise.all(
+						newVersions.map(async (version) =>
+							buildVersionNotification(
+								project,
+								version,
+								undefined,
+								wantsSummaries ? await summaryFor(version) : null,
 							),
-						)
-					: new Map<string, string | null>()
+						),
+					)
 
-				const notified = await notifyChannels(
-					client,
-					project,
-					newVersions,
-					info.channels,
-					summaries,
-				)
-				notificationsSent += notified.length
+					const outcome = await deliver(client, subscription, payloads, { projectId: project.id })
+					// Advanced on 'unreachable' too, replaying the backlog on resume is worse than skipping
+					await queries.advanceNotifiedThrough(subscription.id, updatedAt)
+					if (outcome === 'sent') notificationsSent += 1
+				}
+
 				log.info(
 					{
 						projectId: project.id,
 						slug: project.slug,
-						newVersions: newVersions.length,
-						channels: notified.length,
-						guilds: info.guildIds.length,
+						subscriptions: target.subscriptions.length,
 					},
 					'Notifications sent',
 				)
@@ -222,8 +146,7 @@ export async function pollProjectUpdates(client: Client, donatorOnly?: boolean) 
 		log.info(
 			{
 				donatorOnly,
-				trackedProjects: rows.length,
-				uniqueProjects: byProject.size,
+				uniqueProjects: targets.length,
 				checkedProjects: projects.length,
 				updatedProjects: changedProjects,
 				failedProjects,

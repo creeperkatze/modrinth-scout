@@ -1,21 +1,26 @@
-import type { TrackedAuthorWithChannel } from './schemas/author.js'
-import { AuthorModel } from './schemas/author.js'
 import { DonatorModel } from './schemas/donator.js'
-import type { ProjectWithChannel } from './schemas/project.js'
-import { ProjectModel } from './schemas/project.js'
 import type { Server } from './schemas/server.js'
 import { ServerModel } from './schemas/server.js'
+import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
+import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
 
 export const MAX_TRACKED = 5
 export const MAX_TRACKED_DONATOR = 100
 export const MAX_TRACKED_AUTHORS = 1
 export const MAX_TRACKED_AUTHORS_DONATOR = 10
 
-type ServerPollingConfig = {
+const AUTHOR_KIND_FILTER = { kind: { $in: [...AUTHOR_KINDS] } }
+const PROJECT_KIND_FILTER = { kind: 'project' as const }
+
+export type TrackingCandidateServer = {
 	_id: string
-	trackingChannelId: string
-	trackingRoleId: Server['trackingRoleId']
+	tracking: Server['tracking']
 	changelogSummariesEnabled: boolean
+}
+
+export type TrackingCandidates = {
+	servers: TrackingCandidateServer[]
+	entries: (TrackingEntry & { _id: unknown })[]
 }
 
 export const queries = {
@@ -24,282 +29,165 @@ export const queries = {
 	initServerConfig: (guildId: string) =>
 		ServerModel.updateOne({ _id: guildId }, { $setOnInsert: { _id: guildId } }, { upsert: true }),
 
-	setServerConfig: (guildId: string, trackingChannelId: string, trackingRoleId?: string | null) =>
-		ServerModel.findByIdAndUpdate(
-			guildId,
-			{
-				$set: {
-					trackingChannelId,
-					trackingRoleId: trackingRoleId ?? null,
-				},
-			},
-			{ returnDocument: 'after', upsert: true },
+	// Patch-style so the manage list's channel and role selects can each move one field alone
+	setTrackingDefaults: (
+		guildId: string,
+		patch: { channelId?: string | null; roleId?: string | null; releaseTypes?: string[] },
+	) => {
+		const $set: Record<string, unknown> = {}
+		if (patch.channelId !== undefined) $set['tracking.channelId'] = patch.channelId
+		if (patch.roleId !== undefined) $set['tracking.roleId'] = patch.roleId
+		if (patch.releaseTypes !== undefined) $set['tracking.releaseTypes'] = patch.releaseTypes
+		return ServerModel.updateOne({ _id: guildId }, { $set }, { upsert: true })
+	},
+
+	clearTrackingDefaults: (guildId: string) =>
+		ServerModel.updateOne({ _id: guildId }, { $unset: { tracking: '' } }, { upsert: false }),
+
+	pauseTracking: (guildId: string) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { 'tracking.paused': true } },
+			{ upsert: true },
 		),
 
-	setTrackingRole: (guildId: string, roleId: string | null) =>
-		ServerModel.updateOne({ _id: guildId }, { $set: { trackingRoleId: roleId } }, { upsert: true }),
+	resumeTracking: (guildId: string) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { 'tracking.paused': false } },
+			{ upsert: true },
+		),
 
 	deleteServer: (guildId: string) =>
-		Promise.all([
-			ServerModel.findByIdAndDelete(guildId),
-			ProjectModel.deleteMany({ guildId }),
-			AuthorModel.deleteMany({ guildId }),
-		]),
+		Promise.all([ServerModel.findByIdAndDelete(guildId), TrackingModel.deleteMany({ guildId })]),
 
-	getManuallyTrackedProjects: (guildId: string) =>
-		ProjectModel.find({ guildId, sourceAuthorId: null }).lean(),
+	// Only manually added projects, author-discovered ones show under their author instead
+	getTrackedProjects: (guildId: string) =>
+		TrackingModel.find({ guildId, ...PROJECT_KIND_FILTER, sourceAuthorId: null }).lean(),
 
-	findTrackedProjectById: (guildId: string, projectId: string) =>
-		ProjectModel.findOne({ guildId, projectId }).lean(),
+	getTrackedAuthors: (guildId: string) =>
+		TrackingModel.find({ guildId, ...AUTHOR_KIND_FILTER }).lean(),
 
-	countManuallyTrackedProjects: (guildId: string) =>
-		ProjectModel.countDocuments({ guildId, sourceAuthorId: null }),
+	findTrackedEntry: (guildId: string, targetId: string) =>
+		TrackingModel.findOne({ guildId, targetId }).lean(),
 
-	countTrackedProjectsByAuthor: (guildId: string, authorId: string) =>
-		ProjectModel.countDocuments({ guildId, sourceAuthorId: authorId }),
+	countTrackedProjects: (guildId: string) =>
+		TrackingModel.countDocuments({ guildId, ...PROJECT_KIND_FILTER, sourceAuthorId: null }),
 
-	getTrackedProjectCountsByAuthors: async (
+	countTrackedAuthors: (guildId: string) =>
+		TrackingModel.countDocuments({ guildId, ...AUTHOR_KIND_FILTER }),
+
+	countProjectsFromAuthor: (guildId: string, authorId: string) =>
+		TrackingModel.countDocuments({ guildId, ...PROJECT_KIND_FILTER, sourceAuthorId: authorId }),
+
+	countProjectsByAuthors: async (
 		guildId: string,
 		authorIds: string[],
 	): Promise<Map<string, number>> => {
 		if (authorIds.length === 0) return new Map()
-		const results = await ProjectModel.aggregate<{ _id: string; count: number }>([
-			{ $match: { guildId, sourceAuthorId: { $in: authorIds } } },
+		const results = await TrackingModel.aggregate<{ _id: string; count: number }>([
+			{ $match: { guildId, ...PROJECT_KIND_FILTER, sourceAuthorId: { $in: authorIds } } },
 			{ $group: { _id: '$sourceAuthorId', count: { $sum: 1 } } },
 		])
 		return new Map(results.map((r) => [r._id, r.count]))
 	},
 
-	// Atomic insert-if-missing so author discovery never overwrites or races an existing entry.
-	addTrackedProjectIfMissing: async (
-		guildId: string,
-		projectId: string,
-		slug: string,
-		name: string,
-		lastUpdated: Date,
-		releaseType: string[] | undefined,
-		channelId: string | null | undefined,
-		roleId: string | null | undefined,
-		sourceAuthorId: string,
-	): Promise<boolean> => {
-		const result = await ProjectModel.updateOne(
-			{ guildId, projectId },
+	// Detaches the project from its source author so it survives that author being untracked
+	trackProjectManually: (entry: {
+		guildId: string
+		targetId: string
+		slug: string
+		name: string
+		notifiedThrough: Date
+		overrides: TrackingOverrides
+	}) =>
+		TrackingModel.findOneAndUpdate(
+			{ guildId: entry.guildId, targetId: entry.targetId, kind: 'project' },
 			{
+				$set: {
+					slug: entry.slug,
+					name: entry.name,
+					sourceAuthorId: null,
+					overrides: entry.overrides,
+				},
 				$setOnInsert: {
-					guildId,
-					projectId,
-					slug,
-					name,
-					lastUpdated,
-					releaseType,
-					channelId: channelId ?? null,
-					roleId: roleId ?? null,
-					sourceAuthorId,
+					guildId: entry.guildId,
+					targetId: entry.targetId,
+					kind: 'project',
+					notifiedThrough: entry.notifiedThrough,
 				},
 			},
+			{ upsert: true, returnDocument: 'after' },
+		).lean(),
+
+	// Atomic insert-if-missing, and no overrides of its own so it inherits from the author entry
+	addDiscoveredProject: async (entry: {
+		guildId: string
+		targetId: string
+		slug: string
+		name: string
+		notifiedThrough: Date
+		sourceAuthorId: string
+	}): Promise<boolean> => {
+		const result = await TrackingModel.updateOne(
+			{ guildId: entry.guildId, targetId: entry.targetId, kind: 'project' },
+			{ $setOnInsert: { ...entry, kind: 'project', overrides: {} } },
 			{ upsert: true },
 		)
 		return result.upsertedCount > 0
 	},
 
-	removeTrackedProject: (guildId: string, projectId: string) =>
-		ProjectModel.deleteOne({ guildId, projectId }),
+	addTrackedAuthor: (entry: {
+		guildId: string
+		kind: AuthorKind
+		targetId: string
+		slug: string
+		name: string
+		knownProjectIds: string[]
+		overrides: TrackingOverrides
+	}) => TrackingModel.create({ ...entry, notifiedThrough: new Date() }),
 
-	// Tracks a project manually, detaching it from its source author if it had one.
-	trackProjectManually: (
-		guildId: string,
-		projectId: string,
-		slug: string,
-		name: string,
-		lastUpdated: Date,
-		releaseType: string[],
-		channelId?: string | null,
-		roleId?: string | null,
-	) =>
-		ProjectModel.findOneAndUpdate(
-			{ guildId, projectId },
-			{
-				$set: {
-					releaseType,
-					channelId: channelId ?? null,
-					roleId: roleId ?? null,
-					sourceAuthorId: null,
-				},
-				$setOnInsert: { guildId, projectId, slug, name, lastUpdated },
-			},
-			{ upsert: true, returnDocument: 'after' },
-		).lean(),
-
-	getPollingProjects: async (donatorOnly?: boolean): Promise<ProjectWithChannel[]> => {
-		const servers = await ServerModel.find({
-			trackingPaused: { $ne: true },
-			trackingChannelId: { $ne: null },
-			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
-		})
-			.select('_id trackingChannelId trackingRoleId changelogSummariesEnabled')
-			.lean<ServerPollingConfig[]>()
-
-		if (servers.length === 0) {
-			return []
-		}
-
-		const serverConfigByGuildId = new Map(servers.map((server) => [server._id, server]))
-		const projects = await ProjectModel.find({
-			guildId: { $in: servers.map((server) => server._id) },
-		}).lean()
-
-		return projects.flatMap((project) => {
-			const config = serverConfigByGuildId.get(project.guildId)
-			if (!config) {
-				return []
-			}
-
-			const channelId = project.channelId ?? config.trackingChannelId
-			if (!channelId) {
-				return []
-			}
-
-			return [
-				{
-					...project,
-					channelId,
-					roleId: project.roleId ?? config.trackingRoleId,
-					changelogSummariesEnabled: config.changelogSummariesEnabled,
-				},
-			]
-		})
-	},
-
-	updateLastUpdated: (projectId: string, lastUpdated: Date, guildIds: string[]) =>
-		ProjectModel.updateMany({ projectId, guildId: { $in: guildIds } }, { $set: { lastUpdated } }),
-
-	removeAllTrackedProjects: (guildId: string) => ProjectModel.deleteMany({ guildId }),
-
-	getTrackedAuthors: (guildId: string) => AuthorModel.find({ guildId }).lean(),
-
-	findTrackedAuthorById: (guildId: string, authorId: string) =>
-		AuthorModel.findOne({ guildId, authorId }).lean(),
-
-	countTrackedAuthors: (guildId: string) => AuthorModel.countDocuments({ guildId }),
-
-	addTrackedAuthor: (
-		guildId: string,
-		authorId: string,
-		authorType: 'user' | 'organization',
-		username: string,
-		name: string,
-		knownProjectIds: string[],
-		channelId?: string | null,
-		roleId?: string | null,
-	) =>
-		AuthorModel.create({
-			guildId,
-			authorId,
-			authorType,
-			username,
-			name,
-			knownProjectIds,
-			channelId: channelId ?? null,
-			roleId: roleId ?? null,
-		}),
+	removeTrackedProject: (guildId: string, targetId: string) =>
+		TrackingModel.deleteOne({ guildId, targetId, ...PROJECT_KIND_FILTER }),
 
 	removeTrackedAuthor: (guildId: string, authorId: string) =>
 		Promise.all([
-			AuthorModel.deleteOne({ guildId, authorId }),
-			ProjectModel.deleteMany({ guildId, sourceAuthorId: authorId }),
+			TrackingModel.deleteOne({ guildId, targetId: authorId, ...AUTHOR_KIND_FILTER }),
+			TrackingModel.deleteMany({ guildId, ...PROJECT_KIND_FILTER, sourceAuthorId: authorId }),
 		]),
 
-	getPollingAuthors: async (donatorOnly?: boolean): Promise<TrackedAuthorWithChannel[]> => {
+	removeAllTracking: (guildId: string) => TrackingModel.deleteMany({ guildId }),
+
+	// Raw rows for one tracking tick, resolved into targets by utils/tracking/load.ts
+	getTrackingCandidates: async (donatorOnly?: boolean): Promise<TrackingCandidates> => {
 		const servers = await ServerModel.find({
-			trackingPaused: { $ne: true },
-			trackingChannelId: { $ne: null },
+			'tracking.paused': { $ne: true },
 			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
 		})
-			.select('_id trackingChannelId trackingRoleId')
-			.lean<Pick<ServerPollingConfig, '_id' | 'trackingChannelId' | 'trackingRoleId'>[]>()
+			.select('_id tracking changelogSummariesEnabled')
+			.lean<TrackingCandidateServer[]>()
 
-		if (servers.length === 0) {
-			return []
-		}
+		if (servers.length === 0) return { servers: [], entries: [] }
 
-		const serverConfigByGuildId = new Map(servers.map((server) => [server._id, server]))
-		const authors = await AuthorModel.find({
+		const entries = await TrackingModel.find({
 			guildId: { $in: servers.map((server) => server._id) },
 		}).lean()
 
-		return authors.flatMap((author) => {
-			const config = serverConfigByGuildId.get(author.guildId)
-			if (!config) {
-				return []
-			}
-
-			const channelId = author.channelId ?? config.trackingChannelId
-			if (!channelId) {
-				return []
-			}
-
-			return [
-				{
-					...author,
-					channelId,
-					roleId: author.roleId ?? config.trackingRoleId,
-				},
-			]
-		})
+		return { servers, entries }
 	},
 
-	updateKnownProjects: (authorId: string, projectIds: string[], guildIds: string[]) =>
-		AuthorModel.updateMany(
-			{ authorId, guildId: { $in: guildIds } },
-			{ $set: { knownProjectIds: projectIds } },
-		),
+	advanceNotifiedThrough: (id: unknown, notifiedThrough: Date) =>
+		TrackingModel.updateOne({ _id: id }, { $set: { notifiedThrough } }),
 
-	removeAllTrackedAuthors: (guildId: string) => AuthorModel.deleteMany({ guildId }),
+	setKnownProjects: (id: unknown, knownProjectIds: string[]) =>
+		TrackingModel.updateOne({ _id: id }, { $set: { knownProjectIds } }),
 
-	clearTrackingConfig: (guildId: string) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{
-				$set: {
-					trackingChannelId: null,
-					trackingRoleId: null,
-					trackingPaused: false,
-				},
-			},
-		),
+	countAllTrackedProjects: () => TrackingModel.countDocuments(PROJECT_KIND_FILTER),
 
-	pauseTracking: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: true } }),
+	countUniqueTrackedProjects: () =>
+		TrackingModel.distinct('targetId', PROJECT_KIND_FILTER).then((ids) => ids.length),
 
-	resumeTracking: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $set: { trackingPaused: false } }),
-
-	setAutoEmbeds: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{ $set: { autoEmbedsEnabled: enabled } },
-			{ upsert: true },
-		),
-
-	setChangelogSummaries: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{ $set: { changelogSummariesEnabled: enabled } },
-			{ upsert: true },
-		),
-
-	setJarIdentify: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{ $set: { jarIdentifyEnabled: enabled } },
-			{ upsert: true },
-		),
-
-	countAllTrackedProjects: () => ProjectModel.countDocuments(),
-
-	countUniqueTrackedProjects: () => ProjectModel.distinct('projectId').then((ids) => ids.length),
-
-	countAllTrackedAuthors: () => AuthorModel.countDocuments(),
+	countAllTrackedAuthors: () => TrackingModel.countDocuments(AUTHOR_KIND_FILTER),
 
 	countConfiguredServers: () => ServerModel.countDocuments(),
 
@@ -344,4 +232,25 @@ export const queries = {
 		await ServerModel.updateOne({ _id: guildId }, { $set: { isDonator: true } }, { upsert: true })
 		return 'ok'
 	},
+
+	setAutoEmbeds: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { autoEmbedsEnabled: enabled } },
+			{ upsert: true },
+		),
+
+	setChangelogSummaries: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { changelogSummariesEnabled: enabled } },
+			{ upsert: true },
+		),
+
+	setJarIdentify: (guildId: string, enabled: boolean) =>
+		ServerModel.updateOne(
+			{ _id: guildId },
+			{ $set: { jarIdentifyEnabled: enabled } },
+			{ upsert: true },
+		),
 }

@@ -30,6 +30,8 @@ import {
 	MAX_TRACKED_DONATOR,
 	queries,
 } from '../db/queries.js'
+import type { AuthorKind, TrackingOverrides } from '../db/schemas/tracking.js'
+import { RELEASE_TYPES } from '../db/schemas/tracking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import {
@@ -41,6 +43,7 @@ import { error, success } from '../utils/embeds/index.js'
 import { emojis } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
 import { fetchAuthorProjects } from '../utils/tracking/author.js'
+import { formatReleaseTypeLabel } from '../utils/tracking/settings.js'
 import { parseModrinthUrl } from '../utils/url.js'
 
 const RELEASE_TYPE_CHOICES = [
@@ -53,15 +56,7 @@ const RELEASE_TYPE_CHOICES = [
 ] as const
 
 function parseReleaseType(value: string): string[] {
-	return value === 'all' ? ['release', 'beta', 'alpha'] : value.split(',')
-}
-
-function formatReleaseTypeLabel(releaseTypes: string[]): string {
-	if (releaseTypes.length === 3) return 'all releases'
-	if (releaseTypes.length === 1) return `${releaseTypes[0]} releases`
-	const [last, ...restReversed] = [...releaseTypes].reverse()
-	const rest = restReversed.reverse()
-	return `${rest.join(' and ')} and ${last} releases`
+	return value === 'all' ? [...RELEASE_TYPES] : value.split(',')
 }
 
 const log = logger.child({ module: 'tracking' })
@@ -79,6 +74,9 @@ export const TRACKING_LIST_AUTHOR_PAGE_PREFIX = 'tracking-list-author-page:'
 // under the cap.
 const PAGE_SIZE = 4
 const AUTHOR_PAGE_SIZE = 2
+
+type TrackedProject = Awaited<ReturnType<typeof queries.getTrackedProjects>>[number]
+type TrackedAuthor = Awaited<ReturnType<typeof queries.getTrackedAuthors>>[number]
 
 function parsePage(value: string | undefined): number {
 	const page = parseInt(value ?? '', 10)
@@ -100,17 +98,35 @@ function parsePageState(rest: string): { projectPage: number; authorPage: number
 	}
 }
 
-function projectDetailsLabel(p: {
-	releaseType?: string[] | null
-	channelId?: string | null
-	roleId?: string | null
-}): string {
-	const types = p.releaseType ?? ['release', 'beta', 'alpha']
+// Reads the same shape for projects and authors, since only overrides are worth showing
+function overridesLabel(overrides: TrackingOverrides | undefined): string {
 	const details: string[] = []
-	if (types.length !== 3) details.push(formatReleaseTypeLabel(types))
-	if (p.channelId) details.push(`to <#${p.channelId}>`)
-	if (p.roleId) details.push(`pinging <@&${p.roleId}>`)
+	if (overrides?.releaseTypes?.length) details.push(formatReleaseTypeLabel(overrides.releaseTypes))
+	if (overrides?.channelId) details.push(`to <#${overrides.channelId}>`)
+	if (overrides?.roleId) details.push(`pinging <@&${overrides.roleId}>`)
 	return details.join(', ')
+}
+
+// Collects the per-entry overrides from the shared channel/role/release_type options
+function readOverrideOptions(interaction: ChatInputCommandInteraction): TrackingOverrides {
+	const overrides: TrackingOverrides = {}
+	const channel = interaction.options.getChannel('channel')
+	const role = interaction.options.getRole('role')
+	const releaseType = interaction.options.getString('release_type')
+	if (channel) overrides.channelId = channel.id
+	if (role) overrides.roleId = role.id
+	if (releaseType) overrides.releaseTypes = parseReleaseType(releaseType)
+	return overrides
+}
+
+function describeOverrides(overrides: TrackingOverrides): string[] {
+	const details: string[] = []
+	if (overrides.channelId) details.push(`Notifications will go to <#${overrides.channelId}>.`)
+	if (overrides.roleId) details.push(`<@&${overrides.roleId}> will be pinged.`)
+	if (overrides.releaseTypes) {
+		details.push(`Only ${formatReleaseTypeLabel(overrides.releaseTypes)} will be announced.`)
+	}
+	return details
 }
 
 async function fetchProjectsById(
@@ -126,12 +142,8 @@ async function fetchProjectsById(
 	}
 }
 
-type TrackedProjectDoc = { projectId: string; name: string; slug: string } & Parameters<
-	typeof projectDetailsLabel
->[0]
-
 function buildProjectHeaderText(
-	p: TrackedProjectDoc,
+	p: TrackedProject,
 	full: Labrinth.Projects.v3.Project | undefined,
 ): string {
 	const typeEmoji = full ? emojis[full.project_types[0] ?? 'project'] : undefined
@@ -165,10 +177,23 @@ function buildProjectHeaderText(
 	return lines.join('\n')
 }
 
+function buildAuthorHeaderText(a: TrackedAuthor, projectCount: number): string {
+	const typeEmoji = emojis[a.kind === 'organization' ? 'organization' : 'user']
+	const url =
+		a.kind === 'organization'
+			? `https://modrinth.com/organization/${a.slug}`
+			: `https://modrinth.com/user/${a.slug}`
+
+	return [
+		`**${typeEmoji ? `${typeEmoji} ` : ''}[${a.name}](${url})**`,
+		`-# ${projectCount} Project${projectCount === 1 ? '' : 's'}`,
+	].join('\n')
+}
+
 async function buildTrackingListPayload(
 	guildId: string,
-	tracked: Awaited<ReturnType<typeof queries.getManuallyTrackedProjects>>,
-	trackedAuthors: Awaited<ReturnType<typeof queries.getTrackedAuthors>>,
+	tracked: TrackedProject[],
+	trackedAuthors: TrackedAuthor[],
 	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
 	limit: number,
 	authorLimit: number,
@@ -190,7 +215,7 @@ async function buildTrackingListPayload(
 		.setAccentColor(0x1bd96a)
 		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Tracking'))
 
-	const paused = Boolean(config?.trackingPaused)
+	const paused = Boolean(config?.tracking?.paused)
 	const statusButton = new ButtonBuilder()
 		.setCustomId(`${TRACKING_LIST_PAUSE_PREFIX}${pageState}`)
 		.setLabel(paused ? 'Resume' : 'Pause')
@@ -206,7 +231,7 @@ async function buildTrackingListPayload(
 		.setCustomId(`${TRACKING_LIST_CHANNEL_SELECT_PREFIX}${pageState}`)
 		.setPlaceholder('Notification channel')
 		.addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-	if (config?.trackingChannelId) channelSelect.setDefaultChannels(config.trackingChannelId)
+	if (config?.tracking?.channelId) channelSelect.setDefaultChannels(config.tracking.channelId)
 	container.addActionRowComponents(
 		new ActionRowBuilder<ChannelSelectMenuBuilder>().addComponents(channelSelect),
 	)
@@ -216,7 +241,7 @@ async function buildTrackingListPayload(
 		.setPlaceholder('Ping role (optional)')
 		.setMinValues(0)
 		.setMaxValues(1)
-	if (config?.trackingRoleId) roleSelect.setDefaultRoles(config.trackingRoleId)
+	if (config?.tracking?.roleId) roleSelect.setDefaultRoles(config.tracking.roleId)
 	container.addActionRowComponents(
 		new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(roleSelect),
 	)
@@ -226,16 +251,16 @@ async function buildTrackingListPayload(
 			new TextDisplayBuilder().setContent(`### Projects · ${tracked.length} / ${limit} tracked`),
 		)
 
-		const projectsById = await fetchProjectsById(pageItems.map((p) => p.projectId))
+		const projectsById = await fetchProjectsById(pageItems.map((p) => p.targetId))
 
 		pageItems.forEach((p, i) => {
-			const full = projectsById.get(p.projectId)
+			const full = projectsById.get(p.targetId)
 			const headerText = buildProjectHeaderText(p, full)
-			const detailsLabel = projectDetailsLabel(p)
+			const detailsLabel = overridesLabel(p.overrides)
 			const text = detailsLabel ? `${headerText}\n-# ${detailsLabel}` : headerText
 
 			const button = new ButtonBuilder()
-				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${pageState}:${p.projectId}`)
+				.setCustomId(`${TRACKING_LIST_REMOVE_PREFIX}${pageState}:${p.targetId}`)
 				.setLabel('Remove')
 				.setStyle(ButtonStyle.Danger)
 
@@ -275,18 +300,18 @@ async function buildTrackingListPayload(
 			),
 		)
 
-		const projectCountsByAuthor = await queries.getTrackedProjectCountsByAuthors(
+		const projectCountsByAuthor = await queries.countProjectsByAuthors(
 			guildId,
-			authorPageItems.map((a) => a.authorId),
+			authorPageItems.map((a) => a.targetId),
 		)
 
 		authorPageItems.forEach((a, i) => {
-			const headerText = buildAuthorHeaderText(a, projectCountsByAuthor.get(a.authorId) ?? 0)
-			const detailsLabel = authorDetailsLabel(a)
+			const headerText = buildAuthorHeaderText(a, projectCountsByAuthor.get(a.targetId) ?? 0)
+			const detailsLabel = overridesLabel(a.overrides)
 			const text = detailsLabel ? `${headerText}\n-# ${detailsLabel}` : headerText
 
 			const button = new ButtonBuilder()
-				.setCustomId(`${TRACKING_LIST_AUTHOR_REMOVE_PREFIX}${pageState}:${a.authorId}`)
+				.setCustomId(`${TRACKING_LIST_AUTHOR_REMOVE_PREFIX}${pageState}:${a.targetId}`)
 				.setLabel('Remove')
 				.setStyle(ButtonStyle.Danger)
 
@@ -334,59 +359,31 @@ async function buildTrackingListPayload(
 	return { components: [container], flags: ['IsComponentsV2'] as const }
 }
 
-type ResolvedAuthor = {
-	type: 'user' | 'organization'
-	id: string
-	username: string
-	name: string
-}
+type ResolvedAuthor = { kind: AuthorKind; id: string; slug: string; name: string }
 
 async function resolveAuthor(raw: string): Promise<ResolvedAuthor> {
 	const parsed = parseModrinthUrl(raw)
 
 	if (parsed?.type === 'user') {
 		const user = await modrinthClient.labrinth.users_v3.get(parsed.username)
-		return { type: 'user', id: user.id, username: user.username, name: user.username }
+		return { kind: 'user', id: user.id, slug: user.username, name: user.username }
 	}
 	if (parsed?.type === 'organization') {
 		const org = await modrinthClient.labrinth.organizations_v3.get(parsed.slug)
-		return { type: 'organization', id: org.id, username: org.slug, name: org.name }
+		return { kind: 'organization', id: org.id, slug: org.slug, name: org.name }
 	}
 
 	// Plain text input is ambiguous between the two namespaces, so try organization first
 	// (usernames and org slugs occupy separate namespaces on Modrinth, so at most one will hit).
 	try {
 		const org = await modrinthClient.labrinth.organizations_v3.get(raw)
-		return { type: 'organization', id: org.id, username: org.slug, name: org.name }
+		return { kind: 'organization', id: org.id, slug: org.slug, name: org.name }
 	} catch (err) {
 		if (!(err instanceof ModrinthApiError && err.statusCode === 404)) throw err
 	}
 
 	const user = await modrinthClient.labrinth.users_v3.get(raw)
-	return { type: 'user', id: user.id, username: user.username, name: user.username }
-}
-
-function authorDetailsLabel(a: { channelId?: string | null; roleId?: string | null }): string {
-	const details: string[] = []
-	if (a.channelId) details.push(`to <#${a.channelId}>`)
-	if (a.roleId) details.push(`pinging <@&${a.roleId}>`)
-	return details.join(', ')
-}
-
-function buildAuthorHeaderText(
-	a: Awaited<ReturnType<typeof queries.getTrackedAuthors>>[number],
-	projectCount: number,
-): string {
-	const typeEmoji = emojis[a.authorType === 'organization' ? 'organization' : 'user']
-	const url =
-		a.authorType === 'organization'
-			? `https://modrinth.com/organization/${a.username}`
-			: `https://modrinth.com/user/${a.username}`
-
-	return [
-		`**${typeEmoji ? `${typeEmoji} ` : ''}[${a.name}](${url})**`,
-		`-# ${projectCount} Project${projectCount === 1 ? '' : 's'}`,
-	].join('\n')
+	return { kind: 'user', id: user.id, slug: user.username, name: user.username }
 }
 
 type TrackingListInteraction =
@@ -403,6 +400,15 @@ async function requireManageGuild(interaction: TrackingListInteraction): Promise
 	return false
 }
 
+function resolveLimits(config: Awaited<ReturnType<typeof queries.getServerConfig>>) {
+	const hasPerks = !usesDonatorPerks || Boolean(config?.isDonator)
+	return {
+		hasPerks,
+		limit: hasPerks ? MAX_TRACKED_DONATOR : MAX_TRACKED,
+		authorLimit: hasPerks ? MAX_TRACKED_AUTHORS_DONATOR : MAX_TRACKED_AUTHORS,
+	}
+}
+
 async function refreshTrackingList(
 	interaction: TrackingListInteraction,
 	guildId: string,
@@ -410,15 +416,11 @@ async function refreshTrackingList(
 	authorPage: number,
 ) {
 	const [tracked, trackedAuthors, config] = await Promise.all([
-		queries.getManuallyTrackedProjects(guildId),
+		queries.getTrackedProjects(guildId),
 		queries.getTrackedAuthors(guildId),
 		queries.getServerConfig(guildId),
 	])
-	const limit = !usesDonatorPerks || Boolean(config?.isDonator) ? MAX_TRACKED_DONATOR : MAX_TRACKED
-	const authorLimit =
-		!usesDonatorPerks || Boolean(config?.isDonator)
-			? MAX_TRACKED_AUTHORS_DONATOR
-			: MAX_TRACKED_AUTHORS
+	const { limit, authorLimit } = resolveLimits(config)
 
 	await interaction.update(
 		await buildTrackingListPayload(
@@ -444,10 +446,10 @@ export async function handleTrackingListRemoveButton(interaction: ButtonInteract
 		id: projectId,
 	} = parsePageState(interaction.customId.slice(TRACKING_LIST_REMOVE_PREFIX.length))
 
-	const entry = await queries.findTrackedProjectById(guildId, projectId)
+	const entry = await queries.findTrackedEntry(guildId, projectId)
 	// The manage list only ever renders manually-tracked projects, so this should be unreachable
 	// for author-sourced ones, guard anyway rather than trust the customId blindly.
-	if (entry && !entry.sourceAuthorId) {
+	if (entry && entry.kind === 'project' && !entry.sourceAuthorId) {
 		await queries.removeTrackedProject(guildId, projectId)
 		log.info(
 			{ guildId, projectId, slug: entry.slug, userId: interaction.user.id },
@@ -468,11 +470,11 @@ export async function handleTrackingListAuthorRemoveButton(interaction: ButtonIn
 		id: authorId,
 	} = parsePageState(interaction.customId.slice(TRACKING_LIST_AUTHOR_REMOVE_PREFIX.length))
 
-	const entry = await queries.findTrackedAuthorById(guildId, authorId)
-	if (entry) {
+	const entry = await queries.findTrackedEntry(guildId, authorId)
+	if (entry && entry.kind !== 'project') {
 		await queries.removeTrackedAuthor(guildId, authorId)
 		log.info(
-			{ guildId, authorId, username: entry.username, userId: interaction.user.id },
+			{ guildId, authorId, slug: entry.slug, userId: interaction.user.id },
 			'Author untracked',
 		)
 	}
@@ -488,7 +490,7 @@ export async function handleTrackingListPauseButton(interaction: ButtonInteracti
 		interaction.customId.slice(TRACKING_LIST_PAUSE_PREFIX.length),
 	)
 	const config = await queries.getServerConfig(guildId)
-	const paused = !config?.trackingPaused
+	const paused = !config?.tracking?.paused
 	await (paused ? queries.pauseTracking(guildId) : queries.resumeTracking(guildId))
 	log.info({ guildId, userId: interaction.user.id, paused }, 'Tracking pause toggled')
 
@@ -503,8 +505,7 @@ export async function handleTrackingListChannelSelect(interaction: ChannelSelect
 		interaction.customId.slice(TRACKING_LIST_CHANNEL_SELECT_PREFIX.length),
 	)
 	const channelId = interaction.values[0]
-	const config = await queries.getServerConfig(guildId)
-	await queries.setServerConfig(guildId, channelId, config?.trackingRoleId ?? null)
+	await queries.setTrackingDefaults(guildId, { channelId })
 	log.info({ guildId, channelId, userId: interaction.user.id }, 'Tracking channel updated')
 
 	await refreshTrackingList(interaction, guildId, projectPage, authorPage)
@@ -518,7 +519,7 @@ export async function handleTrackingListRoleSelect(interaction: RoleSelectMenuIn
 		interaction.customId.slice(TRACKING_LIST_ROLE_SELECT_PREFIX.length),
 	)
 	const roleId = interaction.values[0] ?? null
-	await queries.setTrackingRole(guildId, roleId)
+	await queries.setTrackingDefaults(guildId, { roleId })
 	log.info({ guildId, roleId, userId: interaction.user.id }, 'Tracking role updated')
 
 	await refreshTrackingList(interaction, guildId, projectPage, authorPage)
@@ -553,7 +554,7 @@ export const trackingCommand: ChatInputCommand = {
 		.addSubcommand((sub) =>
 			sub
 				.setName('setup')
-				.setDescription('Set the channel where update notifications will be posted')
+				.setDescription('Set the defaults used by everything this server tracks')
 				.addChannelOption((opt) =>
 					opt
 						.setName('channel')
@@ -565,6 +566,13 @@ export const trackingCommand: ChatInputCommand = {
 					opt
 						.setName('role')
 						.setDescription('Role to ping when an update is posted (leave empty to clear)')
+						.setRequired(false),
+				)
+				.addStringOption((opt) =>
+					opt
+						.setName('release_type')
+						.setDescription('Which release channels to receive notifications for')
+						.addChoices(...RELEASE_TYPE_CHOICES)
 						.setRequired(false),
 				),
 		)
@@ -646,6 +654,13 @@ export const trackingCommand: ChatInputCommand = {
 								.setDescription('Username, organization slug, ID, or URL')
 								.setRequired(true),
 						)
+						.addStringOption((opt) =>
+							opt
+								.setName('release_type')
+								.setDescription('Release channels to use for every project found via this author')
+								.addChoices(...RELEASE_TYPE_CHOICES)
+								.setRequired(false),
+						)
 						.addChannelOption((opt) =>
 							opt
 								.setName('channel')
@@ -719,17 +734,24 @@ export const trackingCommand: ChatInputCommand = {
 		if (sub === 'setup') {
 			const channel = interaction.options.getChannel('channel', true)
 			const role = interaction.options.getRole('role')
-			const trackingChannelId = channel.id
-			const trackingRoleId = role?.id ?? null
+			const releaseType = interaction.options.getString('release_type')
+			const releaseTypes = releaseType ? parseReleaseType(releaseType) : [...RELEASE_TYPES]
 
-			await queries.setServerConfig(guildId, trackingChannelId, trackingRoleId)
+			await queries.setTrackingDefaults(guildId, {
+				channelId: channel.id,
+				roleId: role?.id ?? null,
+				releaseTypes,
+			})
 			log.info(
-				{ guildId, trackingChannelId, trackingRoleId, userId: interaction.user.id },
-				'Tracking channel configured',
+				{ guildId, channelId: channel.id, roleId: role?.id ?? null, userId: interaction.user.id },
+				'Tracking defaults configured',
 			)
-			const roleNote = role ? ` ${role} will be pinged on each update.` : ''
+
+			const notes = [`Notifications will be posted in <#${channel.id}>.`]
+			if (role) notes.push(`${role} will be pinged on each update.`)
+			if (releaseType) notes.push(`Only ${formatReleaseTypeLabel(releaseTypes)} will be announced.`)
 			await interaction.reply({
-				embeds: [success(`Notifications will be posted in <#${trackingChannelId}>.\n${roleNote}`)],
+				embeds: [success(notes.join('\n'))],
 				flags: 'Ephemeral',
 			})
 			return
@@ -737,17 +759,21 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'add') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config?.trackingChannelId) {
+			const channelOverride = interaction.options.getChannel('channel')
+			if (!config?.tracking?.channelId && !channelOverride) {
 				await interaction.reply({
-					embeds: [error('Set a notification channel first with `/tracking setup`.')],
+					embeds: [
+						error(
+							'Set a notification channel first with `/tracking setup`, or pass a `channel` here.',
+						),
+					],
 					flags: 'Ephemeral',
 				})
 				return
 			}
 
-			const count = await queries.countManuallyTrackedProjects(guildId)
-			const hasPerks = !usesDonatorPerks || Boolean(config.isDonator)
-			const limit = hasPerks ? MAX_TRACKED_DONATOR : MAX_TRACKED
+			const count = await queries.countTrackedProjects(guildId)
+			const { hasPerks, limit } = resolveLimits(config)
 			if (count >= limit) {
 				await interaction.reply({
 					embeds: [
@@ -784,30 +810,23 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			const existing = await queries.findTrackedProjectById(guildId, project.id)
-			if (existing && !existing.sourceAuthorId) {
+			const existing = await queries.findTrackedEntry(guildId, project.id)
+			if (existing && existing.kind === 'project' && !existing.sourceAuthorId) {
 				await interaction.editReply({
 					embeds: [error(`**${project.name}** is already being tracked.`)],
 				})
 				return
 			}
 
-			const releaseTypeInput = interaction.options.getString('release_type') ?? 'all'
-			const releaseType = parseReleaseType(releaseTypeInput)
-			const channelOverride = interaction.options.getChannel('channel')
-			const roleOverride = interaction.options.getRole('role')
-
-			// Detaches the project from its author if it was already auto-tracked through one.
-			await queries.trackProjectManually(
+			const overrides = readOverrideOptions(interaction)
+			await queries.trackProjectManually({
 				guildId,
-				project.id,
-				project.slug ?? project.id,
-				project.name,
-				new Date(project.updated),
-				releaseType,
-				channelOverride?.id ?? null,
-				roleOverride?.id ?? null,
-			)
+				targetId: project.id,
+				slug: project.slug ?? project.id,
+				name: project.name,
+				notifiedThrough: new Date(project.updated),
+				overrides,
+			})
 			log.info(
 				{
 					guildId,
@@ -821,15 +840,7 @@ export const trackingCommand: ChatInputCommand = {
 					: 'Project tracked',
 			)
 
-			const releaseTypeLabel =
-				releaseTypeInput === 'all' ? '' : ` (${formatReleaseTypeLabel(releaseType)})`
-			const details = []
-			if (channelOverride) {
-				details.push(`Notifications will go to <#${channelOverride.id}>.`)
-			}
-			if (roleOverride) {
-				details.push(`<@&${roleOverride.id}> will be pinged.`)
-			}
+			const details = describeOverrides(overrides)
 			if (existing?.sourceAuthorId) {
 				details.push(`It will keep being tracked even if you stop tracking its author.`)
 			}
@@ -837,7 +848,7 @@ export const trackingCommand: ChatInputCommand = {
 			await interaction.editReply({
 				embeds: [
 					success(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**${releaseTypeLabel}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 					),
 				],
 			})
@@ -867,9 +878,9 @@ export const trackingCommand: ChatInputCommand = {
 				projectId = raw
 			}
 
-			const entry = await queries.findTrackedProjectById(guildId, projectId)
+			const entry = await queries.findTrackedEntry(guildId, projectId)
 
-			if (!entry) {
+			if (!entry || entry.kind !== 'project') {
 				await interaction.reply({
 					embeds: [error(`\`${raw}\` is not being tracked in this server.`)],
 					flags: 'Ephemeral',
@@ -878,7 +889,7 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			if (entry.sourceAuthorId) {
-				const author = await queries.findTrackedAuthorById(guildId, entry.sourceAuthorId)
+				const author = await queries.findTrackedEntry(guildId, entry.sourceAuthorId)
 				await interaction.reply({
 					embeds: [
 						error(
@@ -890,9 +901,9 @@ export const trackingCommand: ChatInputCommand = {
 				return
 			}
 
-			await queries.removeTrackedProject(guildId, entry.projectId)
+			await queries.removeTrackedProject(guildId, entry.targetId)
 			log.info(
-				{ guildId, projectId: entry.projectId, slug: entry.slug, userId: interaction.user.id },
+				{ guildId, projectId: entry.targetId, slug: entry.slug, userId: interaction.user.id },
 				'Project untracked',
 			)
 			await interaction.reply({
@@ -904,17 +915,11 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'manage') {
 			const [tracked, trackedAuthors, config] = await Promise.all([
-				queries.getManuallyTrackedProjects(guildId),
+				queries.getTrackedProjects(guildId),
 				queries.getTrackedAuthors(guildId),
 				queries.getServerConfig(guildId),
 			])
-
-			const limit =
-				!usesDonatorPerks || Boolean(config?.isDonator) ? MAX_TRACKED_DONATOR : MAX_TRACKED
-			const authorLimit =
-				!usesDonatorPerks || Boolean(config?.isDonator)
-					? MAX_TRACKED_AUTHORS_DONATOR
-					: MAX_TRACKED_AUTHORS
+			const { limit, authorLimit } = resolveLimits(config)
 
 			const payload = await buildTrackingListPayload(
 				guildId,
@@ -930,14 +935,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'pause') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config?.trackingChannelId) {
-				await interaction.reply({
-					embeds: [error('Tracking is not set up in this server.')],
-					flags: 'Ephemeral',
-				})
-				return
-			}
-			if (config.trackingPaused) {
+			if (config?.tracking?.paused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already paused.')],
 					flags: 'Ephemeral',
@@ -955,14 +953,7 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'resume') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config?.trackingChannelId) {
-				await interaction.reply({
-					embeds: [error('Tracking is not set up in this server.')],
-					flags: 'Ephemeral',
-				})
-				return
-			}
-			if (!config.trackingPaused) {
+			if (!config?.tracking?.paused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already active.')],
 					flags: 'Ephemeral',
@@ -979,20 +970,12 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'disable') {
-			const config = await queries.getServerConfig(guildId)
-			if (!config?.trackingChannelId) {
-				await interaction.reply({
-					embeds: [error('Tracking is not set up in this server.')],
-					flags: 'Ephemeral',
-				})
-				return
-			}
-			await Promise.all([
-				queries.removeAllTrackedProjects(guildId),
-				queries.removeAllTrackedAuthors(guildId),
-				queries.clearTrackingConfig(guildId),
-			])
-			log.info({ guildId, userId: interaction.user.id }, 'Tracking disabled')
+			const removed = await queries.removeAllTracking(guildId)
+			await queries.clearTrackingDefaults(guildId)
+			log.info(
+				{ guildId, userId: interaction.user.id, removed: removed.deletedCount },
+				'Tracking disabled',
+			)
 			await interaction.reply({
 				embeds: [success('All tracked projects, authors, and configuration have been removed.')],
 				flags: 'Ephemeral',
@@ -1008,22 +991,26 @@ async function executeAuthorSubcommand(
 ) {
 	if (sub === 'add') {
 		const config = await queries.getServerConfig(guildId)
-		if (!config?.trackingChannelId) {
+		const channelOverride = interaction.options.getChannel('channel')
+		if (!config?.tracking?.channelId && !channelOverride) {
 			await interaction.reply({
-				embeds: [error('Set a notification channel first with `/tracking setup`.')],
+				embeds: [
+					error(
+						'Set a notification channel first with `/tracking setup`, or pass a `channel` here.',
+					),
+				],
 				flags: 'Ephemeral',
 			})
 			return
 		}
 
 		const count = await queries.countTrackedAuthors(guildId)
-		const hasPerks = !usesDonatorPerks || Boolean(config.isDonator)
-		const limit = hasPerks ? MAX_TRACKED_AUTHORS_DONATOR : MAX_TRACKED_AUTHORS
-		if (count >= limit) {
+		const { hasPerks, authorLimit } = resolveLimits(config)
+		if (count >= authorLimit) {
 			await interaction.reply({
 				embeds: [
 					error(
-						`This server is already tracking the maximum of **${limit}** authors.${
+						`This server is already tracking the maximum of **${authorLimit}** authors.${
 							usesDonatorPerks && !hasPerks
 								? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_AUTHORS_DONATOR}** authors.`
 								: ''
@@ -1052,7 +1039,7 @@ async function executeAuthorSubcommand(
 			return
 		}
 
-		const existing = await queries.findTrackedAuthorById(guildId, author.id)
+		const existing = await queries.findTrackedEntry(guildId, author.id)
 		if (existing) {
 			await interaction.editReply({
 				embeds: [error(`**${author.name}** is already being tracked.`)],
@@ -1062,41 +1049,35 @@ async function executeAuthorSubcommand(
 
 		let projects: Labrinth.Projects.v3.Project[]
 		try {
-			projects = await fetchAuthorProjects(author.type, author.id)
+			projects = await fetchAuthorProjects(author.kind, author.id)
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err)
 			await interaction.editReply({ embeds: [error(message)] })
 			return
 		}
 
-		const channelOverride = interaction.options.getChannel('channel')
-		const roleOverride = interaction.options.getRole('role')
-
-		await queries.addTrackedAuthor(
+		const overrides = readOverrideOptions(interaction)
+		await queries.addTrackedAuthor({
 			guildId,
-			author.id,
-			author.type,
-			author.username,
-			author.name,
-			projects.map((p) => p.id),
-			channelOverride?.id ?? null,
-			roleOverride?.id ?? null,
-		)
+			kind: author.kind,
+			targetId: author.id,
+			slug: author.slug,
+			name: author.name,
+			knownProjectIds: projects.map((p) => p.id),
+			overrides,
+		})
 
-		// Track everything the author already has out now; the poller only tracks projects published after this point.
+		// Track everything the author already has out now; the tracker only announces projects published after this point.
 		const newlyTracked = await Promise.all(
 			projects.map((project) =>
-				queries.addTrackedProjectIfMissing(
+				queries.addDiscoveredProject({
 					guildId,
-					project.id,
-					project.slug ?? project.id,
-					project.name,
-					new Date(project.updated),
-					undefined,
-					channelOverride?.id ?? null,
-					roleOverride?.id ?? null,
-					author.id,
-				),
+					targetId: project.id,
+					slug: project.slug ?? project.id,
+					name: project.name,
+					notifiedThrough: new Date(project.updated),
+					sourceAuthorId: author.id,
+				}),
 			),
 		)
 		const autoTrackedCount = newlyTracked.filter(Boolean).length
@@ -1104,8 +1085,8 @@ async function executeAuthorSubcommand(
 			{
 				guildId,
 				authorId: author.id,
-				authorType: author.type,
-				username: author.username,
+				kind: author.kind,
+				slug: author.slug,
 				projects: projects.length,
 				autoTracked: autoTrackedCount,
 				userId: interaction.user.id,
@@ -1113,19 +1094,18 @@ async function executeAuthorSubcommand(
 			'Author tracked',
 		)
 
-		const details = []
-		if (channelOverride) details.push(`Notifications will go to <#${channelOverride.id}>.`)
-		if (roleOverride) details.push(`<@&${roleOverride.id}> will be pinged.`)
-		if (autoTrackedCount < projects.length) {
+		const details = describeOverrides(overrides)
+		const alreadyTracked = projects.length - autoTrackedCount
+		if (alreadyTracked > 0) {
 			details.push(
-				`${projects.length - autoTrackedCount} of their project${projects.length - autoTrackedCount === 1 ? '' : 's'} ${projects.length - autoTrackedCount === 1 ? 'was' : 'were'} already tracked and kept as-is.`,
+				`${alreadyTracked} of their project${alreadyTracked === 1 ? '' : 's'} ${alreadyTracked === 1 ? 'was' : 'were'} already tracked and kept as-is.`,
 			)
 		}
 
 		await interaction.editReply({
 			embeds: [
 				success(
-					`Now tracking **${author.name}** (${author.type}) and their ${autoTrackedCount} project${autoTrackedCount === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+					`Now tracking **${author.name}** (${author.kind}) and their ${autoTrackedCount} project${autoTrackedCount === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 				),
 			],
 		})
@@ -1135,17 +1115,17 @@ async function executeAuthorSubcommand(
 	if (sub === 'remove') {
 		const raw = interaction.options.getString('query', true).trim()
 
-		let entry = await queries.findTrackedAuthorById(guildId, raw)
+		let entry = await queries.findTrackedEntry(guildId, raw)
 		if (!entry) {
 			try {
 				const author = await resolveAuthor(raw)
-				entry = await queries.findTrackedAuthorById(guildId, author.id)
+				entry = await queries.findTrackedEntry(guildId, author.id)
 			} catch {
 				// Not resolvable on Modrinth either; entry stays null and is reported below.
 			}
 		}
 
-		if (!entry) {
+		if (!entry || entry.kind === 'project') {
 			await interaction.reply({
 				embeds: [error(`\`${raw}\` is not being tracked in this server.`)],
 				flags: 'Ephemeral',
@@ -1153,13 +1133,13 @@ async function executeAuthorSubcommand(
 			return
 		}
 
-		const untrackedProjects = await queries.countTrackedProjectsByAuthor(guildId, entry.authorId)
-		await queries.removeTrackedAuthor(guildId, entry.authorId)
+		const untrackedProjects = await queries.countProjectsFromAuthor(guildId, entry.targetId)
+		await queries.removeTrackedAuthor(guildId, entry.targetId)
 		log.info(
 			{
 				guildId,
-				authorId: entry.authorId,
-				username: entry.username,
+				authorId: entry.targetId,
+				slug: entry.slug,
 				untrackedProjects,
 				userId: interaction.user.id,
 			},

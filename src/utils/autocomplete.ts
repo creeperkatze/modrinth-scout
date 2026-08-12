@@ -68,11 +68,11 @@ export async function respondWithTrackedProjectSearch(
 	}
 
 	const focused = interaction.options.getFocused()
-	const tracked = await queries.getManuallyTrackedProjects(guildId)
+	const tracked = await queries.getTrackedProjects(guildId)
 	const choices = tracked
 		.filter((p) => p.slug.includes(focused) || p.name.toLowerCase().includes(focused.toLowerCase()))
 		.slice(0, 25)
-		.map((p) => ({ name: p.name, value: p.projectId }))
+		.map((p) => ({ name: p.name, value: p.targetId }))
 
 	await interaction.respond(choices)
 }
@@ -89,11 +89,9 @@ export async function respondWithTrackedAuthorSearch(
 	const focused = interaction.options.getFocused().toLowerCase()
 	const tracked = await queries.getTrackedAuthors(guildId)
 	const choices = tracked
-		.filter(
-			(a) => a.username.toLowerCase().includes(focused) || a.name.toLowerCase().includes(focused),
-		)
+		.filter((a) => a.slug.toLowerCase().includes(focused) || a.name.toLowerCase().includes(focused))
 		.slice(0, 25)
-		.map((a) => ({ name: `${a.name} (${a.authorType})`, value: a.authorId }))
+		.map((a) => ({ name: `${a.name} (${a.kind})`, value: a.targetId }))
 
 	await interaction.respond(choices)
 }

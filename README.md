@@ -38,7 +38,7 @@ The `/help` command shows:
 
 ### Tracking
 
-- `/tracking setup` · Set the channel where update notifications will be posted
+- `/tracking setup` · Set the defaults used by everything this server tracks
 - `/tracking add` · Start tracking a Modrinth project
 - `/tracking remove` · Stop tracking a project
 - `/tracking author add` · Start tracking a Modrinth user or organization
