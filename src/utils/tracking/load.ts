@@ -10,7 +10,7 @@ export type TrackingSubscription = {
 	guildId: string
 	notifiedThrough: Date
 	knownProjectIds: string[]
-	changelogSummariesEnabled: boolean
+	changelogSummaries: boolean
 	settings: TrackingSettings & { channelId: string }
 }
 
@@ -31,10 +31,10 @@ export type TrackingBatch = {
 
 // Resolves every entry against its author and guild defaults, drops those with nowhere to post
 export async function loadTrackingBatch(donatorOnly?: boolean): Promise<TrackingBatch> {
-	const { servers, entries } = await queries.getTrackingCandidates(donatorOnly)
+	const { guilds, entries } = await queries.getTrackingCandidates(donatorOnly)
 	if (entries.length === 0) return { projects: [], authors: [], entryCount: 0 }
 
-	const serverByGuildId = new Map(servers.map((server) => [server._id, server]))
+	const guildById = new Map(guilds.map((guild) => [guild._id, guild]))
 
 	// Middle layer of the chain, the author entry a discovered project inherits from
 	const authorOverrides = new Map<string, TrackingOverrides>()
@@ -48,14 +48,14 @@ export async function loadTrackingBatch(donatorOnly?: boolean): Promise<Tracking
 	let entryCount = 0
 
 	for (const entry of entries) {
-		const server = serverByGuildId.get(entry.guildId)
-		if (!server) continue
+		const guild = guildById.get(entry.guildId)
+		if (!guild) continue
 
 		const parentOverrides = entry.sourceAuthorId
 			? authorOverrides.get(`${entry.guildId}:${entry.sourceAuthorId}`)
 			: undefined
 
-		const settings = resolveTrackingSettings(entry.overrides, parentOverrides, server.tracking)
+		const settings = resolveTrackingSettings(entry.overrides, parentOverrides, guild.tracking)
 		if (!settings.channelId) continue
 
 		const kind = entry.kind as TrackingKind
@@ -66,7 +66,7 @@ export async function loadTrackingBatch(donatorOnly?: boolean): Promise<Tracking
 			guildId: entry.guildId,
 			notifiedThrough: entry.notifiedThrough,
 			knownProjectIds: entry.knownProjectIds ?? [],
-			changelogSummariesEnabled: server.changelogSummariesEnabled,
+			changelogSummaries: Boolean(guild.options?.changelogSummaries),
 			settings: { ...settings, channelId: settings.channelId },
 		}
 		entryCount += 1

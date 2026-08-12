@@ -1,6 +1,6 @@
 import { DonatorModel } from './schemas/donator.js'
-import type { Server } from './schemas/server.js'
-import { ServerModel } from './schemas/server.js'
+import type { GuildConfig, GuildOption } from './schemas/guild.js'
+import { GuildConfigModel } from './schemas/guild.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
 import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
 
@@ -12,22 +12,26 @@ export const MAX_TRACKED_AUTHORS_DONATOR = 10
 const AUTHOR_KIND_FILTER = { kind: { $in: [...AUTHOR_KINDS] } }
 const PROJECT_KIND_FILTER = { kind: 'project' as const }
 
-export type TrackingCandidateServer = {
+export type TrackingCandidateGuild = {
 	_id: string
-	tracking: Server['tracking']
-	changelogSummariesEnabled: boolean
+	tracking: GuildConfig['tracking']
+	options: GuildConfig['options']
 }
 
 export type TrackingCandidates = {
-	servers: TrackingCandidateServer[]
+	guilds: TrackingCandidateGuild[]
 	entries: (TrackingEntry & { _id: unknown })[]
 }
 
 export const queries = {
-	getServerConfig: (guildId: string) => ServerModel.findById(guildId).lean(),
+	getGuildConfig: (guildId: string) => GuildConfigModel.findById(guildId).lean(),
 
-	initServerConfig: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $setOnInsert: { _id: guildId } }, { upsert: true }),
+	initGuildConfig: (guildId: string, name: string, memberCount: number) =>
+		GuildConfigModel.updateOne(
+			{ _id: guildId },
+			{ $set: { name, memberCount }, $setOnInsert: { _id: guildId } },
+			{ upsert: true },
+		),
 
 	// Patch-style so the manage list's channel and role selects can each move one field alone
 	setTrackingDefaults: (
@@ -38,28 +42,31 @@ export const queries = {
 		if (patch.channelId !== undefined) $set['tracking.channelId'] = patch.channelId
 		if (patch.roleId !== undefined) $set['tracking.roleId'] = patch.roleId
 		if (patch.releaseTypes !== undefined) $set['tracking.releaseTypes'] = patch.releaseTypes
-		return ServerModel.updateOne({ _id: guildId }, { $set }, { upsert: true })
+		return GuildConfigModel.updateOne({ _id: guildId }, { $set }, { upsert: true })
 	},
 
 	clearTrackingDefaults: (guildId: string) =>
-		ServerModel.updateOne({ _id: guildId }, { $unset: { tracking: '' } }, { upsert: false }),
+		GuildConfigModel.updateOne({ _id: guildId }, { $unset: { tracking: '' } }, { upsert: false }),
 
 	pauseTracking: (guildId: string) =>
-		ServerModel.updateOne(
+		GuildConfigModel.updateOne(
 			{ _id: guildId },
 			{ $set: { 'tracking.paused': true } },
 			{ upsert: true },
 		),
 
 	resumeTracking: (guildId: string) =>
-		ServerModel.updateOne(
+		GuildConfigModel.updateOne(
 			{ _id: guildId },
 			{ $set: { 'tracking.paused': false } },
 			{ upsert: true },
 		),
 
-	deleteServer: (guildId: string) =>
-		Promise.all([ServerModel.findByIdAndDelete(guildId), TrackingModel.deleteMany({ guildId })]),
+	deleteGuild: (guildId: string) =>
+		Promise.all([
+			GuildConfigModel.findByIdAndDelete(guildId),
+			TrackingModel.deleteMany({ guildId }),
+		]),
 
 	// Only manually added projects, author-discovered ones show under their author instead
 	getTrackedProjects: (guildId: string) =>
@@ -160,20 +167,20 @@ export const queries = {
 
 	// Raw rows for one tracking tick, resolved into targets by utils/tracking/load.ts
 	getTrackingCandidates: async (donatorOnly?: boolean): Promise<TrackingCandidates> => {
-		const servers = await ServerModel.find({
+		const guilds = await GuildConfigModel.find({
 			'tracking.paused': { $ne: true },
 			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
 		})
-			.select('_id tracking changelogSummariesEnabled')
-			.lean<TrackingCandidateServer[]>()
+			.select('_id tracking options')
+			.lean<TrackingCandidateGuild[]>()
 
-		if (servers.length === 0) return { servers: [], entries: [] }
+		if (guilds.length === 0) return { guilds: [], entries: [] }
 
 		const entries = await TrackingModel.find({
-			guildId: { $in: servers.map((server) => server._id) },
+			guildId: { $in: guilds.map((guild) => guild._id) },
 		}).lean()
 
-		return { servers, entries }
+		return { guilds, entries }
 	},
 
 	advanceNotifiedThrough: (id: unknown, notifiedThrough: Date) =>
@@ -189,9 +196,9 @@ export const queries = {
 
 	countAllTrackedAuthors: () => TrackingModel.countDocuments(AUTHOR_KIND_FILTER),
 
-	countConfiguredServers: () => ServerModel.countDocuments(),
+	countConfiguredGuilds: () => GuildConfigModel.countDocuments(),
 
-	countDonatorServers: () => ServerModel.countDocuments({ isDonator: true }),
+	countDonatorGuilds: () => GuildConfigModel.countDocuments({ isDonator: true }),
 
 	createDonation: (data: {
 		discordUserId: string | null
@@ -215,8 +222,8 @@ export const queries = {
 		guildId: string,
 		showPublicly = true,
 	): Promise<'ok' | 'not_found' | 'already_used' | 'already_active'> => {
-		const server = await ServerModel.findById(guildId).select('isDonator').lean()
-		if (server?.isDonator) {
+		const guild = await GuildConfigModel.findById(guildId).select('isDonator').lean()
+		if (guild?.isDonator) {
 			return 'already_active'
 		}
 
@@ -229,28 +236,18 @@ export const queries = {
 			const used = await DonatorModel.findOne({ discordUserId })
 			return used ? 'already_used' : 'not_found'
 		}
-		await ServerModel.updateOne({ _id: guildId }, { $set: { isDonator: true } }, { upsert: true })
+		await GuildConfigModel.updateOne(
+			{ _id: guildId },
+			{ $set: { isDonator: true } },
+			{ upsert: true },
+		)
 		return 'ok'
 	},
 
-	setAutoEmbeds: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
+	setOption: (guildId: string, option: GuildOption, enabled: boolean) =>
+		GuildConfigModel.updateOne(
 			{ _id: guildId },
-			{ $set: { autoEmbedsEnabled: enabled } },
-			{ upsert: true },
-		),
-
-	setChangelogSummaries: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{ $set: { changelogSummariesEnabled: enabled } },
-			{ upsert: true },
-		),
-
-	setJarIdentify: (guildId: string, enabled: boolean) =>
-		ServerModel.updateOne(
-			{ _id: guildId },
-			{ $set: { jarIdentifyEnabled: enabled } },
+			{ $set: { [`options.${option}`]: enabled } },
 			{ upsert: true },
 		),
 }

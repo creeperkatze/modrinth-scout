@@ -2,7 +2,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server'
 import mongoose from 'mongoose'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
-import { ServerModel } from '../../src/db/schemas/server.js'
+import { GuildConfigModel } from '../../src/db/schemas/guild.js'
 import { TrackingModel } from '../../src/db/schemas/tracking.js'
 import { loadTrackingBatch } from '../../src/utils/tracking/load.js'
 
@@ -11,11 +11,11 @@ let mongod: MongoMemoryServer
 beforeAll(async () => {
 	mongod = await MongoMemoryServer.create()
 	await mongoose.connect(mongod.getUri())
-	await Promise.all([TrackingModel.init(), ServerModel.init()])
+	await Promise.all([TrackingModel.init(), GuildConfigModel.init()])
 }, 60_000)
 
 afterEach(async () => {
-	await Promise.all([TrackingModel.deleteMany({}), ServerModel.deleteMany({})])
+	await Promise.all([TrackingModel.deleteMany({}), GuildConfigModel.deleteMany({})])
 })
 
 afterAll(async () => {
@@ -25,8 +25,8 @@ afterAll(async () => {
 
 const GUILD = 'guild-1'
 
-const createServer = (overrides: Record<string, unknown> = {}) =>
-	ServerModel.create({
+const createGuild = (overrides: Record<string, unknown> = {}) =>
+	GuildConfigModel.create({
 		_id: GUILD,
 		tracking: {
 			channelId: 'guild-channel',
@@ -63,7 +63,7 @@ const createProject = (targetId: string, doc: Record<string, unknown> = {}) =>
 
 describe('loadTrackingBatch', () => {
 	it('splits targets by kind', async () => {
-		await createServer()
+		await createGuild()
 		await createAuthor()
 		await createProject('proj-1')
 
@@ -75,7 +75,7 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('resolves a discovered project against its author, then the guild', async () => {
-		await createServer()
+		await createGuild()
 		await createAuthor({ channelId: 'author-channel', releaseTypes: ['release'] })
 		await createProject('proj-1', { sourceAuthorId: 'author-1' })
 
@@ -88,7 +88,7 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('lets a discovered project override its author', async () => {
-		await createServer()
+		await createGuild()
 		await createAuthor({ channelId: 'author-channel' })
 		await createProject('proj-1', {
 			sourceAuthorId: 'author-1',
@@ -100,8 +100,8 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('groups the same project across guilds into one target', async () => {
-		await createServer()
-		await ServerModel.create({ _id: 'guild-2', tracking: { channelId: 'other-channel' } })
+		await createGuild()
+		await GuildConfigModel.create({ _id: 'guild-2', tracking: { channelId: 'other-channel' } })
 		await createProject('proj-1')
 		await TrackingModel.create({
 			guildId: 'guild-2',
@@ -120,7 +120,7 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('drops entries with no channel anywhere in the chain', async () => {
-		await createServer({ channelId: null })
+		await createGuild({ channelId: null })
 		await createProject('proj-1')
 		await createProject('proj-2', { overrides: { channelId: 'project-channel' } })
 
@@ -130,7 +130,7 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('skips paused guilds entirely', async () => {
-		await createServer({ paused: true })
+		await createGuild({ paused: true })
 		await createProject('proj-1')
 
 		const batch = await loadTrackingBatch()
@@ -138,7 +138,7 @@ describe('loadTrackingBatch', () => {
 	})
 
 	it('filters by donator tier when perks are in use', async () => {
-		await createServer()
+		await createGuild()
 		await createProject('proj-1')
 
 		expect((await loadTrackingBatch(true)).entryCount).toBe(0)

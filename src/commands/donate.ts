@@ -171,7 +171,7 @@ export const donateCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'status') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			const isDonator = config?.isDonator ?? false
 			await interaction.reply({
 				embeds: [

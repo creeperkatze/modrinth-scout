@@ -201,7 +201,7 @@ async function buildTrackingListPayload(
 	guildId: string,
 	tracked: TrackedProject[],
 	trackedAuthors: TrackedAuthor[],
-	config: Awaited<ReturnType<typeof queries.getServerConfig>>,
+	config: Awaited<ReturnType<typeof queries.getGuildConfig>>,
 	limit: number,
 	authorLimit: number,
 	requestedProjectPage = 0,
@@ -407,7 +407,7 @@ async function requireManageGuild(interaction: TrackingListInteraction): Promise
 	return false
 }
 
-function resolveLimits(config: Awaited<ReturnType<typeof queries.getServerConfig>>) {
+function resolveLimits(config: Awaited<ReturnType<typeof queries.getGuildConfig>>) {
 	const hasPerks = !usesDonatorPerks || Boolean(config?.isDonator)
 	return {
 		hasPerks,
@@ -425,7 +425,7 @@ async function refreshTrackingList(
 	const [tracked, trackedAuthors, config] = await Promise.all([
 		queries.getTrackedProjects(guildId),
 		queries.getTrackedAuthors(guildId),
-		queries.getServerConfig(guildId),
+		queries.getGuildConfig(guildId),
 	])
 	const { limit, authorLimit } = resolveLimits(config)
 
@@ -496,7 +496,7 @@ export async function handleTrackingListPauseButton(interaction: ButtonInteracti
 	const { projectPage, authorPage } = parsePageState(
 		interaction.customId.slice(TRACKING_LIST_PAUSE_PREFIX.length),
 	)
-	const config = await queries.getServerConfig(guildId)
+	const config = await queries.getGuildConfig(guildId)
 	const paused = !config?.tracking?.paused
 	await (paused ? queries.pauseTracking(guildId) : queries.resumeTracking(guildId))
 	log.info({ guildId, userId: interaction.user.id, paused }, 'Tracking pause toggled')
@@ -742,7 +742,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'help') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			const { limit, authorLimit } = resolveLimits(config)
 			await interaction.reply({
 				embeds: [buildTrackingHelp({ projects: limit, authors: authorLimit })],
@@ -778,7 +778,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'add') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			if (!config?.tracking?.channelId) {
 				await interaction.reply({
 					embeds: [error('Set a notification channel first with `/tracking setup`.')],
@@ -944,7 +944,7 @@ export const trackingCommand: ChatInputCommand = {
 			const [tracked, trackedAuthors, config] = await Promise.all([
 				queries.getTrackedProjects(guildId),
 				queries.getTrackedAuthors(guildId),
-				queries.getServerConfig(guildId),
+				queries.getGuildConfig(guildId),
 			])
 			const { limit, authorLimit } = resolveLimits(config)
 
@@ -961,7 +961,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'pause') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			if (!config?.tracking?.channelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
@@ -986,7 +986,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'resume') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			if (!config?.tracking?.channelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
@@ -1011,7 +1011,7 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'disable') {
-			const config = await queries.getServerConfig(guildId)
+			const config = await queries.getGuildConfig(guildId)
 			if (!config?.tracking?.channelId) {
 				await interaction.reply({
 					embeds: [error('Tracking is not set up in this server.')],
@@ -1039,7 +1039,7 @@ async function executeAuthorSubcommand(
 	guildId: string,
 ) {
 	if (sub === 'add') {
-		const config = await queries.getServerConfig(guildId)
+		const config = await queries.getGuildConfig(guildId)
 		if (!config?.tracking?.channelId) {
 			await interaction.reply({
 				embeds: [error('Set a notification channel first with `/tracking setup`.')],

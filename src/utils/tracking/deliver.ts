@@ -21,7 +21,7 @@ async function pauseTrackingForUnreachableChannel(
 	guildId: string,
 	channelId: string,
 ) {
-	const config = await queries.getServerConfig(guildId)
+	const config = await queries.getGuildConfig(guildId)
 	if (config?.tracking?.paused) return
 
 	await queries.pauseTracking(guildId)

@@ -15,7 +15,7 @@ import {
 
 import { aiSummariesEnabled } from '../config/ai.js'
 import { queries } from '../db/queries.js'
-import type { Server } from '../db/schemas/server.js'
+import type { GuildConfig, GuildOption } from '../db/schemas/guild.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error } from '../utils/embeds/index.js'
 import { createModuleLogger } from '../utils/logger.js'
@@ -24,47 +24,40 @@ const log = createModuleLogger('options')
 
 export const OPTIONS_BUTTON_PREFIX = 'options:'
 
-type ServerConfig = Pick<
-	Server,
-	'autoEmbedsEnabled' | 'changelogSummariesEnabled' | 'jarIdentifyEnabled'
-> | null
+type ServerConfig = Pick<GuildConfig, 'options'> | null
 
 type Toggle = {
-	id: string
+	option: GuildOption
 	label: string
 	description: string
-	isEnabled: (config: ServerConfig) => boolean
-	setEnabled: (guildId: string, enabled: boolean) => Promise<unknown>
 	available?: boolean
 }
 
 const TOGGLES: Toggle[] = [
 	{
-		id: 'autoembeds',
+		option: 'autoEmbeds',
 		label: '⚡ Auto Embeds',
 		description: 'Replace plain Modrinth links posted in chat with rich embeds.',
-		isEnabled: (config) => Boolean(config?.autoEmbedsEnabled),
-		setEnabled: (guildId, enabled) => queries.setAutoEmbeds(guildId, enabled),
 	},
 	{
-		id: 'jar-identify',
+		option: 'jarIdentify',
 		label: '🔍 Jar Identify',
 		description: 'Identify `.jar` files posted in chat, same as the `/identify` command.',
-		isEnabled: (config) => Boolean(config?.jarIdentifyEnabled),
-		setEnabled: (guildId, enabled) => queries.setJarIdentify(guildId, enabled),
 	},
 	{
-		id: 'changelog-summaries',
+		option: 'changelogSummaries',
 		label: '✨ Changelog Summaries',
 		description: 'Add a short AI-generated summary above changelogs in tracking notifications.',
-		isEnabled: (config) => Boolean(config?.changelogSummariesEnabled),
-		setEnabled: (guildId, enabled) => queries.setChangelogSummaries(guildId, enabled),
 		available: aiSummariesEnabled,
 	},
 ]
 
 function availableToggles() {
 	return TOGGLES.filter((t) => t.available !== false)
+}
+
+function isEnabled(config: ServerConfig, option: GuildOption): boolean {
+	return Boolean(config?.options?.[option])
 }
 
 function buildOptionsPayload(config: ServerConfig) {
@@ -75,10 +68,10 @@ function buildOptionsPayload(config: ServerConfig) {
 		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Options'))
 
 	toggles.forEach((toggle, i) => {
-		const enabled = toggle.isEnabled(config)
+		const enabled = isEnabled(config, toggle.option)
 
 		const button = new ButtonBuilder()
-			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${toggle.id}`)
+			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${toggle.option}`)
 			.setLabel(enabled ? 'Enabled' : 'Disabled')
 			.setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
 
@@ -114,18 +107,21 @@ export async function handleOptionsButton(interaction: ButtonInteraction) {
 		return
 	}
 
-	const id = interaction.customId.slice(OPTIONS_BUTTON_PREFIX.length)
-	const toggle = availableToggles().find((t) => t.id === id)
+	const option = interaction.customId.slice(OPTIONS_BUTTON_PREFIX.length)
+	const toggle = availableToggles().find((t) => t.option === option)
 	if (!toggle) return
 
 	const guildId = interaction.guildId
-	const config = await queries.getServerConfig(guildId)
-	const enabled = !toggle.isEnabled(config)
+	const config = await queries.getGuildConfig(guildId)
+	const enabled = !isEnabled(config, toggle.option)
 
-	await toggle.setEnabled(guildId, enabled)
-	log.info({ guildId, toggle: toggle.id, enabled, userId: interaction.user.id }, 'Option toggled')
+	await queries.setOption(guildId, toggle.option, enabled)
+	log.info(
+		{ guildId, option: toggle.option, enabled, userId: interaction.user.id },
+		'Option toggled',
+	)
 
-	const updated = await queries.getServerConfig(guildId)
+	const updated = await queries.getGuildConfig(guildId)
 	await interaction.update(buildOptionsPayload(updated))
 }
 
@@ -145,7 +141,7 @@ export const optionsCommand: ChatInputCommand = {
 
 	async execute(interaction) {
 		const guildId = interaction.guildId!
-		const config = await queries.getServerConfig(guildId)
+		const config = await queries.getGuildConfig(guildId)
 		const payload = buildOptionsPayload(config)
 		await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
 	},

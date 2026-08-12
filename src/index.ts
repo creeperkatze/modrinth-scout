@@ -46,9 +46,11 @@ async function main() {
 	await syncEmojis(readyClient)
 
 	log.info({ guilds: readyClient.guilds.cache.size }, 'Initializing guild configs')
-	await Promise.all(readyClient.guilds.cache.map((g) => queries.initServerConfig(g.id)))
+	await Promise.all(
+		readyClient.guilds.cache.map((g) => queries.initGuildConfig(g.id, g.name, g.memberCount)),
+	)
 	guildCount.set(readyClient.guilds.cache.size)
-	donatorGuildCount.set(await queries.countDonatorServers())
+	donatorGuildCount.set(await queries.countDonatorGuilds())
 
 	startTracking(readyClient)
 	startWebServer()
@@ -65,17 +67,23 @@ async function main() {
 }
 
 client.on(Events.GuildCreate, async (guild) => {
-	await queries.initServerConfig(guild.id)
+	await queries.initGuildConfig(guild.id, guild.name, guild.memberCount)
 	guildCount.inc()
-	log.info({ guildId: guild.id }, 'Joined guild')
+	log.info({ guildId: guild.id, name: guild.name }, 'Joined guild')
 })
 
 client.on(Events.GuildDelete, async (guild) => {
-	const config = await queries.getServerConfig(guild.id)
-	await queries.deleteServer(guild.id)
+	const config = await queries.getGuildConfig(guild.id)
+	await queries.deleteGuild(guild.id)
 	guildCount.dec()
 	if (config?.isDonator) donatorGuildCount.dec()
-	log.info({ guildId: guild.id }, 'Left guild, cleaned up data')
+	log.info({ guildId: guild.id, name: config?.name ?? guild.name }, 'Left guild, cleaned up data')
+})
+
+client.on(Events.GuildUpdate, async (oldGuild, newGuild) => {
+	if (oldGuild.name === newGuild.name) return
+	await queries.initGuildConfig(newGuild.id, newGuild.name, newGuild.memberCount)
+	log.info({ guildId: newGuild.id, from: oldGuild.name, to: newGuild.name }, 'Guild renamed')
 })
 
 client.on(Events.GuildUnavailable, (guild) =>

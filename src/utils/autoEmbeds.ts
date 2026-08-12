@@ -149,14 +149,14 @@ export async function handleMessageCreate(message: Message) {
 	const hasModrinthLink = message.content.includes('modrinth.com')
 	if (jarAttachments.size === 0 && !hasModrinthLink) return
 
-	const config = await queries.getServerConfig(message.guildId)
+	const config = await queries.getGuildConfig(message.guildId)
 	if (!config) return
 
-	if (jarAttachments.size > 0 && config.jarIdentifyEnabled) {
+	if (jarAttachments.size > 0 && config.options?.jarIdentify) {
 		await handleJarIdentify(message, [...jarAttachments.values()])
 	}
 
-	if (hasModrinthLink && config.autoEmbedsEnabled) {
+	if (hasModrinthLink && config.options?.autoEmbeds) {
 		await handleAutoEmbeds(message)
 	}
 }

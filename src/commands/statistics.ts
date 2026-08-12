@@ -35,7 +35,7 @@ export const statisticsCommand: ChatInputCommand = {
 			}),
 			queries.countAllTrackedProjects(),
 			queries.countAllTrackedAuthors(),
-			queries.countConfiguredServers(),
+			queries.countConfiguredGuilds(),
 		])
 
 		const servers = interaction.client.guilds.cache.size

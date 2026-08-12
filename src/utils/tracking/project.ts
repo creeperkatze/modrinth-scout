@@ -121,7 +121,7 @@ export async function trackProjectUpdates(
 					}
 					newVersionsFound += newVersions.length
 
-					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummariesEnabled
+					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummaries
 					const payloads = await Promise.all(
 						newVersions.map(async (version) =>
 							buildVersionNotification(
