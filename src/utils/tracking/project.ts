@@ -8,9 +8,9 @@ import { modrinthClient } from '../api/modrinth.js'
 import { buildVersionNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
 import {
-	trackingProjectDurationSeconds,
-	trackingProjectNotificationsTotal,
-	trackingProjectTicksTotal,
+	optionUsageTotal,
+	trackingNotificationsTotal,
+	trackingRunDurationSeconds,
 } from '../metrics.js'
 import { deliver } from './deliver.js'
 import type { TrackingTarget } from './load.js'
@@ -60,16 +60,12 @@ const EMPTY_STATS: ProjectRunStats = {
 export async function trackProjectUpdates(
 	client: Client,
 	targets: TrackingTarget[],
-	donatorOnly?: boolean,
+	tier: string,
 ): Promise<ProjectRunStats> {
-	const donatorLabel = donatorOnly ? 'true' : 'false'
-	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: donatorLabel })
+	const stopTimer = trackingRunDurationSeconds.startTimer({ kind: 'project', tier })
 
 	try {
-		if (targets.length === 0) {
-			trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
-			return EMPTY_STATS
-		}
+		if (targets.length === 0) return EMPTY_STATS
 
 		const byTargetId = new Map(targets.map((target) => [target.targetId, target]))
 		const projects = await fetchProjects([...byTargetId.keys()])
@@ -122,6 +118,7 @@ export async function trackProjectUpdates(
 					newVersionsFound += newVersions.length
 
 					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummaries
+					if (wantsSummaries) optionUsageTotal.inc({ option: 'changelogSummaries' })
 					const payloads = await Promise.all(
 						newVersions.map(async (version) =>
 							buildVersionNotification(
@@ -133,7 +130,10 @@ export async function trackProjectUpdates(
 						),
 					)
 
-					const outcome = await deliver(client, subscription, payloads, { projectId: project.id })
+					const outcome = await deliver(client, subscription, payloads, {
+						kind: 'project',
+						projectId: project.id,
+					})
 					// Advanced on 'unreachable' too, replaying the backlog on resume is worse than skipping
 					await queries.advanceNotifiedThrough(subscription.id, updatedAt)
 					if (outcome === 'sent') notificationsSent += 1
@@ -153,8 +153,7 @@ export async function trackProjectUpdates(
 			}
 		}
 
-		trackingProjectNotificationsTotal.inc(notificationsSent)
-		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
+		trackingNotificationsTotal.inc({ kind: 'project' }, notificationsSent)
 		return {
 			tracked: targets.length,
 			checked: projects.length,
@@ -163,9 +162,6 @@ export async function trackProjectUpdates(
 			newVersions: newVersionsFound,
 			notificationsSent,
 		}
-	} catch (err) {
-		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
-		throw err
 	} finally {
 		stopTimer()
 	}

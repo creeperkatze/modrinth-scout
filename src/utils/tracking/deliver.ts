@@ -4,6 +4,7 @@ import { queries } from '../../db/queries.js'
 import type { CardPayload } from '../embeds/index.js'
 import { buildTrackingPausedNotice } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
+import { trackingDeliveriesTotal } from '../metrics.js'
 import type { TrackingSubscription } from './load.js'
 
 const log = createModuleLogger('tracking:deliver')
@@ -43,8 +44,13 @@ export async function deliver(
 	client: Client,
 	subscription: TrackingSubscription,
 	payloads: CardPayload[],
-	context: Record<string, unknown> = {},
+	context: { kind: 'project' | 'author' } & Record<string, unknown>,
 ): Promise<DeliveryOutcome> {
+	const record = (outcome: DeliveryOutcome) => {
+		trackingDeliveriesTotal.inc({ kind: context.kind, outcome })
+		return outcome
+	}
+
 	const { guildId, settings } = subscription
 	const { channelId, roleId } = settings
 
@@ -52,7 +58,7 @@ export async function deliver(
 	if (!channel?.isTextBased()) {
 		log.warn({ ...context, guildId, channelId, roleId }, 'Channel not found or not text-based')
 		await pauseTrackingForUnreachableChannel(client, guildId, channelId)
-		return 'unreachable'
+		return record('unreachable')
 	}
 
 	const mention = roleId ? channel.guild.roles.cache.get(roleId)?.toString() : undefined
@@ -69,10 +75,10 @@ export async function deliver(
 		if (isUnreachableChannelError(err)) {
 			log.warn({ ...context, guildId, channelId, err }, 'Failed to notify channel, unreachable')
 			await pauseTrackingForUnreachableChannel(client, guildId, channelId)
-			return 'unreachable'
+			return record('unreachable')
 		}
 		throw err
 	}
 
-	return 'sent'
+	return record('sent')
 }

@@ -7,10 +7,9 @@ import { modrinthClient } from '../api/modrinth.js'
 import { buildNewProjectNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
 import {
-	trackingAuthorAutoTrackedTotal,
-	trackingAuthorDurationSeconds,
-	trackingAuthorNotificationsTotal,
-	trackingAuthorTicksTotal,
+	trackingDiscoveredTotal,
+	trackingNotificationsTotal,
+	trackingRunDurationSeconds,
 } from '../metrics.js'
 import { deliver } from './deliver.js'
 import type { TrackingSubscription, TrackingTarget } from './load.js'
@@ -66,6 +65,7 @@ async function announceAndTrack(
 			subscription,
 			[buildNewProjectNotification(project, author)],
 			{
+				kind: 'author',
 				authorId: target.targetId,
 				projectId: project.id,
 			},
@@ -106,16 +106,12 @@ const EMPTY_STATS: AuthorRunStats = {
 export async function trackAuthorUpdates(
 	client: Client,
 	targets: TrackingTarget[],
-	donatorOnly?: boolean,
+	tier: string,
 ): Promise<AuthorRunStats> {
-	const donatorLabel = donatorOnly ? 'true' : 'false'
-	const stopTimer = trackingAuthorDurationSeconds.startTimer({ supporter: donatorLabel })
+	const stopTimer = trackingRunDurationSeconds.startTimer({ kind: 'author', tier })
 
 	try {
-		if (targets.length === 0) {
-			trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
-			return EMPTY_STATS
-		}
+		if (targets.length === 0) return EMPTY_STATS
 
 		let newProjectsFound = 0
 		let notificationsSent = 0
@@ -180,9 +176,8 @@ export async function trackAuthorUpdates(
 			}
 		}
 
-		trackingAuthorNotificationsTotal.inc(notificationsSent)
-		trackingAuthorAutoTrackedTotal.inc(autoTracked)
-		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
+		trackingNotificationsTotal.inc({ kind: 'author' }, notificationsSent)
+		trackingDiscoveredTotal.inc(autoTracked)
 		return {
 			tracked: targets.length,
 			failed: failedAuthors,
@@ -190,9 +185,6 @@ export async function trackAuthorUpdates(
 			notificationsSent,
 			autoTracked,
 		}
-	} catch (err) {
-		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
-		throw err
 	} finally {
 		stopTimer()
 	}

@@ -13,8 +13,8 @@ export const guildCount = new client.Gauge({
 })
 
 export const donatorGuildCount = new client.Gauge({
-	name: `${PREFIX}discord_supporter_guild_count`,
-	help: 'Number of guilds with supporter perks active',
+	name: `${PREFIX}discord_donator_guild_count`,
+	help: 'Number of guilds with donator perks active',
 	registers: [register],
 })
 
@@ -33,51 +33,67 @@ export const commandDurationSeconds = new client.Histogram({
 	registers: [register],
 })
 
-export const trackingProjectTicksTotal = new client.Counter({
-	name: `${PREFIX}tracking_project_ticks_total`,
-	help: 'Total number of project tracking ticks run',
-	labelNames: ['supporter', 'status'] as const,
+export const trackingTicksTotal = new client.Counter({
+	name: `${PREFIX}tracking_ticks_total`,
+	help: 'Total number of tracking ticks run',
+	labelNames: ['tier', 'status'] as const,
 	registers: [register],
 })
 
-export const trackingProjectDurationSeconds = new client.Histogram({
-	name: `${PREFIX}tracking_project_duration_seconds`,
-	help: 'Project tracking tick duration in seconds',
-	labelNames: ['supporter'] as const,
+export const trackingDurationSeconds = new client.Histogram({
+	name: `${PREFIX}tracking_duration_seconds`,
+	help: 'Full tracking tick duration in seconds, including the database load',
+	labelNames: ['tier'] as const,
 	buckets: [0.5, 1, 2.5, 5, 10, 30, 60],
 	registers: [register],
 })
 
-export const trackingProjectNotificationsTotal = new client.Counter({
-	name: `${PREFIX}tracking_project_notifications_total`,
-	help: 'Total number of version notifications sent to channels',
-	registers: [register],
-})
-
-export const trackingAuthorTicksTotal = new client.Counter({
-	name: `${PREFIX}tracking_author_ticks_total`,
-	help: 'Total number of author tracking ticks run',
-	labelNames: ['supporter', 'status'] as const,
-	registers: [register],
-})
-
-export const trackingAuthorDurationSeconds = new client.Histogram({
-	name: `${PREFIX}tracking_author_duration_seconds`,
-	help: 'Author tracking tick duration in seconds',
-	labelNames: ['supporter'] as const,
+export const trackingRunDurationSeconds = new client.Histogram({
+	name: `${PREFIX}tracking_run_duration_seconds`,
+	help: 'Duration in seconds of one half of a tracking tick, by kind',
+	labelNames: ['kind', 'tier'] as const,
 	buckets: [0.5, 1, 2.5, 5, 10, 30, 60],
 	registers: [register],
 })
 
-export const trackingAuthorNotificationsTotal = new client.Counter({
-	name: `${PREFIX}tracking_author_notifications_total`,
-	help: 'Total number of new project notifications sent to channels',
+export const trackingNotificationsTotal = new client.Counter({
+	name: `${PREFIX}tracking_notifications_total`,
+	help: 'Total number of tracking notifications sent to channels',
+	labelNames: ['kind'] as const,
 	registers: [register],
 })
 
-export const trackingAuthorAutoTrackedTotal = new client.Counter({
-	name: `${PREFIX}tracking_author_auto_tracked_total`,
-	help: 'Total number of projects auto-tracked after being discovered from a tracked author',
+export const trackingDeliveriesTotal = new client.Counter({
+	name: `${PREFIX}tracking_deliveries_total`,
+	help: 'Tracking delivery attempts by outcome, where unreachable means the guild was auto-paused',
+	labelNames: ['kind', 'outcome'] as const,
+	registers: [register],
+})
+
+export const trackingDiscoveredTotal = new client.Counter({
+	name: `${PREFIX}tracking_discovered_total`,
+	help: 'Total number of projects auto-tracked after being discovered through a tracked author',
+	registers: [register],
+})
+
+export const trackingEntries = new client.Gauge({
+	name: `${PREFIX}tracking_entries`,
+	help: 'Tracked entries being checked, by kind and tier',
+	labelNames: ['kind', 'tier'] as const,
+	registers: [register],
+})
+
+export const trackingTargets = new client.Gauge({
+	name: `${PREFIX}tracking_targets`,
+	help: 'Distinct Modrinth targets checked per tick, by kind and tier',
+	labelNames: ['kind', 'tier'] as const,
+	registers: [register],
+})
+
+export const optionUsageTotal = new client.Counter({
+	name: `${PREFIX}option_usage_total`,
+	help: 'Times a server option ran, by option',
+	labelNames: ['option'] as const,
 	registers: [register],
 })
 
