@@ -25,7 +25,8 @@ Deploy commands to a dev guild for instant slash-command updates by setting `DIS
 - `src/utils/embeds/`: builds Discord embed/component payloads (`CardPayload`) from Modrinth API types
 - `src/utils/commands.ts`: command registry, interaction routing (buttons, select menus, modals, cooldowns), and command deployment
 - `src/utils/tracking/`: background polling, run on a shared interval schedule via `startTracking` (`index.ts`) — `project.ts` checks tracked projects for new versions and notifies configured channels; `author.ts` checks tracked users/orgs (authors) for newly published projects, posts a discovery notification, and auto-adds those projects to the guild's tracked-project list (subject to the guild's tracking limit); `shared.ts` holds helpers shared by both (unreachable-channel detection, auto-pausing tracking)
-- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, tracked authors (`schemas/author.ts`), server config, and donators (`schemas/supporter.ts`, kept as-is to avoid a data migration)
+- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for tracked projects, tracked authors (`schemas/author.ts`), server config, and donators (`schemas/donator.ts`)
+- `migrations/`: [migrate-mongo](https://github.com/seppevs/migrate-mongo) migrations, applied automatically by `connectDb()` (`src/db/index.ts`) on every boot before Mongoose connects; create new ones with `pnpm migrate:create <description>`, and write both `up` and `down`. `migrate-mongo-config.js` is only for the manual `pnpm migrate:*` CLI commands, the app itself sets its config programmatically
 - `src/config/donatorPerks.ts`: gates donator-only features behind `KOFI_VERIFICATION_TOKEN`
 - `src/web/`: Express server handling the Ko-fi donation webhook (only started when donator perks are enabled)
 

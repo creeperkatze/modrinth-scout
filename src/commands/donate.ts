@@ -13,7 +13,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { MAX_TRACKED_AUTHORS_SUPPORTER, MAX_TRACKED_SUPPORTER, queries } from '../db/queries.js'
+import { MAX_TRACKED_AUTHORS_DONATOR, MAX_TRACKED_DONATOR, queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
@@ -25,13 +25,13 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png
 })
 
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
-const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
+const DONATOR_PERKS = `- Track up to **${MAX_TRACKED_DONATOR}** projects\n- Track up to **${MAX_TRACKED_AUTHORS_DONATOR}** authors\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
 
 export function buildDonateInfoReply() {
 	const embed = new EmbedBuilder()
 		.setTitle('Donate')
 		.setDescription(
-			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Donator perks:\n${SUPPORTER_PERKS}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/donate activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks donator perks for one server.`,
+			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Donator perks:\n${DONATOR_PERKS}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/donate activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks donator perks for one server.`,
 		)
 		.setThumbnail('attachment://kofi.png')
 		.setColor(0xff5e5b)
@@ -87,7 +87,7 @@ export const donateCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'list') {
-			const donators = await queries.getPublicSupporters()
+			const donators = await queries.getPublicDonators()
 			const description =
 				donators.length > 0
 					? donators.map((donator) => `<@${donator.discordUserId}>`).join('\n')
@@ -152,7 +152,7 @@ export const donateCommand: ChatInputCommand = {
 			await interaction.reply({
 				embeds: [
 					info(
-						`**Donator perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\n${
+						`**Donator perks** activated! This server now has the following perks:\n${DONATOR_PERKS}\n\n${
 							showPublicly
 								? 'You will appear in `/donate list`.'
 								: 'You opted out of appearing in `/donate list`.'
@@ -166,13 +166,13 @@ export const donateCommand: ChatInputCommand = {
 
 		if (sub === 'status') {
 			const config = await queries.getServerConfig(guildId)
-			const isDonator = config?.isSupporter ?? false
+			const isDonator = config?.isDonator ?? false
 			await interaction.reply({
 				embeds: [
 					info(
 						isDonator
-							? `This server has **donator perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
-							: `This server doesn't have **donator perks**:\n${SUPPORTER_PERKS}.\n\nDonate on Ko-fi with \`/donate info\` to unlock them.`,
+							? `This server has **donator perks**:\n${DONATOR_PERKS}\n\nThank you for your support!`
+							: `This server doesn't have **donator perks**:\n${DONATOR_PERKS}.\n\nDonate on Ko-fi with \`/donate info\` to unlock them.`,
 					),
 				],
 				flags: 'Ephemeral',

@@ -1,15 +1,15 @@
 import type { TrackedAuthorWithChannel } from './schemas/author.js'
 import { AuthorModel } from './schemas/author.js'
+import { DonatorModel } from './schemas/donator.js'
 import type { ProjectWithChannel } from './schemas/project.js'
 import { ProjectModel } from './schemas/project.js'
 import type { Server } from './schemas/server.js'
 import { ServerModel } from './schemas/server.js'
-import { SupporterModel } from './schemas/supporter.js'
 
 export const MAX_TRACKED = 5
-export const MAX_TRACKED_SUPPORTER = 100
+export const MAX_TRACKED_DONATOR = 100
 export const MAX_TRACKED_AUTHORS = 1
-export const MAX_TRACKED_AUTHORS_SUPPORTER = 10
+export const MAX_TRACKED_AUTHORS_DONATOR = 10
 
 type ServerPollingConfig = {
 	_id: string
@@ -130,11 +130,11 @@ export const queries = {
 			{ upsert: true, returnDocument: 'after' },
 		).lean(),
 
-	getPollingProjects: async (supporterOnly?: boolean): Promise<ProjectWithChannel[]> => {
+	getPollingProjects: async (donatorOnly?: boolean): Promise<ProjectWithChannel[]> => {
 		const servers = await ServerModel.find({
 			trackingPaused: { $ne: true },
 			trackingChannelId: { $ne: null },
-			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
+			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
 		})
 			.select('_id trackingChannelId trackingRoleId changelogSummariesEnabled')
 			.lean<ServerPollingConfig[]>()
@@ -209,11 +209,11 @@ export const queries = {
 			ProjectModel.deleteMany({ guildId, sourceAuthorId: authorId }),
 		]),
 
-	getPollingAuthors: async (supporterOnly?: boolean): Promise<TrackedAuthorWithChannel[]> => {
+	getPollingAuthors: async (donatorOnly?: boolean): Promise<TrackedAuthorWithChannel[]> => {
 		const servers = await ServerModel.find({
 			trackingPaused: { $ne: true },
 			trackingChannelId: { $ne: null },
-			...(supporterOnly !== undefined ? { isSupporter: supporterOnly } : {}),
+			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
 		})
 			.select('_id trackingChannelId trackingRoleId')
 			.lean<Pick<ServerPollingConfig, '_id' | 'trackingChannelId' | 'trackingRoleId'>[]>()
@@ -303,17 +303,17 @@ export const queries = {
 
 	countConfiguredServers: () => ServerModel.countDocuments(),
 
-	countSupporterServers: () => ServerModel.countDocuments({ isSupporter: true }),
+	countDonatorServers: () => ServerModel.countDocuments({ isDonator: true }),
 
 	createDonation: (data: {
 		discordUserId: string | null
 		email: string
 		transactionId: string
 		showPublicly?: boolean
-	}) => SupporterModel.create(data),
+	}) => DonatorModel.create(data),
 
-	getPublicSupporters: () =>
-		SupporterModel.find({
+	getPublicDonators: () =>
+		DonatorModel.find({
 			discordUserId: { $ne: null },
 			usedByGuildId: { $ne: null },
 			showPublicly: true,
@@ -327,21 +327,21 @@ export const queries = {
 		guildId: string,
 		showPublicly = true,
 	): Promise<'ok' | 'not_found' | 'already_used' | 'already_active'> => {
-		const server = await ServerModel.findById(guildId).select('isSupporter').lean()
-		if (server?.isSupporter) {
+		const server = await ServerModel.findById(guildId).select('isDonator').lean()
+		if (server?.isDonator) {
 			return 'already_active'
 		}
 
-		const entry = await SupporterModel.findOneAndUpdate(
+		const entry = await DonatorModel.findOneAndUpdate(
 			{ discordUserId, usedByGuildId: null },
 			{ $set: { usedByGuildId: guildId, showPublicly: showPublicly } },
 			{ returnDocument: 'after' },
 		)
 		if (!entry) {
-			const used = await SupporterModel.findOne({ discordUserId })
+			const used = await DonatorModel.findOne({ discordUserId })
 			return used ? 'already_used' : 'not_found'
 		}
-		await ServerModel.updateOne({ _id: guildId }, { $set: { isSupporter: true } }, { upsert: true })
+		await ServerModel.updateOne({ _id: guildId }, { $set: { isDonator: true } }, { upsert: true })
 		return 'ok'
 	},
 }

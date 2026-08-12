@@ -48,7 +48,7 @@ async function main() {
 	log.info({ guilds: readyClient.guilds.cache.size }, 'Initializing guild configs')
 	await Promise.all(readyClient.guilds.cache.map((g) => queries.initServerConfig(g.id)))
 	guildCount.set(readyClient.guilds.cache.size)
-	donatorGuildCount.set(await queries.countSupporterServers())
+	donatorGuildCount.set(await queries.countDonatorServers())
 
 	startTracking(readyClient)
 	startWebServer()
@@ -74,7 +74,7 @@ client.on(Events.GuildDelete, async (guild) => {
 	const config = await queries.getServerConfig(guild.id)
 	await queries.deleteServer(guild.id)
 	guildCount.dec()
-	if (config?.isSupporter) donatorGuildCount.dec()
+	if (config?.isDonator) donatorGuildCount.dec()
 	log.info({ guildId: guild.id }, 'Left guild, cleaned up data')
 })
 

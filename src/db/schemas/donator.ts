@@ -1,6 +1,6 @@
 import { InferSchemaType, model, Schema } from 'mongoose'
 
-const supporterSchema = new Schema(
+const donatorSchema = new Schema(
 	{
 		email: { type: String, required: true },
 		transactionId: { type: String, required: true, unique: true },
@@ -8,11 +8,11 @@ const supporterSchema = new Schema(
 		usedByGuildId: { type: String, default: null },
 		showPublicly: { type: Boolean, default: true },
 	},
-	{ collection: 'supporters', timestamps: true },
+	{ collection: 'donators', timestamps: true },
 )
 
-supporterSchema.index({ discordUserId: 1, usedByGuildId: 1 })
-supporterSchema.index({ showPublicly: 1, usedByGuildId: 1, createdAt: 1 })
+donatorSchema.index({ discordUserId: 1, usedByGuildId: 1 })
+donatorSchema.index({ showPublicly: 1, usedByGuildId: 1, createdAt: 1 })
 
-export type Supporter = InferSchemaType<typeof supporterSchema>
-export const SupporterModel = model('Supporter', supporterSchema)
+export type Donator = InferSchemaType<typeof donatorSchema>
+export const DonatorModel = model('Donator', donatorSchema)

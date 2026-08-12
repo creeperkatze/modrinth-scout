@@ -129,7 +129,7 @@ async function autoTrackDiscoveredProject(
 	channelId: string,
 	roleId: string | null | undefined,
 ): Promise<boolean> {
-	// Author-sourced projects don't count against MAX_TRACKED/MAX_TRACKED_SUPPORTER, so there's no
+	// Author-sourced projects don't count against MAX_TRACKED/MAX_TRACKED_DONATOR, so there's no
 	// tracking-limit check here, bounded only by how many authors the server can track.
 	const config = await queries.getServerConfig(guildId)
 
