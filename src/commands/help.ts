@@ -11,10 +11,11 @@ import {
 } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
-import { usesSupporterPerks } from '../config/supporterPerks.js'
+import { usesDonatorPerks } from '../config/donatorPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 import { collectionCommand } from './collection.js'
+import { donateCommand } from './donate.js'
 import { identifyCommand } from './identify.js'
 import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
@@ -23,7 +24,6 @@ import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { searchCommand } from './search.js'
 import { statisticsCommand } from './statistics.js'
-import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
 import { versionCommand } from './version.js'
@@ -36,7 +36,7 @@ const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
 const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
 const TERMS_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/TERMS.md'
 
-export const HELP_SUPPORT_BUTTON_ID = 'help:support'
+export const HELP_DONATE_BUTTON_ID = 'help:donate'
 
 type Entry = { name: string; description: string; dmUsable: boolean }
 type Section = { heading: string; entries: Entry[] }
@@ -109,8 +109,8 @@ const sections: Section[] = [
 		heading: 'Tracking',
 		entries: moveGroupAfter(toSubcommandEntries(trackingCommand), 'tracking remove'),
 	},
-	...(usesSupporterPerks
-		? [{ heading: 'Support', entries: toSubcommandEntries(supportCommand) } satisfies Section]
+	...(usesDonatorPerks
+		? [{ heading: 'Donate', entries: toSubcommandEntries(donateCommand) } satisfies Section]
 		: []),
 	{
 		heading: 'Miscellaneous',
@@ -159,13 +159,13 @@ export const helpCommand: ChatInputCommand = {
 
 		const buttons: ButtonBuilder[] = []
 
-		if (usesSupporterPerks) {
-			const supportButton = new ButtonBuilder()
-				.setLabel('Support')
-				.setCustomId(HELP_SUPPORT_BUTTON_ID)
+		if (usesDonatorPerks) {
+			const donateButton = new ButtonBuilder()
+				.setLabel('Donate')
+				.setCustomId(HELP_DONATE_BUTTON_ID)
 				.setStyle(ButtonStyle.Secondary)
-			if (emojiRefs['kofi']) supportButton.setEmoji(emojiRefs['kofi'])
-			buttons.push(supportButton)
+			if (emojiRefs['kofi']) donateButton.setEmoji(emojiRefs['kofi'])
+			buttons.push(donateButton)
 		}
 
 		const topggButton = new ButtonBuilder()

@@ -153,25 +153,25 @@ async function autoTrackDiscoveredProject(
 	)
 }
 
-export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean) {
+export async function pollAuthorUpdates(client: Client, donatorOnly?: boolean) {
 	const startedAt = Date.now()
-	const supporterLabel = supporterOnly ? 'true' : 'false'
-	const stopTimer = trackingAuthorDurationSeconds.startTimer({ supporter: supporterLabel })
+	const donatorLabel = donatorOnly ? 'true' : 'false'
+	const stopTimer = trackingAuthorDurationSeconds.startTimer({ supporter: donatorLabel })
 
 	try {
-		const rows = await queries.getPollingAuthors(supporterOnly)
+		const rows = await queries.getPollingAuthors(donatorOnly)
 		if (rows.length === 0) {
 			log.debug(
-				{ supporterOnly, durationMs: Date.now() - startedAt },
+				{ donatorOnly, durationMs: Date.now() - startedAt },
 				'Author tracking tick skipped with no tracked authors',
 			)
-			trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+			trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
 			return
 		}
 
 		const byAuthor = groupByAuthor(rows)
 		log.debug(
-			{ uniqueAuthors: byAuthor.size, supporterOnly, rows: rows.length },
+			{ uniqueAuthors: byAuthor.size, donatorOnly, rows: rows.length },
 			'Author tracking tick started',
 		)
 
@@ -232,7 +232,7 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 		trackingAuthorAutoTrackedTotal.inc(autoTracked)
 		log.info(
 			{
-				supporterOnly,
+				donatorOnly,
 				trackedAuthors: rows.length,
 				uniqueAuthors: byAuthor.size,
 				failedAuthors,
@@ -243,9 +243,9 @@ export async function pollAuthorUpdates(client: Client, supporterOnly?: boolean)
 			},
 			'Author tracking tick completed',
 		)
-		trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
 	} catch (err) {
-		trackingAuthorTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
+		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
 		throw err
 	} finally {
 		stopTimer()

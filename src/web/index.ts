@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'node:crypto'
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 
-import { usesSupporterPerks } from '../config/supporterPerks.js'
+import { usesDonatorPerks } from '../config/donatorPerks.js'
 import { queries } from '../db/queries.js'
 import { createModuleLogger } from '../utils/logger.js'
 import { register } from '../utils/metrics.js'
@@ -55,7 +55,7 @@ export function startWebServer() {
 		res.end(await register.metrics())
 	})
 
-	if (usesSupporterPerks) {
+	if (usesDonatorPerks) {
 		app.use(express.urlencoded({ extended: true }))
 		const verificationToken = process.env.KOFI_VERIFICATION_TOKEN
 
@@ -119,7 +119,7 @@ export function startWebServer() {
 
 	app.listen(port, () => {
 		log.info(
-			{ port, webhookConfigured: usesSupporterPerks, metricsEnabled: Boolean(metricsToken) },
+			{ port, webhookConfigured: usesDonatorPerks, metricsEnabled: Boolean(metricsToken) },
 			'Web server started',
 		)
 	})

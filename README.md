@@ -48,12 +48,12 @@ The `/help` command shows:
 - `/tracking resume` · Resume tracking notifications for this server
 - `/tracking disable` · Disable tracking and remove all tracked projects and authors
 
-### Support
+### Donate
 
-- `/support info` · Show Ko-fi support info and perks
-- `/support list` · Show public supporters
-- `/support activate` · Activate supporter perks using your Ko-fi account
-- `/support status` · Check the supporter status of this server
+- `/donate info` · Show Ko-fi donation info and perks
+- `/donate list` · Show public donations
+- `/donate activate` · Activate donator perks using your Ko-fi account
+- `/donate status` · Check the donator status of this server
 
 ### Miscellaneous
 

@@ -125,25 +125,25 @@ async function notifyChannels(
 	return notified
 }
 
-export async function pollProjectUpdates(client: Client, supporterOnly?: boolean) {
+export async function pollProjectUpdates(client: Client, donatorOnly?: boolean) {
 	const startedAt = Date.now()
-	const supporterLabel = supporterOnly ? 'true' : 'false'
-	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: supporterLabel })
+	const donatorLabel = donatorOnly ? 'true' : 'false'
+	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: donatorLabel })
 
 	try {
-		const rows = await queries.getPollingProjects(supporterOnly)
+		const rows = await queries.getPollingProjects(donatorOnly)
 		if (rows.length === 0) {
 			log.debug(
-				{ supporterOnly, durationMs: Date.now() - startedAt },
+				{ donatorOnly, durationMs: Date.now() - startedAt },
 				'Project tracking tick skipped with no tracked projects',
 			)
-			trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+			trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
 			return
 		}
 
 		const byProject = groupByProject(rows)
 		log.debug(
-			{ uniqueProjects: byProject.size, supporterOnly, rows: rows.length },
+			{ uniqueProjects: byProject.size, donatorOnly, rows: rows.length },
 			'Project tracking tick started',
 		)
 
@@ -221,7 +221,7 @@ export async function pollProjectUpdates(client: Client, supporterOnly?: boolean
 		trackingProjectNotificationsTotal.inc(notificationsSent)
 		log.info(
 			{
-				supporterOnly,
+				donatorOnly,
 				trackedProjects: rows.length,
 				uniqueProjects: byProject.size,
 				checkedProjects: projects.length,
@@ -233,9 +233,9 @@ export async function pollProjectUpdates(client: Client, supporterOnly?: boolean
 			},
 			'Project tracking tick completed',
 		)
-		trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'success' })
+		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
 	} catch (err) {
-		trackingProjectTicksTotal.inc({ supporter: supporterLabel, status: 'error' })
+		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
 		throw err
 	} finally {
 		stopTimer()

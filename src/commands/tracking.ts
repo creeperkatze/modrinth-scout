@@ -22,7 +22,7 @@ import {
 	TextDisplayBuilder,
 } from 'discord.js'
 
-import { usesSupporterPerks } from '../config/supporterPerks.js'
+import { usesDonatorPerks } from '../config/donatorPerks.js'
 import {
 	MAX_TRACKED,
 	MAX_TRACKED_AUTHORS,
@@ -415,9 +415,9 @@ async function refreshTrackingList(
 		queries.getServerConfig(guildId),
 	])
 	const limit =
-		!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
+		!usesDonatorPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 	const authorLimit =
-		!usesSupporterPerks || Boolean(config?.isSupporter)
+		!usesDonatorPerks || Boolean(config?.isSupporter)
 			? MAX_TRACKED_AUTHORS_SUPPORTER
 			: MAX_TRACKED_AUTHORS
 
@@ -747,15 +747,15 @@ export const trackingCommand: ChatInputCommand = {
 			}
 
 			const count = await queries.countManuallyTrackedProjects(guildId)
-			const hasPerks = !usesSupporterPerks || Boolean(config.isSupporter)
+			const hasPerks = !usesDonatorPerks || Boolean(config.isSupporter)
 			const limit = hasPerks ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 			if (count >= limit) {
 				await interaction.reply({
 					embeds: [
 						error(
 							`This server is already tracking the maximum of **${limit}** projects.${
-								usesSupporterPerks && !hasPerks
-									? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_SUPPORTER}** projects.`
+								usesDonatorPerks && !hasPerks
+									? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_SUPPORTER}** projects.`
 									: ''
 							}`,
 						),
@@ -911,9 +911,9 @@ export const trackingCommand: ChatInputCommand = {
 			])
 
 			const limit =
-				!usesSupporterPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
+				!usesDonatorPerks || Boolean(config?.isSupporter) ? MAX_TRACKED_SUPPORTER : MAX_TRACKED
 			const authorLimit =
-				!usesSupporterPerks || Boolean(config?.isSupporter)
+				!usesDonatorPerks || Boolean(config?.isSupporter)
 					? MAX_TRACKED_AUTHORS_SUPPORTER
 					: MAX_TRACKED_AUTHORS
 
@@ -1018,15 +1018,15 @@ async function executeAuthorSubcommand(
 		}
 
 		const count = await queries.countTrackedAuthors(guildId)
-		const hasPerks = !usesSupporterPerks || Boolean(config.isSupporter)
+		const hasPerks = !usesDonatorPerks || Boolean(config.isSupporter)
 		const limit = hasPerks ? MAX_TRACKED_AUTHORS_SUPPORTER : MAX_TRACKED_AUTHORS
 		if (count >= limit) {
 			await interaction.reply({
 				embeds: [
 					error(
 						`This server is already tracking the maximum of **${limit}** authors.${
-							usesSupporterPerks && !hasPerks
-								? `\n\nSupport the bot on Ko-fi using \`/support info\` to track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors.`
+							usesDonatorPerks && !hasPerks
+								? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors.`
 								: ''
 						}`,
 					),

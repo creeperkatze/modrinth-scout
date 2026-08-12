@@ -16,7 +16,8 @@ import {
 	TextInputStyle,
 } from 'discord.js'
 
-import { HELP_SUPPORT_BUTTON_ID } from '../commands/help.js'
+import { buildDonateInfoReply } from '../commands/donate.js'
+import { HELP_DONATE_BUTTON_ID } from '../commands/help.js'
 import { handleOptionsButton, OPTIONS_BUTTON_PREFIX } from '../commands/options.js'
 import {
 	buildSearchId,
@@ -24,7 +25,6 @@ import {
 	parseSearchId,
 	SEARCH_LIMIT,
 } from '../commands/search.js'
-import { buildSupportInfoReply } from '../commands/support.js'
 import {
 	handleTrackingListAuthorPageButton,
 	handleTrackingListAuthorRemoveButton,
@@ -84,8 +84,8 @@ export function createCommandRegistry(
 	async function handleButton(interaction: ButtonInteraction) {
 		const { customId } = interaction
 
-		if (customId === HELP_SUPPORT_BUTTON_ID) {
-			await interaction.reply({ ...buildSupportInfoReply(), flags: 'Ephemeral' })
+		if (customId === HELP_DONATE_BUTTON_ID) {
+			await interaction.reply({ ...buildDonateInfoReply(), flags: 'Ephemeral' })
 			return
 		}
 

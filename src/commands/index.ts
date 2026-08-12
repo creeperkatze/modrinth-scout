@@ -1,6 +1,7 @@
-import { usesSupporterPerks } from '../config/supporterPerks.js'
+import { usesDonatorPerks } from '../config/donatorPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
+import { donateCommand } from './donate.js'
 import { helpCommand } from './help.js'
 import { identifyCommand } from './identify.js'
 import { optionsCommand } from './options.js'
@@ -10,7 +11,6 @@ import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { searchCommand } from './search.js'
 import { statisticsCommand } from './statistics.js'
-import { supportCommand } from './support.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
 import { versionCommand } from './version.js'
@@ -26,7 +26,7 @@ export const commands: ChatInputCommand[] = [
 	userCommand,
 	organizationCommand,
 	collectionCommand,
-	...(usesSupporterPerks ? [supportCommand] : []),
+	...(usesDonatorPerks ? [donateCommand] : []),
 	trackingCommand,
 	optionsCommand,
 	statisticsCommand,

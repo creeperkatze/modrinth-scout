@@ -17,7 +17,7 @@ import { MAX_TRACKED_AUTHORS_SUPPORTER, MAX_TRACKED_SUPPORTER, queries } from '.
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
-import { supporterGuildCount } from '../utils/metrics.js'
+import { donatorGuildCount } from '../utils/metrics.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png'), {
@@ -27,17 +27,17 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
 const SUPPORTER_PERKS = `- Track up to **${MAX_TRACKED_SUPPORTER}** projects\n- Track up to **${MAX_TRACKED_AUTHORS_SUPPORTER}** authors\n- Get notified **5x faster** (checks every 1 minute instead of 5)`
 
-export function buildSupportInfoReply() {
+export function buildDonateInfoReply() {
 	const embed = new EmbedBuilder()
-		.setTitle('Support')
+		.setTitle('Donate')
 		.setDescription(
-			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Supporter perks:\n${SUPPORTER_PERKS}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/support activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks supporter perks for one server.`,
+			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Donator perks:\n${SUPPORTER_PERKS}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/donate activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks donator perks for one server.`,
 		)
 		.setThumbnail('attachment://kofi.png')
 		.setColor(0xff5e5b)
 
 	const button = new ButtonBuilder()
-		.setLabel('Support on Ko-fi')
+		.setLabel('Donate on Ko-fi')
 		.setURL(KOFI_URL)
 		.setStyle(ButtonStyle.Link)
 	if (emojiRefs['kofi']) button.setEmoji(emojiRefs['kofi'])
@@ -47,31 +47,33 @@ export function buildSupportInfoReply() {
 	return { embeds: [embed], files: [kofiIcon], components: [row] }
 }
 
-export const supportCommand: ChatInputCommand = {
+export const donateCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
-		.setName('support')
-		.setDescription('Support the development of this bot')
-		.addSubcommand((sub) => sub.setName('info').setDescription('Show Ko-fi support info and perks'))
-		.addSubcommand((sub) => sub.setName('list').setDescription('Show public supporters'))
+		.setName('donate')
+		.setDescription('Donate to support the development of this bot')
+		.addSubcommand((sub) =>
+			sub.setName('info').setDescription('Show Ko-fi donation info and perks'),
+		)
+		.addSubcommand((sub) => sub.setName('list').setDescription('Show public donations'))
 		.addSubcommand((sub) =>
 			sub
 				.setName('activate')
-				.setDescription('Activate supporter perks using your Ko-fi account')
+				.setDescription('Activate donator perks using your Ko-fi account')
 				.addBooleanOption((opt) =>
 					opt
 						.setName('public')
-						.setDescription('Show your name in `/support list` (true by default)')
+						.setDescription('Show your name in `/donate list` (true by default)')
 						.setRequired(false),
 				),
 		)
 		.addSubcommand((sub) =>
-			sub.setName('status').setDescription('Check the supporter status of this server'),
+			sub.setName('status').setDescription('Check the donator status of this server'),
 		)
 		.setContexts(InteractionContextType.Guild)
 		.setIntegrationTypes(ApplicationIntegrationType.GuildInstall),
 	meta: {
-		name: 'support',
-		description: 'Support the development of this bot',
+		name: 'donate',
+		description: 'Donate to support the development of this bot',
 		category: 'general',
 		cooldownSeconds: 5,
 		guildOnly: true,
@@ -80,21 +82,21 @@ export const supportCommand: ChatInputCommand = {
 		const sub = interaction.options.getSubcommand()
 
 		if (sub === 'info') {
-			await interaction.reply(buildSupportInfoReply())
+			await interaction.reply(buildDonateInfoReply())
 			return
 		}
 
 		if (sub === 'list') {
-			const supporters = await queries.getPublicSupporters()
+			const donators = await queries.getPublicSupporters()
 			const description =
-				supporters.length > 0
-					? supporters.map((supporter) => `<@${supporter.discordUserId}>`).join('\n')
-					: 'No public supporters yet.'
+				donators.length > 0
+					? donators.map((donator) => `<@${donator.discordUserId}>`).join('\n')
+					: 'No public donations yet.'
 
 			await interaction.reply({
 				embeds: [
 					info(
-						`### Supporters\n${description}\n\nThank you for helping keep Modrinth Scout running! ❤️`,
+						`### Donations\n${description}\n\nThank you for helping keep Modrinth Scout running! ❤️`,
 					),
 				],
 			})
@@ -130,7 +132,7 @@ export const supportCommand: ChatInputCommand = {
 				await interaction.reply({
 					embeds: [
 						error(
-							'Your Ko-fi donation has already been used to activate **supporter perks** on a different server.',
+							'Your Ko-fi donation has already been used to activate **donator perks** on a different server.',
 						),
 					],
 					flags: 'Ephemeral',
@@ -139,21 +141,21 @@ export const supportCommand: ChatInputCommand = {
 			}
 			if (result === 'already_active') {
 				await interaction.reply({
-					embeds: [info('This server already has **supporter perks** active.')],
+					embeds: [info('This server already has **donator perks** active.')],
 					flags: 'Ephemeral',
 				})
 				return
 			}
 
-			supporterGuildCount.inc()
+			donatorGuildCount.inc()
 
 			await interaction.reply({
 				embeds: [
 					info(
-						`**Supporter perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\n${
+						`**Donator perks** activated! This server now has the following perks:\n${SUPPORTER_PERKS}\n\n${
 							showPublicly
-								? 'You will appear in `/support list`.'
-								: 'You opted out of appearing in `/support list`.'
+								? 'You will appear in `/donate list`.'
+								: 'You opted out of appearing in `/donate list`.'
 						}\n\nThank you for your support!`,
 					),
 				],
@@ -164,13 +166,13 @@ export const supportCommand: ChatInputCommand = {
 
 		if (sub === 'status') {
 			const config = await queries.getServerConfig(guildId)
-			const isSupporter = config?.isSupporter ?? false
+			const isDonator = config?.isSupporter ?? false
 			await interaction.reply({
 				embeds: [
 					info(
-						isSupporter
-							? `This server has **supporter perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
-							: `This server doesn't have **supporter perks**:\n${SUPPORTER_PERKS}.\n\nSupport the bot on Ko-fi with \`/support info\` to unlock them.`,
+						isDonator
+							? `This server has **donator perks**:\n${SUPPORTER_PERKS}\n\nThank you for your support!`
+							: `This server doesn't have **donator perks**:\n${SUPPORTER_PERKS}.\n\nDonate on Ko-fi with \`/donate info\` to unlock them.`,
 					),
 				],
 				flags: 'Ephemeral',

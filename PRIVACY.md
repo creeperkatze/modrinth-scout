@@ -1,12 +1,12 @@
 # Privacy Policy
 
-Modrinth Scout stores minimal data required to provide project update tracking and supporter perks.
+Modrinth Scout stores minimal data required to provide project update tracking and donator perks.
 
 ## What is collected
 
 - Discord server, notification channel, and optional ping role identifiers to deliver project tracking notifications
 
-- Ko-fi transaction identifier, email address provided by Ko-fi, and Discord user identifier linked to the Ko-fi account to verify and activate supporter perks.
+- Ko-fi transaction identifier, email address provided by Ko-fi, and Discord user identifier linked to the Ko-fi account to verify and activate donator perks.
 
 ## What is not collected
 
@@ -16,7 +16,7 @@ Modrinth Scout stores minimal data required to provide project update tracking a
 
 ## How data is used
 
-Server data is used solely to deliver update notifications to the configured channel. Donation data is used solely to verify and activate supporter perks. No data is shared with third parties.
+Server data is used solely to deliver update notifications to the configured channel. Donation data is used solely to verify and activate donator perks. No data is shared with third parties.
 
 ## Data removal
 

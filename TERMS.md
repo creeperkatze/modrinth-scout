@@ -10,7 +10,7 @@ The bot is provided as-is, with no uptime guarantee. It may be unavailable, chan
 
 Don't use the bot to spam, abuse, or disrupt Discord servers, or to break Discord's [Terms of Service](https://discord.com/terms) or [Community Guidelines](https://discord.com/guidelines). Servers or users that abuse the bot may be blocked from using it.
 
-## Supporter perks
+## Donator perks
 
 Donating via Ko-fi is optional and supports development. Donations are voluntary and non-refundable.
 
