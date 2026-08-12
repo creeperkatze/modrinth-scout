@@ -772,14 +772,9 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'add') {
 			const config = await queries.getServerConfig(guildId)
-			const channelOverride = interaction.options.getChannel('channel')
-			if (!config?.tracking?.channelId && !channelOverride) {
+			if (!config?.tracking?.channelId) {
 				await interaction.reply({
-					embeds: [
-						error(
-							'Set a notification channel first with `/tracking setup`, or pass a `channel` here.',
-						),
-					],
+					embeds: [error('Set a notification channel first with `/tracking setup`.')],
 					flags: 'Ephemeral',
 				})
 				return
@@ -948,7 +943,14 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'pause') {
 			const config = await queries.getServerConfig(guildId)
-			if (config?.tracking?.paused) {
+			if (!config?.tracking?.channelId) {
+				await interaction.reply({
+					embeds: [error('Tracking is not set up in this server.')],
+					flags: 'Ephemeral',
+				})
+				return
+			}
+			if (config.tracking.paused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already paused.')],
 					flags: 'Ephemeral',
@@ -966,7 +968,14 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (sub === 'resume') {
 			const config = await queries.getServerConfig(guildId)
-			if (!config?.tracking?.paused) {
+			if (!config?.tracking?.channelId) {
+				await interaction.reply({
+					embeds: [error('Tracking is not set up in this server.')],
+					flags: 'Ephemeral',
+				})
+				return
+			}
+			if (!config.tracking.paused) {
 				await interaction.reply({
 					embeds: [error('Tracking is already active.')],
 					flags: 'Ephemeral',
@@ -983,6 +992,14 @@ export const trackingCommand: ChatInputCommand = {
 		}
 
 		if (sub === 'disable') {
+			const config = await queries.getServerConfig(guildId)
+			if (!config?.tracking?.channelId) {
+				await interaction.reply({
+					embeds: [error('Tracking is not set up in this server.')],
+					flags: 'Ephemeral',
+				})
+				return
+			}
 			const removed = await queries.removeAllTracking(guildId)
 			await queries.clearTrackingDefaults(guildId)
 			log.info(
@@ -1004,14 +1021,9 @@ async function executeAuthorSubcommand(
 ) {
 	if (sub === 'add') {
 		const config = await queries.getServerConfig(guildId)
-		const channelOverride = interaction.options.getChannel('channel')
-		if (!config?.tracking?.channelId && !channelOverride) {
+		if (!config?.tracking?.channelId) {
 			await interaction.reply({
-				embeds: [
-					error(
-						'Set a notification channel first with `/tracking setup`, or pass a `channel` here.',
-					),
-				],
+				embeds: [error('Set a notification channel first with `/tracking setup`.')],
 				flags: 'Ephemeral',
 			})
 			return

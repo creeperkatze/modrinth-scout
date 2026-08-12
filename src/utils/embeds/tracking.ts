@@ -21,7 +21,7 @@ export function buildTrackingHelp(limits: { projects: number; authors: number })
 				'Every notification setting resolves in this order:',
 				"**The entry's own options ➡️ The author it came from ➡️ The server's defaults**",
 				'### Defaults',
-				'`/tracking setup` sets the channel, ping role, and release types used by everything this server tracks.',
+				'`/tracking setup` sets the channel, ping role, and release types used by everything this server tracks. Run it before tracking anything.',
 				'### Overrides',
 				`\`/tracking add\` and \`/tracking author add\` each accept \`channel\`, \`role\`, and \`release_type\` (${withEmoji('release', 'release')}, ${withEmoji('beta', 'beta')}, or ${withEmoji('alpha', 'alpha')}). Whatever you set there applies to that entry alone. Whatever you leave empty keeps following the server default, including changes you make to it later.`,
 				'### Tracking an author',
