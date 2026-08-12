@@ -47,6 +47,7 @@ The `/help` command shows:
 - `/tracking pause` · Pause tracking notifications without removing tracked projects and authors
 - `/tracking resume` · Resume tracking notifications for this server
 - `/tracking disable` · Disable tracking and remove all tracked projects and authors
+- `/tracking help` · Explain how tracking, overrides, and authors work
 
 ### Donate
 

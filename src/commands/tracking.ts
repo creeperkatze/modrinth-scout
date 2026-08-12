@@ -39,7 +39,7 @@ import {
 	respondWithTrackedAuthorSearch,
 	respondWithTrackedProjectSearch,
 } from '../utils/autocomplete.js'
-import { error, success } from '../utils/embeds/index.js'
+import { buildTrackingHelp, error, success } from '../utils/embeds/index.js'
 import { emojis } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
 import { fetchAuthorProjects } from '../utils/tracking/author.js'
@@ -351,7 +351,7 @@ async function buildTrackingListPayload(
 	if (tracked.length === 0 && trackedAuthors.length === 0) {
 		container.addTextDisplayComponents(
 			new TextDisplayBuilder().setContent(
-				'Nothing is being tracked yet.\nUse `/tracking add` or `/tracking author add` to start.',
+				'Nothing is being tracked yet.\nUse `/tracking add` or `/tracking author add` to start, or `/tracking help` to see how it works.',
 			),
 		)
 	}
@@ -640,6 +640,9 @@ export const trackingCommand: ChatInputCommand = {
 				.setName('disable')
 				.setDescription('Disable tracking and remove all tracked projects and authors'),
 		)
+		.addSubcommand((sub) =>
+			sub.setName('help').setDescription('Explain how tracking, overrides, and authors work'),
+		)
 		.addSubcommandGroup((group) =>
 			group
 				.setName('author')
@@ -728,6 +731,16 @@ export const trackingCommand: ChatInputCommand = {
 
 		if (group === 'author') {
 			await executeAuthorSubcommand(interaction, sub, guildId)
+			return
+		}
+
+		if (sub === 'help') {
+			const config = await queries.getServerConfig(guildId)
+			const { limit, authorLimit } = resolveLimits(config)
+			await interaction.reply({
+				embeds: [buildTrackingHelp({ projects: limit, authors: authorLimit })],
+				flags: 'Ephemeral',
+			})
 			return
 		}
 
