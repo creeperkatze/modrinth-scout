@@ -39,28 +39,39 @@ function oldestCursor(target: TrackingTarget): Date {
 	return oldest
 }
 
+export type ProjectRunStats = {
+	tracked: number
+	checked: number
+	updated: number
+	failed: number
+	newVersions: number
+	notificationsSent: number
+}
+
+const EMPTY_STATS: ProjectRunStats = {
+	tracked: 0,
+	checked: 0,
+	updated: 0,
+	failed: 0,
+	newVersions: 0,
+	notificationsSent: 0,
+}
+
 export async function trackProjectUpdates(
 	client: Client,
 	targets: TrackingTarget[],
 	donatorOnly?: boolean,
-) {
-	const startedAt = Date.now()
+): Promise<ProjectRunStats> {
 	const donatorLabel = donatorOnly ? 'true' : 'false'
 	const stopTimer = trackingProjectDurationSeconds.startTimer({ supporter: donatorLabel })
 
 	try {
 		if (targets.length === 0) {
-			log.debug(
-				{ donatorOnly, durationMs: Date.now() - startedAt },
-				'Project tracking tick skipped with no tracked projects',
-			)
 			trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
-			return
+			return EMPTY_STATS
 		}
 
 		const byTargetId = new Map(targets.map((target) => [target.targetId, target]))
-		log.debug({ uniqueProjects: targets.length, donatorOnly }, 'Project tracking tick started')
-
 		const projects = await fetchProjects([...byTargetId.keys()])
 		let changedProjects = 0
 		let failedProjects = 0
@@ -128,7 +139,7 @@ export async function trackProjectUpdates(
 					if (outcome === 'sent') notificationsSent += 1
 				}
 
-				log.info(
+				log.debug(
 					{
 						projectId: project.id,
 						slug: project.slug,
@@ -143,20 +154,15 @@ export async function trackProjectUpdates(
 		}
 
 		trackingProjectNotificationsTotal.inc(notificationsSent)
-		log.info(
-			{
-				donatorOnly,
-				uniqueProjects: targets.length,
-				checkedProjects: projects.length,
-				updatedProjects: changedProjects,
-				failedProjects,
-				newVersionsFound,
-				notificationsSent,
-				durationMs: Date.now() - startedAt,
-			},
-			'Project tracking tick completed',
-		)
 		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
+		return {
+			tracked: targets.length,
+			checked: projects.length,
+			updated: changedProjects,
+			failed: failedProjects,
+			newVersions: newVersionsFound,
+			notificationsSent,
+		}
 	} catch (err) {
 		trackingProjectTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
 		throw err

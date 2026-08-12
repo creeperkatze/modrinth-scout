@@ -11,17 +11,40 @@ const log = createModuleLogger('tracking')
 const TRACKING_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const DONATOR_TRACKING_INTERVAL_MS = 60 * 1000 // 1 minute
 
-// One database load per tick feeds both the project and author runs
+// One database load, and one summary line, per tick, for both the project and author runs
 async function runTick(client: Client, donatorOnly: boolean | undefined) {
+	const startedAt = Date.now()
 	const batch = await loadTrackingBatch(donatorOnly)
-	await Promise.all([
-		trackProjectUpdates(client, batch.projects, donatorOnly).catch((err) =>
-			log.error({ err }, 'Unhandled error in project tracking tick'),
-		),
-		trackAuthorUpdates(client, batch.authors, donatorOnly).catch((err) =>
-			log.error({ err }, 'Unhandled error in author tracking tick'),
-		),
+
+	const [projects, authors] = await Promise.all([
+		trackProjectUpdates(client, batch.projects, donatorOnly).catch((err) => {
+			log.error({ err }, 'Unhandled error in project tracking run')
+			return null
+		}),
+		trackAuthorUpdates(client, batch.authors, donatorOnly).catch((err) => {
+			log.error({ err }, 'Unhandled error in author tracking run')
+			return null
+		}),
 	])
+
+	if (batch.entryCount === 0) {
+		log.debug(
+			{ donatorOnly, durationMs: Date.now() - startedAt },
+			'Tracking tick skipped, nothing tracked',
+		)
+		return
+	}
+
+	log.info(
+		{
+			donatorOnly,
+			entries: batch.entryCount,
+			projects,
+			authors,
+			durationMs: Date.now() - startedAt,
+		},
+		'Tracking tick completed',
+	)
 }
 
 export function startTracking(client: Client) {

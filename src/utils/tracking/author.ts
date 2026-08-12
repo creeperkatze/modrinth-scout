@@ -87,26 +87,35 @@ async function announceAndTrack(
 	return { notified, autoTracked }
 }
 
+export type AuthorRunStats = {
+	tracked: number
+	failed: number
+	newProjects: number
+	notificationsSent: number
+	autoTracked: number
+}
+
+const EMPTY_STATS: AuthorRunStats = {
+	tracked: 0,
+	failed: 0,
+	newProjects: 0,
+	notificationsSent: 0,
+	autoTracked: 0,
+}
+
 export async function trackAuthorUpdates(
 	client: Client,
 	targets: TrackingTarget[],
 	donatorOnly?: boolean,
-) {
-	const startedAt = Date.now()
+): Promise<AuthorRunStats> {
 	const donatorLabel = donatorOnly ? 'true' : 'false'
 	const stopTimer = trackingAuthorDurationSeconds.startTimer({ supporter: donatorLabel })
 
 	try {
 		if (targets.length === 0) {
-			log.debug(
-				{ donatorOnly, durationMs: Date.now() - startedAt },
-				'Author tracking tick skipped with no tracked authors',
-			)
 			trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
-			return
+			return EMPTY_STATS
 		}
-
-		log.debug({ uniqueAuthors: targets.length, donatorOnly }, 'Author tracking tick started')
 
 		let newProjectsFound = 0
 		let notificationsSent = 0
@@ -173,19 +182,14 @@ export async function trackAuthorUpdates(
 
 		trackingAuthorNotificationsTotal.inc(notificationsSent)
 		trackingAuthorAutoTrackedTotal.inc(autoTracked)
-		log.info(
-			{
-				donatorOnly,
-				uniqueAuthors: targets.length,
-				failedAuthors,
-				newProjectsFound,
-				notificationsSent,
-				autoTracked,
-				durationMs: Date.now() - startedAt,
-			},
-			'Author tracking tick completed',
-		)
 		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'success' })
+		return {
+			tracked: targets.length,
+			failed: failedAuthors,
+			newProjects: newProjectsFound,
+			notificationsSent,
+			autoTracked,
+		}
 	} catch (err) {
 		trackingAuthorTicksTotal.inc({ supporter: donatorLabel, status: 'error' })
 		throw err
