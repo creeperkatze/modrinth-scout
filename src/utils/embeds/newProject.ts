@@ -1,7 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import { emojiRefs, emojis } from '../emojis.js'
+import { emojiRefs, withEmoji } from '../emojis.js'
 import { formatDiscordDate } from '../time.js'
 import { typeLabel } from './helpers.js'
 import type { CardPayload } from './types.js'
@@ -12,7 +12,7 @@ export function buildNewProjectNotification(
 ): CardPayload {
 	const type = project.project_types[0] ?? 'project'
 	const url = `https://modrinth.com/${type}/${project.slug}`
-	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
+	const typeValue = withEmoji(type, typeLabel(type))
 
 	const embed = new EmbedBuilder()
 		.setAuthor({ name: `New project by ${author.name}`, iconURL: author.avatarUrl })

@@ -40,7 +40,7 @@ import {
 	respondWithTrackedProjectSearch,
 } from '../utils/autocomplete.js'
 import { buildTrackingHelp, error, success } from '../utils/embeds/index.js'
-import { emojis } from '../utils/emojis.js'
+import { emojis, withEmoji } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
 import { fetchAuthorProjects } from '../utils/tracking/author.js'
 import { formatReleaseTypeLabel } from '../utils/tracking/settings.js'
@@ -146,10 +146,7 @@ function buildProjectHeaderText(
 	p: TrackedProject,
 	full: Labrinth.Projects.v3.Project | undefined,
 ): string {
-	const typeEmoji = full ? emojis[full.project_types[0] ?? 'project'] : undefined
-	const lines = [
-		`**${typeEmoji ? `${typeEmoji} ` : ''}[${p.name}](https://modrinth.com/project/${p.slug})**`,
-	]
+	const lines = [projectLink(p, full?.project_types[0])]
 
 	if (full) {
 		const downloads = full.downloads.toLocaleString('en-US', {
@@ -177,16 +174,26 @@ function buildProjectHeaderText(
 	return lines.join('\n')
 }
 
-function buildAuthorHeaderText(a: TrackedAuthor, projectCount: number): string {
-	const typeEmoji = emojis[a.kind === 'organization' ? 'organization' : 'user']
-	const url =
-		a.kind === 'organization'
-			? `https://modrinth.com/organization/${a.slug}`
-			: `https://modrinth.com/user/${a.slug}`
+function authorUrl(kind: string, slug: string): string {
+	return kind === 'organization'
+		? `https://modrinth.com/organization/${slug}`
+		: `https://modrinth.com/user/${slug}`
+}
 
+// Bold, linked, and prefixed with its type icon when the type is known. Used for every mention of a
+// tracked project or author so they all read the same.
+function projectLink(p: { name: string; slug: string }, type?: string): string {
+	return withEmoji(type, `**[${p.name}](https://modrinth.com/project/${p.slug})**`)
+}
+
+function authorLink(a: { name: string; slug: string; kind: string }): string {
+	return withEmoji(a.kind, `**[${a.name}](${authorUrl(a.kind, a.slug)})**`)
+}
+
+function buildAuthorHeaderText(a: TrackedAuthor, projectCount: number): string {
 	return [
-		`**${typeEmoji ? `${typeEmoji} ` : ''}[${a.name}](${url})**`,
-		`-# ${projectCount} Project${projectCount === 1 ? '' : 's'}`,
+		authorLink(a),
+		`-# ${withEmoji('mod', projectCount)} Project${projectCount === 1 ? '' : 's'}`,
 	].join('\n')
 }
 
@@ -821,7 +828,11 @@ export const trackingCommand: ChatInputCommand = {
 			const existing = await queries.findTrackedEntry(guildId, project.id)
 			if (existing && existing.kind === 'project' && !existing.sourceAuthorId) {
 				await interaction.editReply({
-					embeds: [error(`**${project.name}** is already being tracked.`)],
+					embeds: [
+						error(
+							`${projectLink({ name: project.name, slug: project.slug ?? project.id }, project.project_types[0])} is already being tracked.`,
+						),
+					],
 				})
 				return
 			}
@@ -853,10 +864,14 @@ export const trackingCommand: ChatInputCommand = {
 				details.push(`It will keep being tracked even if you stop tracking its author.`)
 			}
 
+			const projectLabel = projectLink(
+				{ name: project.name, slug: project.slug ?? project.id },
+				project.project_types[0],
+			)
 			await interaction.editReply({
 				embeds: [
 					success(
-						`Now tracking **[${project.name}](https://modrinth.com/project/${project.slug})**.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+						`Now tracking ${projectLabel}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 					),
 				],
 			})
@@ -869,8 +884,12 @@ export const trackingCommand: ChatInputCommand = {
 			const query = parsed?.type === 'project' ? parsed.slug : raw
 
 			let projectId: string
+			// Stays undefined when the input didn't resolve upstream, so no icon is asserted below
+			let projectType: string | undefined
 			try {
-				projectId = (await modrinthClient.labrinth.projects_v3.get(query)).id
+				const project = await modrinthClient.labrinth.projects_v3.get(query)
+				projectId = project.id
+				projectType = project.project_types[0]
 			} catch (err) {
 				const notFound = err instanceof ModrinthApiError && err.statusCode === 404
 				if (parsed?.type === 'project' || !notFound) {
@@ -901,7 +920,7 @@ export const trackingCommand: ChatInputCommand = {
 				await interaction.reply({
 					embeds: [
 						error(
-							`**${entry.name}** is tracked automatically through ${author ? `**${author.name}**` : 'a tracked author'}. Use \`/tracking author remove\` to stop tracking it.`,
+							`${projectLink(entry, projectType)} is tracked automatically through ${author ? authorLink(author) : 'a tracked author'}. Use \`/tracking author remove\` to stop tracking it.`,
 						),
 					],
 					flags: 'Ephemeral',
@@ -915,7 +934,7 @@ export const trackingCommand: ChatInputCommand = {
 				'Project untracked',
 			)
 			await interaction.reply({
-				embeds: [success(`Stopped tracking **${entry.name}**.`)],
+				embeds: [success(`Stopped tracking ${projectLink(entry, projectType)}.`)],
 				flags: 'Ephemeral',
 			})
 			return
@@ -1067,7 +1086,7 @@ async function executeAuthorSubcommand(
 		const existing = await queries.findTrackedEntry(guildId, author.id)
 		if (existing) {
 			await interaction.editReply({
-				embeds: [error(`**${author.name}** is already being tracked.`)],
+				embeds: [error(`${authorLink(author)} is already being tracked.`)],
 			})
 			return
 		}
@@ -1130,7 +1149,7 @@ async function executeAuthorSubcommand(
 		await interaction.editReply({
 			embeds: [
 				success(
-					`Now tracking **${author.name}** (${author.kind}) and their ${autoTrackedCount} project${autoTrackedCount === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
+					`Now tracking ${authorLink(author)} and their ${withEmoji('mod', autoTrackedCount)} project${autoTrackedCount === 1 ? '' : 's'}.${details.length > 0 ? `\n${details.join('\n')}` : ''}`,
 				),
 			],
 		})
@@ -1173,7 +1192,7 @@ async function executeAuthorSubcommand(
 		await interaction.reply({
 			embeds: [
 				success(
-					`Stopped tracking **${entry.name}**${untrackedProjects > 0 ? ` and untracked ${untrackedProjects} of their project${untrackedProjects === 1 ? '' : 's'}` : ''}.`,
+					`Stopped tracking ${authorLink(entry)}${untrackedProjects > 0 ? ` and untracked ${withEmoji('mod', untrackedProjects)} of their project${untrackedProjects === 1 ? '' : 's'}` : ''}.`,
 				),
 			],
 			flags: 'Ephemeral',

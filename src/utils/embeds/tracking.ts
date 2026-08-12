@@ -1,8 +1,6 @@
 import { EmbedBuilder } from 'discord.js'
 
-import { emojis } from '../emojis.js'
-
-const withEmoji = (key: string, label: string) => (emojis[key] ? `${emojis[key]} ${label}` : label)
+import { withEmoji } from '../emojis.js'
 
 export function buildTrackingPausedNotice(channelId: string) {
 	return new EmbedBuilder()
@@ -29,7 +27,7 @@ export function buildTrackingHelp(limits: { projects: number; authors: number })
 				'### When a project is tracked both ways',
 				'If a project was found through an author and you then add it with `/tracking add`, it detaches from that author. From then on it uses its own settings, ignores later changes to the author, and stays tracked even if you stop tracking the author.',
 				'### Limits',
-				`This server can track **${limits.projects}** projects and **${limits.authors}** authors. Projects found through an author don't count toward the project limit, only the author does.`,
+				`This server can track ${withEmoji('mod', `**${limits.projects}**`)} projects and ${withEmoji('user', `**${limits.authors}**`)} authors. Projects found through an author don't count toward the project limit, only the author does.`,
 				'### Pausing',
 				"`/tracking pause` stops notifications without forgetting anything. If I cant access a notification channel, tracking pauses itself and I'll let you know.",
 			].join('\n'),

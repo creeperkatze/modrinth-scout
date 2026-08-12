@@ -2,7 +2,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import { modrinthClient } from '../api/modrinth.js'
-import { emojiRefs, emojis } from '../emojis.js'
+import { emojiRefs, withEmoji } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTags } from '../tags.js'
 import { formatDiscordDate } from '../time.js'
@@ -90,7 +90,7 @@ export async function buildProjectCard(
 		formatTags(recentVersions) + (extraVersions > 0 ? ` *(+${extraVersions} more)*` : '')
 	const rawLoaders = project.loaders ?? []
 	const loaders = rawLoaders.filter((l: string) => l !== 'minecraft' || rawLoaders.length === 1)
-	const typeValue = `${emojis[type] ?? ''} ${typeLabel(type)}`.trim()
+	const typeValue = withEmoji(type, typeLabel(type))
 	const categories = [...(project.categories ?? []), ...(project.additional_categories ?? [])]
 	const owner = await getOwner(project.team_id, project.organization)
 

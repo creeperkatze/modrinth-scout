@@ -1,7 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
-import { emojiRefs, emojis } from '../emojis.js'
+import { emojiRefs, withEmoji } from '../emojis.js'
 import { formatDiscordDate } from '../time.js'
 import { topProjectsList } from './helpers.js'
 import type { CardPayload } from './types.js'
@@ -37,7 +37,7 @@ export function resolveBadges(user: Pick<Labrinth.Users.v3.User, 'role' | 'badge
 }
 
 function formatBadges(keys: string[]): string {
-	return keys.map((key) => `${emojis[key] ?? ''} ${BADGE_LABELS[key]}`.trim()).join(' ')
+	return keys.map((key) => withEmoji(key, BADGE_LABELS[key])).join(' ')
 }
 
 export function buildUserCard(

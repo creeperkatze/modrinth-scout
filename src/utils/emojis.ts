@@ -182,6 +182,13 @@ const BADGE_NAMES = [
 export const emojis: Record<string, string> = {}
 export const emojiRefs: Record<string, { id: string; name: string }> = {}
 
+// Prefixes a label with its emoji. Pass undefined when the kind isn't known, rather than guessing
+// one: an unknown key falls back to the bare label instead of asserting the wrong icon.
+export function withEmoji(key: string | undefined, label: string | number): string {
+	const emoji = key ? emojis[key] : undefined
+	return emoji ? `${emoji} ${label}` : `${label}`
+}
+
 export async function syncEmojis(client: Client): Promise<void> {
 	const existing = await client.application!.emojis.fetch()
 

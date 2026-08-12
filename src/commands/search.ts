@@ -13,7 +13,7 @@ import { PROJECT_TYPES, ProjectType, SearchIndex, SORT_OPTIONS } from '../config
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import { error, typeLabel } from '../utils/embeds/index.js'
-import { emojis, LOADERS } from '../utils/emojis.js'
+import { LOADERS, withEmoji } from '../utils/emojis.js'
 import { formatPlainTags } from '../utils/tags.js'
 
 export const SEARCH_LIMIT = 5
@@ -76,14 +76,14 @@ export async function buildSearchPayload(
 		})
 		const loaderTags = hit.categories.filter((c) => LOADERS.has(c.toLowerCase()))
 		const categoryTags = hit.categories.filter((c) => !loaderTags.includes(c))
-		const typeValue = `${emojis[rawType] ?? ''} ${hitType}`.trim()
+		const typeValue = withEmoji(rawType, hitType)
 		const tags = [typeValue, formatPlainTags(loaderTags), formatPlainTags(categoryTags)]
 			.filter(Boolean)
 			.join(' · ')
 		return new EmbedBuilder()
 			.setAuthor({ name: hit.title, iconURL: hit.icon_url || undefined, url })
 			.setDescription(
-				`by **${hit.author}**\n\n${desc}\n${emojis['downloads']} ${downloads} · ${emojis['follows']} ${follows} · ${tags}`,
+				`by **${hit.author}**\n\n${desc}\n${withEmoji('downloads', downloads)} · ${withEmoji('follows', follows)} · ${tags}`,
 			)
 			.setColor(hit.color ?? 0x1bd96a)
 	})

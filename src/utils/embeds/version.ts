@@ -2,7 +2,7 @@ import type { Labrinth } from '@modrinth/api-client'
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 
 import { modrinthClient } from '../api/modrinth.js'
-import { emojiRefs, emojis } from '../emojis.js'
+import { emojiRefs, withEmoji } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTags } from '../tags.js'
 import { formatDiscordDate } from '../time.js'
@@ -50,7 +50,7 @@ export async function buildVersionNotification(
 		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
 
 	const typeLabel = version.version_type.charAt(0).toUpperCase() + version.version_type.slice(1)
-	const typeValue = `${emojis[version.version_type] ?? ''} ${typeLabel}`.trim()
+	const typeValue = withEmoji(version.version_type, typeLabel)
 	const author = await getAuthor(version.author_id, project.organization)
 
 	const embed = new EmbedBuilder()

@@ -1,6 +1,6 @@
 import type { Labrinth } from '@modrinth/api-client'
 
-import { emojis } from '../emojis.js'
+import { emojis, withEmoji } from '../emojis.js'
 import { TYPE_LABELS } from './types.js'
 
 const MAX_FIELD_LENGTH = 1024
@@ -11,7 +11,6 @@ export function topProjectsList(projects: Labrinth.Projects.v3.Project[]): strin
 		.slice(0, 10)
 		.map((p) => {
 			const type = p.project_types[0] ?? 'project'
-			const emoji = emojis[type]
 			const url = `https://modrinth.com/${type}/${p.slug}`
 			const downloads = p.downloads.toLocaleString('en-US', {
 				notation: 'compact',
@@ -27,11 +26,8 @@ export function topProjectsList(projects: Labrinth.Projects.v3.Project[]): strin
 				.map((l) => emojis[l])
 				.filter(Boolean)
 				.join(' ')
-			const downloadsEmoji = emojis['downloads']
-			const followsEmoji = emojis['follows']
-			const prefix = emoji ? `${emoji} ` : ''
 			const suffix = loaderEmojis ? ` · ${loaderEmojis}` : ''
-			return `${prefix}[${p.name}](${url}) · ${downloadsEmoji} ${downloads} · ${followsEmoji} ${followers}${suffix}`
+			return `${withEmoji(type, `[${p.name}](${url})`)} · ${withEmoji('downloads', downloads)} · ${withEmoji('follows', followers)}${suffix}`
 		})
 
 	const shown: string[] = []
@@ -74,11 +70,7 @@ export function projectTypeBreakdown(projects: Labrinth.Projects.v3.Project[]): 
 	}
 	return [...counts.entries()]
 		.sort((a, b) => b[1] - a[1])
-		.map(([type, count]) => {
-			const emoji = emojis[type]
-			const label = `${count} ${typeLabel(type)}${count === 1 ? '' : 's'}`
-			return emoji ? `${emoji} ${label}` : label
-		})
+		.map(([type, count]) => withEmoji(type, `${count} ${typeLabel(type)}${count === 1 ? '' : 's'}`))
 		.join(' · ')
 }
 
