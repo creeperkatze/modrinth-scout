@@ -33,6 +33,7 @@ const require = createRequire(import.meta.url)
 const { version } = require('../../package.json') as { version: string }
 
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
+const SUPPORT_URL = 'https://link.creeperkatze.dev/discord'
 const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
 const TERMS_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/TERMS.md'
 
@@ -157,16 +158,11 @@ export const helpCommand: ChatInputCommand = {
 
 		const topggUrl = `https://top.gg/bot/${interaction.client.user.id}/vote`
 
-		const buttons: ButtonBuilder[] = []
-
-		if (usesDonatorPerks) {
-			const donateButton = new ButtonBuilder()
-				.setLabel('Donate')
-				.setCustomId(HELP_DONATE_BUTTON_ID)
-				.setStyle(ButtonStyle.Secondary)
-			if (emojiRefs['kofi']) donateButton.setEmoji(emojiRefs['kofi'])
-			buttons.push(donateButton)
-		}
+		const supportButton = new ButtonBuilder()
+			.setLabel('Get Support')
+			.setURL(SUPPORT_URL)
+			.setStyle(ButtonStyle.Link)
+		if (emojiRefs['discord']) supportButton.setEmoji(emojiRefs['discord'])
 
 		const topggButton = new ButtonBuilder()
 			.setLabel('Vote on top.gg')
@@ -174,30 +170,46 @@ export const helpCommand: ChatInputCommand = {
 			.setStyle(ButtonStyle.Link)
 		if (emojiRefs['topgg']) topggButton.setEmoji(emojiRefs['topgg'])
 
-		buttons.push(
-			new ButtonBuilder()
+		const actionButtons: ButtonBuilder[] = []
 
-				.setLabel('Privacy')
-				.setEmoji('🔒')
-				.setURL(PRIVACY_URL)
-				.setStyle(ButtonStyle.Link),
-			new ButtonBuilder()
+		if (usesDonatorPerks) {
+			const donateButton = new ButtonBuilder()
+				.setLabel('Donate')
+				.setCustomId(HELP_DONATE_BUTTON_ID)
+				.setStyle(ButtonStyle.Secondary)
+			if (emojiRefs['kofi']) donateButton.setEmoji(emojiRefs['kofi'])
+			actionButtons.push(donateButton)
+		}
 
-				.setLabel('Terms')
-				.setEmoji('📄')
-				.setURL(TERMS_URL)
-				.setStyle(ButtonStyle.Link),
+		actionButtons.push(
 			new ButtonBuilder()
-
 				.setLabel('Star on GitHub')
 				.setEmoji('⭐')
 				.setURL(GITHUB_URL)
 				.setStyle(ButtonStyle.Link),
 			topggButton,
+			supportButton,
 		)
 
-		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons)
+		const infoButtons = [
+			new ButtonBuilder()
+				.setLabel('Privacy')
+				.setEmoji('🔒')
+				.setURL(PRIVACY_URL)
+				.setStyle(ButtonStyle.Link),
+			new ButtonBuilder()
+				.setLabel('Terms')
+				.setEmoji('📄')
+				.setURL(TERMS_URL)
+				.setStyle(ButtonStyle.Link),
+		]
 
-		await interaction.reply({ embeds: [embed], components: [row] })
+		await interaction.reply({
+			embeds: [embed],
+			components: [
+				new ActionRowBuilder<ButtonBuilder>().addComponents(actionButtons),
+				new ActionRowBuilder<ButtonBuilder>().addComponents(infoButtons),
+			],
+		})
 	},
 }
