@@ -14,6 +14,8 @@ Don't use the bot to spam, abuse, or disrupt Discord servers, or to break Discor
 
 Donating via Ko-fi is optional and supports development. Donations are voluntary and non-refundable.
 
+A donation activates perks for a single Discord server and cannot be transferred or reused on another server. Which perks are included, and any limits attached to them, may change over time.
+
 ## Liability
 
 The bot is not affiliated with Modrinth or Discord and is provided without warranty. Use it at your own risk.
