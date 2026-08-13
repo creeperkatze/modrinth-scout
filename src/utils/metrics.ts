@@ -90,13 +90,6 @@ export const trackingTargets = new client.Gauge({
 	registers: [register],
 })
 
-export const optionUsageTotal = new client.Counter({
-	name: `${PREFIX}option_usage_total`,
-	help: 'Times a server option ran, by option',
-	labelNames: ['option'] as const,
-	registers: [register],
-})
-
 export const aiSummaryRequestsTotal = new client.Counter({
 	name: `${PREFIX}ai_summary_requests_total`,
 	help: 'Total number of changelog summary requests to the AI provider',

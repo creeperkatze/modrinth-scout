@@ -13,7 +13,6 @@ import {
 import type { CardPayload } from './embeds/types.js'
 import { hashAttachment, identifyByHash, MAX_JAR_FILE_BYTES } from './identify.js'
 import { createModuleLogger } from './logger.js'
-import { optionUsageTotal } from './metrics.js'
 import { type ParsedModrinthUrl, parseModrinthUrl } from './url.js'
 
 const log = createModuleLogger('auto-embeds')
@@ -108,7 +107,6 @@ async function handleAutoEmbeds(message: Message<true>) {
 		log.warn({ err, messageId: message.id, guildId: message.guildId }, 'Failed to send auto embed')
 		return
 	}
-	optionUsageTotal.inc({ option: 'autoEmbeds' })
 
 	const me = message.guild.members.me
 	if (me?.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
@@ -136,7 +134,6 @@ async function handleJarIdentify(message: Message<true>, attachments: Attachment
 			components: cards.flatMap((card) => card.components),
 			allowedMentions: { repliedUser: false },
 		})
-		optionUsageTotal.inc({ option: 'jarIdentify' })
 	} catch (err) {
 		log.warn(
 			{ err, messageId: message.id, guildId: message.guildId },

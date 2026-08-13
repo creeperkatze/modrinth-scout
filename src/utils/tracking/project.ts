@@ -7,11 +7,7 @@ import { summarizeChangelog } from '../ai/summary.js'
 import { modrinthClient } from '../api/modrinth.js'
 import { buildVersionNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
-import {
-	optionUsageTotal,
-	trackingNotificationsTotal,
-	trackingRunDurationSeconds,
-} from '../metrics.js'
+import { trackingNotificationsTotal, trackingRunDurationSeconds } from '../metrics.js'
 import { deliver } from './deliver.js'
 import type { TrackingTarget } from './load.js'
 
@@ -118,7 +114,6 @@ export async function trackProjectUpdates(
 					newVersionsFound += newVersions.length
 
 					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummaries
-					if (wantsSummaries) optionUsageTotal.inc({ option: 'changelogSummaries' })
 					const payloads = await Promise.all(
 						newVersions.map(async (version) =>
 							buildVersionNotification(
