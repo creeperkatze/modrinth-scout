@@ -2,12 +2,7 @@ import type { Client } from 'discord.js'
 
 import { usesDonatorPerks } from '../../config/donatorPerks.js'
 import { createModuleLogger } from '../logger.js'
-import {
-	trackingDurationSeconds,
-	trackingEntries,
-	trackingTargets,
-	trackingTicksTotal,
-} from '../metrics.js'
+import { trackingDurationSeconds, trackingEntries, trackingTicksTotal } from '../metrics.js'
 import { trackAuthorUpdates } from './author.js'
 import type { TrackingTarget } from './load.js'
 import { loadTrackingBatch } from './load.js'
@@ -37,8 +32,6 @@ async function runTick(client: Client, donatorOnly: boolean | undefined) {
 	try {
 		const batch = await loadTrackingBatch(donatorOnly)
 
-		trackingTargets.set({ kind: 'project', tier }, batch.projects.length)
-		trackingTargets.set({ kind: 'author', tier }, batch.authors.length)
 		trackingEntries.set({ kind: 'project', tier }, countEntries(batch.projects))
 		trackingEntries.set({ kind: 'author', tier }, countEntries(batch.authors))
 

@@ -83,13 +83,6 @@ export const trackingEntries = new client.Gauge({
 	registers: [register],
 })
 
-export const trackingTargets = new client.Gauge({
-	name: `${PREFIX}tracking_targets`,
-	help: 'Distinct Modrinth targets checked per tick, by kind and tier',
-	labelNames: ['kind', 'tier'] as const,
-	registers: [register],
-})
-
 export const aiSummaryRequestsTotal = new client.Counter({
 	name: `${PREFIX}ai_summary_requests_total`,
 	help: 'Total number of changelog summary requests to the AI provider',
