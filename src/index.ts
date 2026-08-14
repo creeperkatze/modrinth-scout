@@ -11,6 +11,7 @@ import { syncEmojis } from './utils/emojis.js'
 import { startHeartbeat } from './utils/heartbeat.js'
 import { createModuleLogger } from './utils/logger.js'
 import { donatorGuildCount, guildCount } from './utils/metrics.js'
+import { postTopggStats, startTopggStats } from './utils/topgg.js'
 import { startTracking } from './utils/tracking/index.js'
 import { startWebServer } from './web/index.js'
 
@@ -55,6 +56,7 @@ async function main() {
 	startTracking(readyClient)
 	startWebServer()
 	startHeartbeat()
+	startTopggStats(readyClient)
 
 	log.info(
 		{
@@ -69,6 +71,7 @@ async function main() {
 client.on(Events.GuildCreate, async (guild) => {
 	await queries.initGuildConfig(guild.id, guild.name, guild.memberCount)
 	guildCount.inc()
+	postTopggStats(guild.client)
 	log.info({ guildId: guild.id, name: guild.name }, 'Joined guild')
 })
 
@@ -77,6 +80,7 @@ client.on(Events.GuildDelete, async (guild) => {
 	await queries.deleteGuild(guild.id)
 	guildCount.dec()
 	if (config?.isDonator) donatorGuildCount.dec()
+	postTopggStats(guild.client)
 	log.info({ guildId: guild.id, name: config?.name ?? guild.name }, 'Left guild, cleaned up data')
 })
 
