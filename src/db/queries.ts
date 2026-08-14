@@ -4,7 +4,7 @@ import type { GuildConfig, GuildOption } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
 import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
-import { VoteLinkModel } from './schemas/voteLink.js'
+import { VoteModel } from './schemas/vote.js'
 
 export const MAX_TRACKED = 5
 export const MAX_TRACKED_DONATOR = 100
@@ -76,7 +76,7 @@ export const queries = {
 		Promise.all([
 			GuildConfigModel.findByIdAndDelete(guildId),
 			TrackingModel.deleteMany({ guildId }),
-			VoteLinkModel.deleteMany({ guildId }),
+			VoteModel.deleteMany({ guildId }),
 		]),
 
 	// Only manually added projects, author-discovered ones show under their author instead
@@ -274,12 +274,12 @@ export const queries = {
 		),
 
 	// One voter can only boost one guild at a time, re-linking overwrites the previous guild
-	linkVote: (discordUserId: string, guildId: string) =>
-		VoteLinkModel.findOneAndUpdate({ discordUserId }, { $set: { guildId } }, { upsert: true }),
+	linkVote: (userId: string, guildId: string) =>
+		VoteModel.findOneAndUpdate({ userId }, { $set: { guildId } }, { upsert: true }),
 
 	// Returns the boosted guild id, or null if this voter hasn't linked one
-	extendVoteReward: async (discordUserId: string): Promise<string | null> => {
-		const link = await VoteLinkModel.findOne({ discordUserId }).lean()
+	extendVoteReward: async (userId: string): Promise<string | null> => {
+		const link = await VoteModel.findOne({ userId }).lean()
 		if (!link) return null
 
 		await GuildConfigModel.updateOne(
