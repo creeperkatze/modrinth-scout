@@ -13,11 +13,17 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { MAX_TRACKED_AUTHORS_DONATOR, MAX_TRACKED_DONATOR, queries } from '../db/queries.js'
+import {
+	hasActivePerks,
+	MAX_TRACKED_AUTHORS_DONATOR,
+	MAX_TRACKED_DONATOR,
+	queries,
+} from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error, info } from '../utils/embeds/index.js'
 import { emojiRefs, withEmoji } from '../utils/emojis.js'
 import { donatorGuildCount } from '../utils/metrics.js'
+import { formatDiscordDate } from '../utils/time.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png'), {
@@ -172,13 +178,40 @@ export const donateCommand: ChatInputCommand = {
 
 		if (sub === 'status') {
 			const config = await queries.getGuildConfig(guildId)
-			const isDonator = config?.isDonator ?? false
+
+			if (config?.isDonator) {
+				await interaction.reply({
+					embeds: [
+						info(
+							`This server has **donator perks**:\n${donatorPerks()}\n\nThank you for your support!`,
+						),
+					],
+					flags: 'Ephemeral',
+				})
+				return
+			}
+
+			if (hasActivePerks(config)) {
+				const expiresAt = config?.voteRewardExpiresAt
+				await interaction.reply({
+					embeds: [
+						info(
+							`This server currently has **donator perks** from voting on top.gg:\n${donatorPerks()}\n\n${
+								expiresAt
+									? `They expire ${formatDiscordDate(expiresAt, 'R')} unless someone votes again.`
+									: ''
+							} Donate on Ko-fi with \`/donate info\` to make them permanent.`,
+						),
+					],
+					flags: 'Ephemeral',
+				})
+				return
+			}
+
 			await interaction.reply({
 				embeds: [
 					info(
-						isDonator
-							? `This server has **donator perks**:\n${donatorPerks()}\n\nThank you for your support!`
-							: `This server doesn't have **donator perks**:\n${donatorPerks()}.\n\nDonate on Ko-fi with \`/donate info\` to unlock them.`,
+						`This server doesn't have **donator perks**:\n${donatorPerks()}.\n\nDonate on Ko-fi with \`/donate info\`, or vote on top.gg with \`/vote\` for temporary perks.`,
 					),
 				],
 				flags: 'Ephemeral',
