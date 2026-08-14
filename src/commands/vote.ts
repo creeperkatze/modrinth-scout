@@ -12,7 +12,7 @@ import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord
 import { usesVoteRewards } from '../config/voteRewards.js'
 import { queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { error, info } from '../utils/embeds/index.js'
+import { error } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 
 export const VOTE_CLAIM_BUTTON_ID = 'vote:claim'
@@ -38,9 +38,11 @@ export async function handleVoteClaimButton(interaction: ButtonInteraction) {
 
 	await interaction.reply({
 		embeds: [
-			info(
-				"Linked! Every time you vote on top.gg from now on, **this server** gets temporary donator perks for 24 hours. If you haven't voted in the last 12 hours, vote now to activate them right away.",
-			),
+			new EmbedBuilder()
+				.setDescription(
+					"Linked! Every time you vote on top.gg from now on, **this server** gets temporary donator perks for 24 hours. If you haven't voted in the last 12 hours, vote now to activate them right away.",
+				)
+				.setColor(0xff3366),
 		],
 		flags: 'Ephemeral',
 	})
@@ -66,7 +68,7 @@ export const voteCommand: ChatInputCommand = {
 			.setDescription(
 				'Enjoying the bot? Vote for it on top.gg to help more people discover it. You can vote once every 12 hours.' +
 					(usesVoteRewards && interaction.inGuild()
-						? '\n\nLink your votes to this server below to give it **temporary donator perks** for 24 hours after each vote.'
+						? '\n\nLink your votes to this server below to give it temporary **donator perks** for 24 hours after each vote.'
 						: ''),
 			)
 			.setColor(0xff3366)
@@ -82,7 +84,8 @@ export const voteCommand: ChatInputCommand = {
 			row.addComponents(
 				new ButtonBuilder()
 					.setCustomId(VOTE_CLAIM_BUTTON_ID)
-					.setLabel('Claim reward for this server')
+					.setLabel('Link to this server')
+					.setEmoji('🔗')
 					.setStyle(ButtonStyle.Secondary),
 			)
 		}
