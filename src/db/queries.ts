@@ -1,13 +1,23 @@
+import { VOTE_REWARD_DURATION_MS } from '../config/voteRewards.js'
 import { DonatorModel } from './schemas/donator.js'
 import type { GuildConfig, GuildOption } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
 import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
+import { VoteLinkModel } from './schemas/voteLink.js'
 
 export const MAX_TRACKED = 5
 export const MAX_TRACKED_DONATOR = 100
 export const MAX_TRACKED_AUTHORS = 1
 export const MAX_TRACKED_AUTHORS_DONATOR = 10
+
+export function hasActivePerks(
+	config: Pick<GuildConfig, 'isDonator' | 'voteRewardExpiresAt'> | null | undefined,
+): boolean {
+	if (!config) return false
+	if (config.isDonator) return true
+	return Boolean(config.voteRewardExpiresAt && config.voteRewardExpiresAt.getTime() > Date.now())
+}
 
 const AUTHOR_KIND_FILTER = { kind: { $in: [...AUTHOR_KINDS] } }
 const PROJECT_KIND_FILTER = { kind: 'project' as const }
@@ -66,6 +76,7 @@ export const queries = {
 		Promise.all([
 			GuildConfigModel.findByIdAndDelete(guildId),
 			TrackingModel.deleteMany({ guildId }),
+			VoteLinkModel.deleteMany({ guildId }),
 		]),
 
 	// Only manually added projects, author-discovered ones show under their author instead
@@ -167,9 +178,20 @@ export const queries = {
 
 	// Raw rows for one tracking tick, resolved into targets by utils/tracking/load.ts
 	getTrackingCandidates: async (donatorOnly?: boolean): Promise<TrackingCandidates> => {
+		const now = new Date()
+		const perksFilter =
+			donatorOnly === true
+				? { $or: [{ isDonator: true }, { voteRewardExpiresAt: { $gt: now } }] }
+				: donatorOnly === false
+					? {
+							isDonator: false,
+							$or: [{ voteRewardExpiresAt: null }, { voteRewardExpiresAt: { $lte: now } }],
+						}
+					: {}
+
 		const guilds = await GuildConfigModel.find({
 			'tracking.paused': { $ne: true },
-			...(donatorOnly !== undefined ? { isDonator: donatorOnly } : {}),
+			...perksFilter,
 		})
 			.select('_id tracking options')
 			.lean<TrackingCandidateGuild[]>()
@@ -250,4 +272,20 @@ export const queries = {
 			{ $set: { [`options.${option}`]: enabled } },
 			{ upsert: true },
 		),
+
+	// One voter can only boost one guild at a time, re-linking overwrites the previous guild
+	linkVote: (discordUserId: string, guildId: string) =>
+		VoteLinkModel.findOneAndUpdate({ discordUserId }, { $set: { guildId } }, { upsert: true }),
+
+	// Returns the boosted guild id, or null if this voter hasn't linked one
+	extendVoteReward: async (discordUserId: string): Promise<string | null> => {
+		const link = await VoteLinkModel.findOne({ discordUserId }).lean()
+		if (!link) return null
+
+		await GuildConfigModel.updateOne(
+			{ _id: link.guildId },
+			{ $set: { voteRewardExpiresAt: new Date(Date.now() + VOTE_REWARD_DURATION_MS) } },
+		)
+		return link.guildId
+	},
 }

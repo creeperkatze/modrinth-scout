@@ -1,9 +1,12 @@
 import { timingSafeEqual } from 'node:crypto'
 
+import type { VoteCreatePayload } from '@top-gg/sdk'
+import { Webhook } from '@top-gg/sdk'
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 
 import { usesDonatorPerks } from '../config/donatorPerks.js'
+import { usesVoteRewards } from '../config/voteRewards.js'
 import { queries } from '../db/queries.js'
 import { createModuleLogger } from '../utils/logger.js'
 import { register } from '../utils/metrics.js'
@@ -113,13 +116,36 @@ export function startWebServer() {
 		})
 	}
 
+	const webhookSecret = process.env.TOPGG_WEBHOOK_SECRET
+	if (usesVoteRewards && webhookSecret) {
+		const webhook = new Webhook(webhookSecret, {
+			error: (err) => log.error({ err }, 'top.gg webhook error'),
+		})
+
+		app.post(
+			'/topgg',
+			webhook.listener(async (payload, req) => {
+				if (payload.type !== 'vote.create') return
+
+				const { platformId: discordUserId } = (payload.data as VoteCreatePayload).user
+				const guildId = await queries.extendVoteReward(discordUserId)
+				req.log.info({ discordUserId, guildId }, 'top.gg vote processed')
+			}),
+		)
+	}
+
 	app.use((req, res) => {
 		res.status(404).json({ error: 'not_found' })
 	})
 
 	app.listen(port, () => {
 		log.info(
-			{ port, webhookConfigured: usesDonatorPerks, metricsEnabled: Boolean(metricsToken) },
+			{
+				port,
+				webhookConfigured: usesDonatorPerks,
+				voteRewardsConfigured: usesVoteRewards,
+				metricsEnabled: Boolean(metricsToken),
+			},
 			'Web server started',
 		)
 	})

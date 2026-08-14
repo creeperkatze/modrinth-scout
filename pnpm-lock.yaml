@@ -14,6 +14,9 @@ importers:
       '@openrouter/sdk':
         specifier: ^1.2.27
         version: 1.2.27
+      '@top-gg/sdk':
+        specifier: ^4.0.0
+        version: 4.0.0
       discord.js:
         specifier: ^14.27.0
         version: 14.27.0
@@ -586,6 +589,10 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@top-gg/sdk@4.0.0':
+    resolution: {integrity: sha512-sR8/hdTVNKs4C6K0nX25lYjn4qIweScUtDD+Rs9lC4MX4Ivz+JFhwpnVqhRwc5dL/IU+3joD7ikO3A5C7fYO6Q==}
+    engines: {node: '>= 18.18.2'}
 
   '@types/body-parser@1.19.6':
     resolution: {integrity: sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==}
@@ -2330,6 +2337,10 @@ snapshots:
   '@sapphire/snowflake@3.5.5': {}
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@top-gg/sdk@4.0.0':
+    dependencies:
+      raw-body: 3.0.2
 
   '@types/body-parser@1.19.6':
     dependencies:

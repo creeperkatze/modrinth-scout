@@ -24,6 +24,7 @@ import {
 
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import {
+	hasActivePerks,
 	MAX_TRACKED,
 	MAX_TRACKED_AUTHORS,
 	MAX_TRACKED_AUTHORS_DONATOR,
@@ -408,7 +409,7 @@ async function requireManageGuild(interaction: TrackingListInteraction): Promise
 }
 
 function resolveLimits(config: Awaited<ReturnType<typeof queries.getGuildConfig>>) {
-	const hasPerks = !usesDonatorPerks || Boolean(config?.isDonator)
+	const hasPerks = !usesDonatorPerks || hasActivePerks(config)
 	return {
 		hasPerks,
 		limit: hasPerks ? MAX_TRACKED_DONATOR : MAX_TRACKED,

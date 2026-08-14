@@ -31,6 +31,7 @@ const guildSchema = new Schema(
 		name: { type: String, default: null },
 		memberCount: { type: Number, default: 0 },
 		isDonator: { type: Boolean, default: false },
+		voteRewardExpiresAt: { type: Date, default: null },
 		tracking: { type: trackingDefaultsSchema, default: () => ({}) },
 		options: { type: optionsSchema, default: () => ({}) },
 	},

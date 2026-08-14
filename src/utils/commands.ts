@@ -41,6 +41,7 @@ import {
 	TRACKING_LIST_REMOVE_PREFIX,
 	TRACKING_LIST_ROLE_SELECT_PREFIX,
 } from '../commands/tracking.js'
+import { handleVoteClaimButton, VOTE_CLAIM_BUTTON_ID } from '../commands/vote.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
 import { buildProjectCard } from './embeds/index.js'
@@ -86,6 +87,11 @@ export function createCommandRegistry(
 
 		if (customId === HELP_DONATE_BUTTON_ID) {
 			await interaction.reply({ ...buildDonateInfoReply(), flags: 'Ephemeral' })
+			return
+		}
+
+		if (customId === VOTE_CLAIM_BUTTON_ID) {
+			await handleVoteClaimButton(interaction)
 			return
 		}
 
