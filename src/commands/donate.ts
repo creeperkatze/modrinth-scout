@@ -13,6 +13,7 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { usesVoteRewards } from '../config/voteRewards.js'
 import {
 	hasActivePerks,
 	MAX_TRACKED_AUTHORS_DONATOR,
@@ -43,7 +44,11 @@ export function buildDonateInfoReply() {
 	const embed = new EmbedBuilder()
 		.setTitle('Donate')
 		.setDescription(
-			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Donator perks:\n${donatorPerks()}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/donate activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks donator perks for one server.`,
+			`Modrinth Scout is free to use. If you find it useful, consider buying me a coffee. It helps keep the bot running and motivates further development.\n### Donator perks:\n${donatorPerks()}\n### ⚠️ Important:\nLink your Discord account in your Ko-fi settings before donating, then run \`/donate activate\` in your server. This is a donation, not a subscription. Any donation permanently unlocks donator perks for one server.${
+				usesVoteRewards
+					? "\n\nDon't want to donate? Use `/vote` to link your top.gg votes to this server and get these perks temporarily for free."
+					: ''
+			}`,
 		)
 		.setThumbnail('attachment://kofi.png')
 		.setColor(0xff5e5b)

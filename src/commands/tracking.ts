@@ -23,6 +23,7 @@ import {
 } from 'discord.js'
 
 import { usesDonatorPerks } from '../config/donatorPerks.js'
+import { usesVoteRewards } from '../config/voteRewards.js'
 import {
 	hasActivePerks,
 	MAX_TRACKED,
@@ -796,7 +797,11 @@ export const trackingCommand: ChatInputCommand = {
 						error(
 							`This server is already tracking the maximum of **${limit}** projects.${
 								usesDonatorPerks && !hasPerks
-									? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_DONATOR}** projects.`
+									? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_DONATOR}** projects${
+											usesVoteRewards
+												? ', or vote with `/vote` to temporarily unlock **donator perks** for free'
+												: ''
+										}.`
 									: ''
 							}`,
 						),
@@ -1055,9 +1060,13 @@ async function executeAuthorSubcommand(
 			await interaction.reply({
 				embeds: [
 					error(
-						`This server is already tracking the maximum of **${authorLimit}** authors.${
+						`This server is already tracking the maximum of ${withEmoji('user', `**${authorLimit}**`)} authors.${
 							usesDonatorPerks && !hasPerks
-								? `\n\nDonate on Ko-fi using \`/donate info\` to track up to **${MAX_TRACKED_AUTHORS_DONATOR}** authors.`
+								? `\n\nDonate on Ko-fi using \`/donate info\` to track up to ${withEmoji('user', `**${MAX_TRACKED_AUTHORS_DONATOR}**`)} authors${
+										usesVoteRewards
+											? ', or vote with `/vote` to temporarily unlock **donator perks** for free'
+											: ''
+									}.`
 								: ''
 						}`,
 					),
