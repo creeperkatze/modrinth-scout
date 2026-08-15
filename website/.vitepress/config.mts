@@ -13,7 +13,7 @@ export default defineConfig({
 	themeConfig: {
 		logo: '/icon.svg',
 		siteTitle: false,
-		nav: [],
+		nav: [{ text: 'Status', link: 'https://status.creeperkatze.dev', target: '_blank' }],
 		socialLinks: [
 			{ icon: 'github', link: 'https://github.com/creeperkatze/modrinth-scout' },
 			{ icon: 'discord', link: 'https://link.creeperkatze.dev/discord' },
