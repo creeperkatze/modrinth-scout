@@ -55,7 +55,7 @@ export function startWebServer() {
 	const port = parseInt(process.env.PORT ?? '3000')
 	const metricsToken = process.env.METRICS_TOKEN
 
-	app.get('/metrics', async (req, res) => {
+	app.get('/api/metrics', async (req, res) => {
 		if (!metricsToken || !isAuthorizedMetricsRequest(req.headers.authorization, metricsToken)) {
 			res.status(401).json({ error: 'unauthorized' })
 			return
