@@ -34,8 +34,8 @@ const { version } = require('../../package.json') as { version: string }
 
 const GITHUB_URL = 'https://github.com/creeperkatze/modrinth-scout'
 const SUPPORT_URL = 'https://link.creeperkatze.dev/discord'
-const PRIVACY_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/PRIVACY.md'
-const TERMS_URL = 'https://github.com/creeperkatze/modrinth-scout/blob/main/TERMS.md'
+const PRIVACY_URL = 'https://modrinth-scout.creeperkatze.dev/privacy'
+const TERMS_URL = 'https://modrinth-scout.creeperkatze.dev/terms'
 
 export const HELP_DONATE_BUTTON_ID = 'help:donate'
 
