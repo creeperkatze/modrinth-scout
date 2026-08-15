@@ -34,8 +34,5 @@ export default defineConfig({
 			{ icon: 'github', link: 'https://github.com/creeperkatze/modrinth-scout' },
 			{ icon: 'discord', link: 'https://link.creeperkatze.dev/discord' },
 		],
-		footer: {
-			message: '<a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>',
-		},
 	},
 })

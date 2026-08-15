@@ -6,6 +6,7 @@ import DefaultTheme from 'vitepress/theme'
 import DonateButton from './DonateButton.vue'
 import HeroActions from './HeroActions.vue'
 import HeroLogo from './HeroLogo.vue'
+import SiteFooter from './SiteFooter.vue'
 import StatsBar from './StatsBar.vue'
 import './tailwind.css'
 import './custom.css'
@@ -18,6 +19,7 @@ export default {
 			'home-hero-info-before': () => h(HeroLogo),
 			'home-hero-actions-after': () => h(HeroActions),
 			'home-features-before': () => h(StatsBar),
+			'layout-bottom': () => h(SiteFooter),
 		})
 	},
 }
