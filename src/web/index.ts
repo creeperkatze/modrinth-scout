@@ -1,17 +1,23 @@
 import { timingSafeEqual } from 'node:crypto'
+import { createRequire } from 'node:module'
 
 import type { VoteCreatePayload } from '@top-gg/sdk'
 import { Webhook } from '@top-gg/sdk'
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 
+import { usesBetterStack } from '../config/betterstack.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import { usesVoteRewards } from '../config/voteRewards.js'
 import { queries } from '../db/queries.js'
+import { getUptime } from '../utils/betterstack.js'
 import { createModuleLogger } from '../utils/logger.js'
 import { register } from '../utils/metrics.js'
 
 const log = createModuleLogger('web')
+
+const require = createRequire(import.meta.url)
+const { version } = require('../../package.json') as { version: string }
 
 function isAuthorizedMetricsRequest(authHeader: string | undefined, token: string): boolean {
 	if (!authHeader?.startsWith('Bearer ')) return false
@@ -56,6 +62,16 @@ export function startWebServer() {
 		}
 		res.set('Content-Type', register.contentType)
 		res.end(await register.metrics())
+	})
+
+	app.get('/stats', async (_req, res) => {
+		const [guilds, trackedProjects, trackedAuthors, uptime] = await Promise.all([
+			queries.countConfiguredGuilds(),
+			queries.countAllTrackedProjects(),
+			queries.countAllTrackedAuthors(),
+			getUptime(),
+		])
+		res.json({ guilds, trackedProjects, trackedAuthors, uptime, version })
 	})
 
 	if (usesDonatorPerks) {
@@ -144,6 +160,7 @@ export function startWebServer() {
 				port,
 				webhookConfigured: usesDonatorPerks,
 				voteRewardsConfigured: usesVoteRewards,
+				betterStackConfigured: usesBetterStack,
 				metricsEnabled: Boolean(metricsToken),
 			},
 			'Web server started',

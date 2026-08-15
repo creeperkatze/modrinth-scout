@@ -1,0 +1,15 @@
+:root {
+	--vp-c-brand-1: #1bd96a;
+	--vp-c-brand-2: #17c25e;
+	--vp-c-brand-3: #14ab53;
+	--vp-c-brand-soft: #1bd96a24;
+	--vp-nav-logo-height: 32px;
+}
+
+.dark {
+	--vp-c-brand-1: #1bd96a;
+	--vp-c-brand-2: #17c25e;
+	--vp-c-brand-3: #14ab53;
+	--vp-c-brand-soft: #1bd96a2e;
+}
+

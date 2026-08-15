@@ -1,11 +1,13 @@
 import eslint from '@eslint/js'
 import prettierPlugin from 'eslint-plugin-prettier/recommended'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import pluginVue from 'eslint-plugin-vue'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
 	eslint.configs.recommended,
 	...tseslint.configs.recommended,
+	...pluginVue.configs['flat/essential'],
 	prettierPlugin,
 	{
 		languageOptions: {
@@ -34,6 +36,25 @@ export default tseslint.config(
 		},
 	},
 	{
-		ignores: ['node_modules/', 'dist/'],
+		files: ['website/**/*.vue', 'website/**/*.{ts,mts}'],
+		languageOptions: {
+			globals: {
+				window: 'readonly',
+				document: 'readonly',
+				localStorage: 'readonly',
+				navigator: 'readonly',
+			},
+		},
+	},
+	{
+		files: ['website/**/*.vue'],
+		languageOptions: {
+			parserOptions: {
+				parser: tseslint.parser,
+			},
+		},
+	},
+	{
+		ignores: ['**/node_modules/**', '**/dist/**', 'website/.vitepress/cache/**'],
 	},
 )

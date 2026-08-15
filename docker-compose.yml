@@ -6,6 +6,12 @@ services:
     ports:
       - "3000:3000"
 
+  website:
+    build: ./website
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
   mongodb:
     image: mongo:8
     restart: unless-stopped
