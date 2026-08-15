@@ -55,7 +55,7 @@ export function startWebServer() {
 	const port = parseInt(process.env.PORT ?? '3000')
 	const metricsToken = process.env.METRICS_TOKEN
 
-	app.get('/metrics', async (req, res) => {
+	app.get('/api/metrics', async (req, res) => {
 		if (!metricsToken || !isAuthorizedMetricsRequest(req.headers.authorization, metricsToken)) {
 			res.status(401).json({ error: 'unauthorized' })
 			return
@@ -64,7 +64,7 @@ export function startWebServer() {
 		res.end(await register.metrics())
 	})
 
-	app.get('/stats', async (_req, res) => {
+	app.get('/api/stats', async (_req, res) => {
 		const [guilds, trackedProjects, trackedAuthors, uptime] = await Promise.all([
 			queries.countConfiguredGuilds(),
 			queries.countAllTrackedProjects(),
@@ -78,7 +78,7 @@ export function startWebServer() {
 		app.use(express.urlencoded({ extended: true }))
 		const verificationToken = process.env.KOFI_VERIFICATION_TOKEN
 
-		app.post('/kofi', async (req, res) => {
+		app.post('/api/kofi', async (req, res) => {
 			let payload: KofiPayload
 			try {
 				payload = JSON.parse(req.body.data)
@@ -139,7 +139,7 @@ export function startWebServer() {
 		})
 
 		app.post(
-			'/topgg',
+			'/api/topgg',
 			webhook.listener(async (payload, req) => {
 				if (payload.type !== 'vote.create') return
 

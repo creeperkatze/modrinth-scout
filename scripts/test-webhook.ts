@@ -27,7 +27,7 @@ const payload = {
 
 const body = new URLSearchParams({ data: JSON.stringify(payload) })
 
-const res = await fetch(`http://localhost:${port}/kofi`, {
+const res = await fetch(`http://localhost:${port}/api/kofi`, {
 	method: 'POST',
 	headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 	body,
