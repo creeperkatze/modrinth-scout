@@ -4,7 +4,7 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'disc
 import { modrinthClient } from '../api/modrinth.js'
 import { emojiRefs, withEmoji } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
-import { formatPlainTags, formatTags } from '../tags.js'
+import { formatPlainTags, formatTagsLimited } from '../tags.js'
 import { formatDiscordDate } from '../time.js'
 import type { CardPayload } from './types.js'
 
@@ -66,7 +66,7 @@ export async function buildVersionNotification(
 	if (version.game_versions.length > 0)
 		embed.addFields({
 			name: 'Game versions',
-			value: formatTags(version.game_versions),
+			value: formatTagsLimited(version.game_versions),
 			inline: true,
 		})
 	if (loaders.length > 0)
