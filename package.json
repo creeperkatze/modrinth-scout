@@ -13,9 +13,6 @@
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "scripts": "node scripts/run.mjs",
-        "website:dev": "vitepress dev website",
-        "website:build": "vitepress build website",
-        "website:preview": "vitepress preview website",
         "migrate:create": "migrate-mongo create",
         "migrate:up": "migrate-mongo up",
         "migrate:down": "migrate-mongo down",
@@ -42,7 +39,6 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@resvg/resvg-js": "^2.6.2",
-        "@tailwindcss/vite": "^4.3.1",
         "@types/express": "^5.0.6",
         "@types/migrate-mongo": "^10.0.6",
         "@types/node": "^26.2.0",
@@ -54,12 +50,9 @@
         "eslint-plugin-vue": "^10.6.1",
         "mongodb-memory-server": "^11.2.0",
         "prettier": "^3.9.6",
-        "tailwindcss": "^4.3.1",
         "tsx": "^4.23.12",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.67.0",
-        "vite-svg-loader": "^5.1.1",
-        "vitepress": "^1.6.4",
         "vitest": "^4.1.10",
         "vue-eslint-parser": "^10.3.0"
     }

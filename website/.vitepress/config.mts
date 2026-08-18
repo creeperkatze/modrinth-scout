@@ -1,11 +1,8 @@
-import { createRequire } from 'node:module'
-
 import tailwindcss from '@tailwindcss/vite'
 import svgLoader from 'vite-svg-loader'
 import { defineConfig } from 'vitepress'
 
-const require = createRequire(import.meta.url)
-const { version } = require('../../package.json') as { version: string }
+const version = process.env.VERSION
 
 const title = 'Modrinth Scout'
 const description = 'A Discord bot for discovering, exploring, and tracking projects on Modrinth.'
@@ -36,7 +33,9 @@ export default defineConfig({
 		siteTitle: false,
 		nav: [
 			{ text: 'Status', link: 'https://status.creeperkatze.dev', target: '_blank' },
-			{ text: `v${version}`, link: 'https://github.com/creeperkatze/modrinth-scout/releases' },
+			...(version
+				? [{ text: `v${version}`, link: 'https://github.com/creeperkatze/modrinth-scout/releases' }]
+				: []),
 		],
 		socialLinks: [
 			{ icon: 'github', link: 'https://github.com/creeperkatze/modrinth-scout' },
