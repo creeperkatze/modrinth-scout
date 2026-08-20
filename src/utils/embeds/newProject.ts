@@ -15,9 +15,10 @@ export function buildNewProjectNotification(
 	const typeValue = withEmoji(type, typeLabel(type))
 
 	const embed = new EmbedBuilder()
-		.setAuthor({ name: `New project by ${author.name}`, iconURL: author.avatarUrl })
+		.setAuthor({ name: 'New project' })
 		.setTitle(project.name)
 		.setColor(project.color ?? 0x1bd96a)
+		.setFooter({ text: author.name, iconURL: author.avatarUrl })
 		.addFields(
 			{ name: 'Type', value: typeValue, inline: true },
 			{ name: 'Published', value: formatDiscordDate(project.published), inline: true },
