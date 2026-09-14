@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM node:26-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN pnpm build
 
 RUN pnpm prune --prod
 
-FROM node:22-slim AS runner
+FROM node:26-slim AS runner
 
 WORKDIR /app
 
