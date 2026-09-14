@@ -55,8 +55,8 @@ importers:
         specifier: ^5.0.6
         version: 5.0.6
       '@types/migrate-mongo':
-        specifier: ^10.0.6
-        version: 10.0.6
+        specifier: ^14.0.0
+        version: 14.0.0
       '@types/node':
         specifier: ^26.5.1
         version: 26.5.1
@@ -645,8 +645,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/migrate-mongo@10.0.6':
-    resolution: {integrity: sha512-iYI1WEz8N7yND/BA91/gTyAQGygv9Vd9/fu/GCcr3v45xQGyuqAOYEzscaRsu6nClOkbBRasFKPbbjFb8AG+qQ==}
+  '@types/migrate-mongo@14.0.0':
+    resolution: {integrity: sha512-kqotmIvA6aic6u54YqSZWIO0PIvSp9Kzxx+bQm19ZVEZX45/qzUfRDJIQn+pCRKweRZH8d9QbVoYBtHJ/3c2hQ==}
 
   '@types/node@26.5.1':
     resolution: {integrity: sha512-CzNm2FezW4VR/LjG6yUdiEgLE/rAQ9Slj5gCu/C2VrdcW7I0ahNZ8DRbHT7zOZ6r3ONgd/bsQIeSaoDGrd1C6g==}
@@ -2506,10 +2506,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/migrate-mongo@10.0.6':
+  '@types/migrate-mongo@14.0.0':
     dependencies:
       '@types/node': 26.5.1
-      mongodb: 7.5.0
+      mongodb: 7.6.0
     transitivePeerDependencies:
       - '@aws-sdk/credential-providers'
       - '@mongodb-js/zstd'
