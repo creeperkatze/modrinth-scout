@@ -7,7 +7,6 @@ import DonateButton from './DonateButton.vue'
 import HeroLogo from './HeroLogo.vue'
 import SiteFooter from './SiteFooter.vue'
 import StatsBar from './StatsBar.vue'
-import './tailwind.css'
 import './custom.css'
 
 export default {

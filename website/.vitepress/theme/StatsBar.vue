@@ -35,23 +35,41 @@ const cards = computed(() => {
 </script>
 
 <template>
-	<div v-if="stats" class="relative px-6 pb-4 sm:px-12 vp:px-16">
-		<div class="mx-auto max-w-6xl">
-			<div class="-m-2 flex flex-wrap">
-				<div v-for="card in cards" :key="card.label" class="w-full p-2 sm:w-1/2 vp:w-1/4">
-					<article
-						class="flex h-full flex-col items-center rounded-xl border border-(--vp-c-bg-soft) bg-(--vp-c-bg-soft) p-6 text-center"
-					>
-						<span class="stat-value">{{ card.value }}</span>
-						<span class="mt-1 text-sm font-medium text-(--vp-c-text-2)">{{ card.label }}</span>
-					</article>
-				</div>
-			</div>
+	<div v-if="cards.length" class="stats-bar">
+		<div class="stats-grid">
+			<article v-for="card in cards" :key="card.label" class="stat-card">
+				<span class="stat-value">{{ card.value }}</span>
+				<span class="stat-label">{{ card.label }}</span>
+			</article>
 		</div>
 	</div>
 </template>
 
 <style scoped>
+.stats-bar {
+	position: relative;
+	padding: 0 24px 16px;
+}
+
+.stats-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+	max-width: 1152px;
+	margin: 0 auto;
+}
+
+.stat-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 24px;
+	border-radius: 12px;
+	border: 1px solid var(--vp-c-bg-soft);
+	background-color: var(--vp-c-bg-soft);
+}
+
 .stat-value {
 	font-size: 2.25rem;
 	font-weight: 700;
@@ -60,5 +78,32 @@ const cards = computed(() => {
 	-webkit-background-clip: text;
 	background-clip: text;
 	color: transparent;
+}
+
+.stat-label {
+	margin-top: 4px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--vp-c-text-2);
+}
+
+@media (min-width: 640px) {
+	.stats-bar {
+		padding: 0 48px 16px;
+	}
+
+	.stats-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 960px) {
+	.stats-bar {
+		padding: 0 64px 16px;
+	}
+
+	.stats-grid {
+		grid-template-columns: repeat(4, 1fr);
+	}
 }
 </style>

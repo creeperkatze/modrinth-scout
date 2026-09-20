@@ -3,36 +3,69 @@ import HeartIcon from './icons/heart.svg'
 </script>
 
 <template>
-	<footer
-		class="relative z-(--vp-z-index-footer) border-t border-(--vp-c-gutter) bg-(--vp-c-bg) px-6 py-8 md:px-8"
-	>
-		<div class="mx-auto max-w-(--vp-layout-max-width) text-center">
-			<p class="text-sm leading-6 font-medium text-(--vp-c-text-2)">
+	<footer class="site-footer">
+		<div class="footer-inner">
+			<p class="footer-text">
 				Made with
-				<HeartIcon class="inline-block! size-3.5 -translate-y-px" />
+				<HeartIcon class="heart-icon" />
 				by
 				<a
 					href="https://github.com/creeperkatze"
 					target="_blank"
 					rel="noopener noreferrer"
-					class="text-(--vp-c-text-1)! underline decoration-1 underline-offset-2 hover:opacity-80"
+					class="footer-link"
 					>Creeperkatze</a
 				>
 				· Not affiliated with Modrinth
 			</p>
-			<p class="text-sm leading-6 font-medium text-(--vp-c-text-2)">
-				<a
-					href="/privacy"
-					class="text-(--vp-c-text-1)! underline decoration-1 underline-offset-2 hover:opacity-80"
-					>Privacy</a
-				>
+			<p class="footer-text">
+				<a href="/privacy" class="footer-link">Privacy</a>
 				·
-				<a
-					href="/terms"
-					class="text-(--vp-c-text-1)! underline decoration-1 underline-offset-2 hover:opacity-80"
-					>Terms</a
-				>
+				<a href="/terms" class="footer-link">Terms</a>
 			</p>
 		</div>
 	</footer>
 </template>
+
+<style scoped>
+.site-footer {
+	position: relative;
+	z-index: var(--vp-z-index-footer);
+	border-top: 1px solid var(--vp-c-gutter);
+	background-color: var(--vp-c-bg);
+	padding: 32px 24px;
+}
+
+.footer-inner {
+	max-width: var(--vp-layout-max-width);
+	margin: 0 auto;
+	text-align: center;
+}
+
+.footer-text {
+	font-size: 14px;
+	line-height: 24px;
+	font-weight: 500;
+	color: var(--vp-c-text-2);
+}
+
+.heart-icon {
+	display: inline-block;
+	height: 14px;
+	width: 14px;
+	vertical-align: middle;
+	transform: translateY(-1px);
+	color: var(--vp-c-text-2);
+}
+
+.footer-link {
+	color: var(--vp-c-text-1) !important;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+.footer-link:hover {
+	opacity: 0.8;
+}
+</style>

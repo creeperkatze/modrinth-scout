@@ -1,4 +1,3 @@
-import tailwindcss from '@tailwindcss/vite'
 import svgLoader from 'vite-svg-loader'
 import { defineConfig } from 'vitepress'
 
@@ -26,7 +25,7 @@ export default defineConfig({
 		['meta', { name: 'twitter:image', content: image }],
 	],
 	vite: {
-		plugins: [tailwindcss(), svgLoader()],
+		plugins: [svgLoader()],
 	},
 	themeConfig: {
 		logo: '/icon.svg',
