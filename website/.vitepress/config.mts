@@ -32,9 +32,7 @@ export default defineConfig({
 		siteTitle: false,
 		nav: [
 			{ text: 'Status', link: 'https://status.creeperkatze.dev', target: '_blank' },
-			...(version
-				? [{ text: `v${version}`, link: 'https://github.com/creeperkatze/modrinth-scout/releases' }]
-				: []),
+			...(version ? [{ component: 'VersionLabel', props: { version } }] : []),
 		],
 		socialLinks: [
 			{ icon: 'github', link: 'https://github.com/creeperkatze/modrinth-scout' },

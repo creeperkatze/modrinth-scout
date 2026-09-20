@@ -7,6 +7,7 @@ import DonateButton from './DonateButton.vue'
 import HeroLogo from './HeroLogo.vue'
 import SiteFooter from './SiteFooter.vue'
 import StatsBar from './StatsBar.vue'
+import VersionLabel from './VersionLabel.vue'
 import './custom.css'
 
 export default {
@@ -18,5 +19,8 @@ export default {
 			'home-features-before': () => h(StatsBar),
 			'layout-bottom': () => h(SiteFooter),
 		})
+	},
+	enhanceApp({ app }) {
+		app.component('VersionLabel', VersionLabel)
 	},
 }
