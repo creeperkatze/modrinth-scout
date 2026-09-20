@@ -1,5 +1,5 @@
 import { AbstractFeature, type RequestContext } from '@modrinth/api-client'
-import client from 'prom-client'
+import client from '@prometheus-io/client'
 
 const PREFIX = 'modrinth_scout_'
 
