@@ -16,14 +16,16 @@
 }
 
 .VPHero .actions a[href*="top.gg"],
-.VPHero .actions a[href*="github.com"] {
+.VPHero .actions a[href*="github.com"],
+.VPHero .actions a[href*="discord.com/oauth2"] {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
 }
 
 .VPHero .actions a[href*="top.gg"]::before,
-.VPHero .actions a[href*="github.com"]::before {
+.VPHero .actions a[href*="github.com"]::before,
+.VPHero .actions a[href*="discord.com/oauth2"]::before {
 	content: "";
 	width: 16px;
 	height: 16px;
@@ -39,6 +41,10 @@
 
 .VPHero .actions a[href*="github.com"]::before {
 	--icon: url("./icons/github.svg");
+}
+
+.VPHero .actions a[href*="discord.com/oauth2"]::before {
+	--icon: url("./icons/discord.svg");
 }
 
 .VPHero .actions a[href$="/vote"] {
