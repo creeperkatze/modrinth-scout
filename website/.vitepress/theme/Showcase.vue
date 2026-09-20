@@ -9,46 +9,50 @@ const items: ShowcaseItem[] = [
 	{
 		title: 'Every project detail, right in Discord',
 		details:
-			'/project brings up downloads, followers, versions, loaders, and categories, with buttons straight to the source, wiki, issues, and Discord.',
+			'`/project` brings up downloads, followers, versions, loaders, and categories, with buttons straight to the source, wiki, issues, and Discord.',
 		image: '/screenshots/project.png',
 	},
 	{
 		title: 'Look up any creator',
 		details:
-			'/user shows a profile, badges, and top projects at a glance, so you never have to leave Discord to check who made something.',
+			'`/user` shows a profile, badges, and top projects at a glance, so you never have to leave Discord to check who made something.',
 		image: '/screenshots/user.png',
 	},
 	{
 		title: 'Or the whole team behind it',
 		details:
-			'/organization does the same for teams, with combined download counts and their most popular projects.',
+			'`/organization` does the same for teams, with combined download counts and their most popular projects.',
 		image: '/screenshots/organization.png',
 	},
 	{
-		title: 'Track projects and authors, hands-off',
+		title: 'One dashboard for everything you track',
 		details:
-			'/tracking manage lets you pause notifications, set the channel and ping role, and track whole authors, so every new project they publish gets picked up automatically.',
+			'`/tracking manage` lets you pause notifications, set the channel and ping role, and track whole authors, so every new project they publish gets picked up automatically.',
 		image: '/screenshots/tracking.png',
 	},
 	{
 		title: 'Identify a mod by its file',
 		details:
-			'Drop a .jar into /identify and get back the exact Modrinth project and version it came from.',
+			'Drop a .jar into `/identify` and get back the exact Modrinth project and version it came from.',
 		image: '/screenshots/identify.png',
 	},
 	{
 		title: 'Turn features on or off, per server',
 		details:
-			'/options controls auto-embeds for plain Modrinth links, jar identification in chat, and AI-generated changelog summaries.',
+			'`/options` controls auto-embeds for plain Modrinth links, jar identification in chat, and changelog summaries.',
 		image: '/screenshots/options.png',
 	},
 	{
 		title: 'Support development, unlock perks',
 		details:
-			'Modrinth Scout is free to use. Donating on Ko-fi (or just voting) raises your tracking limits and speeds up update checks.',
+			'Modrinth Scout is free to use. Donating on Ko-fi raises your tracking limits and speeds up update checks.',
 		image: '/screenshots/donate.png',
 	},
 ]
+
+function renderDetails(details: string): string {
+	return details.replace(/`([^`]+)`/g, '<code>$1</code>')
+}
 </script>
 
 <template>
@@ -66,7 +70,7 @@ const items: ShowcaseItem[] = [
 					</div>
 					<div class="showcase-text">
 						<h3>{{ item.title }}</h3>
-						<p>{{ item.details }}</p>
+						<p v-html="renderDetails(item.details)"></p>
 					</div>
 				</article>
 			</div>
@@ -115,6 +119,7 @@ const items: ShowcaseItem[] = [
 	max-height: 100%;
 	width: auto;
 	height: auto;
+	border-radius: 8px;
 }
 
 .showcase-text {
@@ -135,6 +140,15 @@ const items: ShowcaseItem[] = [
 	line-height: 1.6;
 	color: var(--vp-c-text-2);
 	margin: 0;
+}
+
+.showcase-text p :deep(code) {
+	font-size: 0.85em;
+	font-family: var(--vp-font-family-mono);
+	background-color: var(--vp-c-bg-soft);
+	border-radius: 4px;
+	padding: 2px 6px;
+	color: var(--vp-c-text-1);
 }
 
 @media (min-width: 640px) {
