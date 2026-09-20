@@ -17,7 +17,7 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ## 🏁 Geting Started
 
-[**Add the bot**](https://top.gg/bot/1496760658732122152), then run `/help` to see all available commands.
+[**Add the bot**](https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=0), then run `/help` to see all available commands.
 
 Prefer to run your own instance? See [Self-hosting](#-self-hosting) below.
 
