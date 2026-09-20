@@ -250,7 +250,7 @@ export async function syncEmojis(client: Client): Promise<void> {
 			await emoji.delete()
 			cleared++
 		} catch (err) {
-			log.warn({ name: emoji.name, err }, 'Failed to clear stale emoji')
+			log.warn({ emojiName: emoji.name, err }, 'Failed to clear stale emoji')
 		}
 	}
 

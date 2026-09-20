@@ -72,7 +72,7 @@ client.on(Events.GuildCreate, async (guild) => {
 	await queries.initGuildConfig(guild.id, guild.name, guild.memberCount)
 	guildCount.inc()
 	postTopggStats(guild.client)
-	log.info({ guildId: guild.id, name: guild.name }, 'Joined guild')
+	log.info({ guildId: guild.id, guildName: guild.name }, 'Joined guild')
 })
 
 client.on(Events.GuildDelete, async (guild) => {
@@ -81,7 +81,10 @@ client.on(Events.GuildDelete, async (guild) => {
 	guildCount.dec()
 	if (config?.isDonator) donatorGuildCount.dec()
 	postTopggStats(guild.client)
-	log.info({ guildId: guild.id, name: config?.name ?? guild.name }, 'Left guild, cleaned up data')
+	log.info(
+		{ guildId: guild.id, guildName: config?.name ?? guild.name },
+		'Left guild, cleaned up data',
+	)
 })
 
 client.on(Events.GuildUpdate, async (oldGuild, newGuild) => {

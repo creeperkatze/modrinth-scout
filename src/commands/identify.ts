@@ -52,7 +52,7 @@ export const identifyCommand: ChatInputCommand = {
 		try {
 			hash = await hashAttachment(attachment.url)
 		} catch (err) {
-			log.warn({ err, name: attachment.name }, 'Failed to download attachment')
+			log.warn({ err, fileName: attachment.name }, 'Failed to download attachment')
 			await interaction.editReply({ embeds: [error('Could not download that attachment.')] })
 			return
 		}
