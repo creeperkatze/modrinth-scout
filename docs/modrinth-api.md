@@ -1,0 +1,4 @@
+# Modrinth API conventions
+
+- **API calls**: use `modrinthClient` from `utils/api/modrinth.ts` everywhere, it's a plain `GenericModrinthClient` instance, no wrapper layer. Typed endpoints go through `modrinthClient.labrinth.<module>.<method>()`. Endpoints without a typed method (random project with facets, `/statistics`) use `modrinthClient.request<T>(path, { api: 'labrinth', version: 3, method: 'GET', params })` directly at the call site. There is no response caching, every call hits the API. Since typed coverage grows with each `@modrinth/api-client` bump, re-check the package's `.d.ts` after upgrading before assuming a call still needs the untyped fallback.
+- **Types**: use types from `@modrinth/api-client` directly (e.g. `import type { Labrinth } from '@modrinth/api-client'`, then `Labrinth.Projects.v3.Project`). Do not derive local `Modrinth*` type aliases.

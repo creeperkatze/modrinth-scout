@@ -1,0 +1,14 @@
+# Architecture
+
+- `src/index.ts`: entrypoint, Discord client setup, lifecycle events, graceful shutdown
+- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`. `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (author tracking). Deploy commands to a dev guild for instant slash-command updates by setting `DISCORD_GUILD_ID` in `.env`.
+- `src/utils/api/modrinth.ts`: `modrinthClient`, a `GenericModrinthClient` from `@modrinth/api-client`. Import and call it directly wherever Modrinth data is needed. See [Modrinth API conventions](modrinth-api.md).
+- `src/config/modrinth.ts`: app-level Modrinth constants (`PROJECT_TYPES`, `SORT_OPTIONS`, `ProjectType`, `SearchIndex`) used to build slash command choices
+- `src/utils/embeds/`: builds Discord embed/component payloads (`CardPayload`) from Modrinth API types
+- `src/utils/commands.ts`: command registry, interaction routing (buttons, select menus, modals, cooldowns), and command deployment
+- `src/utils/tracking/`: background tracking, run on a shared interval schedule via `startTracking` (`index.ts`), which loads one batch per tick and hands it to both runs. `load.ts` resolves each entry's settings and groups entries by target. `settings.ts` holds `resolveTrackingSettings`, the override chain. `deliver.ts` posts notifications and handles unreachable channels (auto-pausing the guild). `project.ts` checks tracked projects for new versions. `author.ts` checks tracked users/orgs for newly published projects, posts a discovery notification, and auto-adds those projects. See [Tracking system](tracking.md).
+- `src/db/`: Mongoose schemas and queries (`src/db/queries.ts`) for the unified `tracking` collection (`schemas/tracking.ts`), per-guild config (`schemas/guild.ts`, collection `guilds`), and donators (`schemas/donator.ts`). Internally everything is a "guild" to match `guildId` and discord.js. "server" is reserved for the Minecraft server project type. User-facing copy still says "server"
+- `migrations/`: [migrate-mongo](https://github.com/seppevs/migrate-mongo) migrations, applied automatically by `connectDb()` (`src/db/index.ts`) on every boot before Mongoose connects. Create new ones with `pnpm migrate:create <description>`, and write both `up` and `down`. `migrate-mongo-config.js` is only for the manual `pnpm migrate:*` CLI commands, the app itself sets its config programmatically
+- `src/config/donatorPerks.ts`: gates donator-only features behind `KOFI_VERIFICATION_TOKEN`
+- `src/config/voteRewards.ts`: gates the top.gg vote-reward flow behind `TOPGG_WEBHOOK_SECRET`. See [Donator perks & vote rewards](donation.md).
+- `src/web/`: Express server handling the Ko-fi donation webhook and the top.gg vote webhook (via `@top-gg/sdk`'s `Webhook`, which HMAC-verifies the raw request body itself). Each only started when its respective env var is set
