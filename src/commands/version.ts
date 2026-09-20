@@ -42,14 +42,20 @@ export const versionCommand: ChatInputCommand = {
 			}
 
 			if (project) {
-				const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
-				const version = versions.find(
-					(entry) => entry.id === parsed.reference || entry.version_number === parsed.reference,
-				)
-
-				if (version) {
+				try {
+					const version = await modrinthClient.labrinth.versions_v3.getVersionFromIdOrNumber(
+						project.id,
+						parsed.reference,
+					)
 					await interaction.editReply(await buildVersionNotification(project, version))
 					return
+				} catch (err) {
+					if (!(err instanceof ModrinthApiError && err.statusCode === 404)) {
+						await interaction.editReply({
+							embeds: [error(err instanceof Error ? err.message : String(err))],
+						})
+						return
+					}
 				}
 			}
 

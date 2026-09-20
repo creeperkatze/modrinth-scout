@@ -1,4 +1,4 @@
-import { type Labrinth, ModrinthApiError } from '@modrinth/api-client'
+import { ModrinthApiError } from '@modrinth/api-client'
 import { SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
@@ -42,11 +42,7 @@ export const userCommand: ChatInputCommand = {
 		try {
 			;[user, projects] = await Promise.all([
 				modrinthClient.labrinth.users_v3.get(username),
-				modrinthClient.request<Labrinth.Projects.v3.Project[]>(`/user/${username}/projects`, {
-					api: 'labrinth',
-					version: 3,
-					method: 'GET',
-				}),
+				modrinthClient.labrinth.users_v3.getProjects(username),
 			])
 		} catch (err) {
 			const notFound = err instanceof ModrinthApiError && err.statusCode === 404

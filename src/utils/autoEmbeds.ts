@@ -1,4 +1,3 @@
-import type { Labrinth } from '@modrinth/api-client'
 import { type Attachment, type Message, PermissionFlagsBits } from 'discord.js'
 
 import { queries } from '../db/queries.js'
@@ -36,20 +35,17 @@ async function resolveCard(parsed: ParsedModrinthUrl): Promise<CardPayload | nul
 
 		if (parsed.type === 'version') {
 			const project = await modrinthClient.labrinth.projects_v3.get(parsed.projectSlug)
-			const versions = await modrinthClient.labrinth.versions_v3.getProjectVersions(project.id)
-			const version = versions.find(
-				(entry) => entry.id === parsed.reference || entry.version_number === parsed.reference,
+			const version = await modrinthClient.labrinth.versions_v3.getVersionFromIdOrNumber(
+				project.id,
+				parsed.reference,
 			)
-			return version ? await buildVersionNotification(project, version) : null
+			return await buildVersionNotification(project, version)
 		}
 
 		if (parsed.type === 'user') {
 			const [user, projects] = await Promise.all([
 				modrinthClient.labrinth.users_v3.get(parsed.username),
-				modrinthClient.request<Labrinth.Projects.v3.Project[]>(
-					`/user/${parsed.username}/projects`,
-					{ api: 'labrinth', version: 3, method: 'GET' },
-				),
+				modrinthClient.labrinth.users_v3.getProjects(parsed.username),
 			])
 			return buildUserCard(user, projects)
 		}

@@ -25,11 +25,7 @@ export async function fetchAuthorProjects(
 	if (kind === 'organization') {
 		return modrinthClient.labrinth.organizations_v3.getProjects(authorId)
 	}
-	return modrinthClient.request<Labrinth.Projects.v3.Project[]>(`/user/${authorId}/projects`, {
-		api: 'labrinth',
-		version: 3,
-		method: 'GET',
-	})
+	return modrinthClient.labrinth.users_v3.getProjects(authorId)
 }
 
 async function fetchAuthorProfile(
