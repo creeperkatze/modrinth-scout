@@ -29,13 +29,13 @@ async function pauseTrackingForUnreachableChannel(
 	log.warn({ guildId, channelId }, 'Tracking paused, notification channel is unreachable')
 
 	const guild = client.guilds.cache.get(guildId)
-	const systemChannel = guild?.systemChannel
-	if (!systemChannel?.isTextBased()) return
+	if (!guild) return
 
 	try {
-		await systemChannel.send({ embeds: [buildTrackingPausedNotice(channelId)] })
+		const owner = await guild.fetchOwner()
+		await owner.send({ embeds: [buildTrackingPausedNotice(guild.name, channelId)] })
 	} catch (err) {
-		log.debug({ guildId, err }, 'Could not post pause notice to system channel')
+		log.debug({ guildId, err }, 'Could not DM guild owner about paused tracking')
 	}
 }
 
