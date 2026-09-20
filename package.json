@@ -21,7 +21,7 @@
         "release:minor": "pnpm version minor && git push && git push --tags",
         "release:major": "pnpm version major && git push && git push --tags"
     },
-    "packageManager": "pnpm@11.13.1+sha512.b2fc7683b8a6525414e7d13e1ba28caaddde96bf66ec540bfaeb7e702b81f3e0be4d1f295edf7f9fe0396740a8dce4509c582ddf79891f4543fea32d37645f25",
+    "packageManager": "pnpm@12.5.1+sha512.e3f305bc784a2bc89f5ad3b6138889470fae8d2af5f36b61216ec91c2c3d64089775f9de38aac331044ea40f245cb0d5666392dfdf65824e1907ef6a2c62de5f",
     "dependencies": {
         "@modrinth/api-client": "^0.70.0",
         "@openrouter/sdk": "^1.2.119",
