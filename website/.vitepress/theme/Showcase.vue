@@ -105,13 +105,9 @@ const items: ShowcaseItem[] = [
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: #e1e1e5;
+	background-color: var(--vp-c-bg-soft);
 	border-radius: 12px;
 	padding: 20px;
-}
-
-.dark .showcase-media {
-	background-color: #2c2d34;
 }
 
 .showcase-media img {
@@ -119,8 +115,6 @@ const items: ShowcaseItem[] = [
 	max-height: 100%;
 	width: auto;
 	height: auto;
-	border-radius: 8px;
-	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
 }
 
 .showcase-text {
