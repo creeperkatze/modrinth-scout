@@ -81,16 +81,31 @@ async function resolveJarCard(attachment: Attachment): Promise<CardPayload | nul
 	}
 }
 
-async function handleAutoEmbeds(message: Message<true>) {
-	const parsedUrls = extractModrinthUrls(message.content)
+export async function resolveLinkCards(content: string): Promise<CardPayload[]> {
+	const parsedUrls = extractModrinthUrls(content)
 		.map(parseModrinthUrl)
 		.filter((parsed): parsed is ParsedModrinthUrl => parsed !== null)
 		.slice(0, MAX_LINKS_PER_MESSAGE)
-	if (parsedUrls.length === 0) return
 
-	const cards = (await Promise.all(parsedUrls.map(resolveCard))).filter(
-		(card): card is CardPayload => card !== null,
-	)
+	const cards = await Promise.all(parsedUrls.map(resolveCard))
+	return cards.filter((card): card is CardPayload => card !== null)
+}
+
+export async function resolveJarCards(attachments: Attachment[]): Promise<CardPayload[]> {
+	const candidates = attachments
+		.filter((a) => a.size <= MAX_JAR_FILE_BYTES)
+		.slice(0, MAX_JAR_ATTACHMENTS_PER_MESSAGE)
+
+	const cards = await Promise.all(candidates.map(resolveJarCard))
+	return cards.filter((card): card is CardPayload => card !== null)
+}
+
+export function jarAttachmentsOf(message: Message): Attachment[] {
+	return [...message.attachments.filter((a) => a.name.toLowerCase().endsWith('.jar')).values()]
+}
+
+async function handleAutoEmbeds(message: Message<true>) {
+	const cards = await resolveLinkCards(message.content)
 	if (cards.length === 0) return
 
 	try {
@@ -113,14 +128,7 @@ async function handleAutoEmbeds(message: Message<true>) {
 }
 
 async function handleJarIdentify(message: Message<true>, attachments: Attachment[]) {
-	const candidates = attachments
-		.filter((a) => a.size <= MAX_JAR_FILE_BYTES)
-		.slice(0, MAX_JAR_ATTACHMENTS_PER_MESSAGE)
-	if (candidates.length === 0) return
-
-	const cards = (await Promise.all(candidates.map(resolveJarCard))).filter(
-		(card): card is CardPayload => card !== null,
-	)
+	const cards = await resolveJarCards(attachments)
 	if (cards.length === 0) return
 
 	try {
@@ -141,15 +149,15 @@ async function handleJarIdentify(message: Message<true>, attachments: Attachment
 export async function handleMessageCreate(message: Message) {
 	if (message.author.bot || !message.inGuild()) return
 
-	const jarAttachments = message.attachments.filter((a) => a.name.toLowerCase().endsWith('.jar'))
+	const jarAttachments = jarAttachmentsOf(message)
 	const hasModrinthLink = message.content.includes('modrinth.com')
-	if (jarAttachments.size === 0 && !hasModrinthLink) return
+	if (jarAttachments.length === 0 && !hasModrinthLink) return
 
 	const config = await queries.getGuildConfig(message.guildId)
 	if (!config) return
 
-	if (jarAttachments.size > 0 && config.options?.jarIdentify) {
-		await handleJarIdentify(message, [...jarAttachments.values()])
+	if (jarAttachments.length > 0 && config.options?.jarIdentify) {
+		await handleJarIdentify(message, jarAttachments)
 	}
 
 	if (hasModrinthLink && config.options?.autoEmbeds) {

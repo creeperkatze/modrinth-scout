@@ -2,7 +2,7 @@ import './env.js'
 
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
-import { commands, userContextMenuCommands } from './commands/index.js'
+import { commands, contextMenuCommands } from './commands/index.js'
 import { connectDb } from './db/index.js'
 import { queries } from './db/queries.js'
 import { handleMessageCreate } from './utils/autoEmbeds.js'
@@ -22,7 +22,7 @@ const client = new Client({
 		GatewayIntentBits.MessageContent,
 	],
 })
-const { onInteractionCreate } = createCommandRegistry(commands, userContextMenuCommands)
+const { onInteractionCreate } = createCommandRegistry(commands, contextMenuCommands)
 const log = createModuleLogger('app')
 
 function waitForReady(): Promise<Client<true>> {
@@ -43,7 +43,7 @@ async function main() {
 		'Discord client ready',
 	)
 
-	await deployCommands(commands, userContextMenuCommands)
+	await deployCommands(commands, contextMenuCommands)
 	await syncEmojis(readyClient)
 
 	log.info({ guilds: readyClient.guilds.cache.size }, 'Initializing guild configs')

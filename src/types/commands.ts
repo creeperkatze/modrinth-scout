@@ -1,7 +1,9 @@
 import type {
+	ApplicationCommandType,
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
 	ContextMenuCommandBuilder,
+	MessageContextMenuCommandInteraction,
 	PermissionResolvable,
 	SlashCommandBuilder,
 	UserContextMenuCommandInteraction,
@@ -29,9 +31,19 @@ export interface ChatInputCommand {
 }
 
 export interface UserContextMenuCommand {
+	type: ApplicationCommandType.User
 	data: Pick<ContextMenuCommandBuilder, 'name' | 'toJSON'>
 	meta: CommandMeta
 	execute: (interaction: UserContextMenuCommandInteraction) => Promise<void> | void
 }
+
+export interface MessageContextMenuCommand {
+	type: ApplicationCommandType.Message
+	data: Pick<ContextMenuCommandBuilder, 'name' | 'toJSON'>
+	meta: CommandMeta
+	execute: (interaction: MessageContextMenuCommandInteraction) => Promise<void> | void
+}
+
+export type ContextMenuCommand = UserContextMenuCommand | MessageContextMenuCommand
 
 export type CommandMap = Map<string, ChatInputCommand>

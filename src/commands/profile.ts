@@ -7,16 +7,15 @@ import type { UserContextMenuCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import { buildUserCard, error, info } from '../utils/embeds/index.js'
 
-export const PROFILE_CONTEXT_MENU_NAME = 'View Modrinth profile'
-
 export const profileContextMenu: UserContextMenuCommand = {
+	type: ApplicationCommandType.User,
 	data: new ContextMenuCommandBuilder()
-		.setName(PROFILE_CONTEXT_MENU_NAME)
+		.setName('Profile')
 		.setType(ApplicationCommandType.User)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
-		name: PROFILE_CONTEXT_MENU_NAME,
+		name: 'Profile',
 		description: "Show a user's linked Modrinth profile",
 		category: 'utility',
 		cooldownSeconds: 5,

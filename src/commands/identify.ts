@@ -1,9 +1,10 @@
 import { ModrinthApiError } from '@modrinth/api-client'
-import { SlashCommandBuilder } from 'discord.js'
+import { ApplicationCommandType, ContextMenuCommandBuilder, SlashCommandBuilder } from 'discord.js'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
-import type { ChatInputCommand } from '../types/index.js'
-import { buildVersionNotification, error } from '../utils/embeds/index.js'
+import type { ChatInputCommand, MessageContextMenuCommand } from '../types/index.js'
+import { jarAttachmentsOf, resolveJarCards } from '../utils/autoEmbeds.js'
+import { buildVersionNotification, error, info } from '../utils/embeds/index.js'
 import { hashAttachment, identifyByHash, MAX_JAR_FILE_BYTES } from '../utils/identify.js'
 import { createModuleLogger } from '../utils/logger.js'
 
@@ -74,5 +75,48 @@ export const identifyCommand: ChatInputCommand = {
 					: String(err)
 			await interaction.editReply({ embeds: [error(message)] })
 		}
+	},
+}
+
+export const identifyContextMenu: MessageContextMenuCommand = {
+	type: ApplicationCommandType.Message,
+	data: new ContextMenuCommandBuilder()
+		.setName('Identify')
+		.setType(ApplicationCommandType.Message)
+		.setContexts(ANYWHERE_CONTEXTS)
+		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
+	meta: {
+		name: 'Identify',
+		description: "Identify a message's mod files",
+		category: 'utility',
+		cooldownSeconds: 10,
+	},
+
+	async execute(interaction) {
+		const attachments = jarAttachmentsOf(interaction.targetMessage)
+		if (attachments.length === 0) {
+			await interaction.reply({
+				embeds: [info('That message has no `.jar` files.')],
+				flags: 'Ephemeral',
+			})
+			return
+		}
+
+		await interaction.deferReply()
+
+		const cards = await resolveJarCards(attachments)
+		if (cards.length === 0) {
+			const message =
+				attachments.length === 1
+					? `\`${attachments[0].name}\` was not found on Modrinth.`
+					: 'None of those files were found on Modrinth.'
+			await interaction.editReply({ embeds: [error(message)] })
+			return
+		}
+
+		await interaction.editReply({
+			embeds: cards.flatMap((card) => card.embeds),
+			components: cards.flatMap((card) => card.components),
+		})
 	},
 }
