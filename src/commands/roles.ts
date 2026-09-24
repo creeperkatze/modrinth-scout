@@ -40,7 +40,7 @@ const MANAGE_PAGE_SIZE = 5
 
 type GuildInteraction = ChatInputCommandInteraction<'cached'>
 type GuildConfigResult = Awaited<ReturnType<typeof queries.getGuildConfig>>
-type TeamTarget = { id: string; slug: string; name: string }
+type TeamTarget = { id: string; slug: string; name: string; projectType: string | null }
 
 function roleLimit(config: GuildConfigResult): number {
 	const hasPerks = !usesDonatorPerks || hasActivePerks(config)
@@ -56,11 +56,16 @@ async function resolveTeamTarget(
 		if (kind === 'project') {
 			const input = parsed?.type === 'project' ? parsed.slug : raw
 			const project = await modrinthClient.labrinth.projects_v3.get(input)
-			return { id: project.id, slug: project.slug ?? project.id, name: project.name }
+			return {
+				id: project.id,
+				slug: project.slug ?? project.id,
+				name: project.name,
+				projectType: project.project_types[0] ?? null,
+			}
 		}
 		const input = parsed?.type === 'organization' ? parsed.slug : raw
 		const org = await modrinthClient.labrinth.organizations_v3.get(input)
-		return { id: org.id, slug: org.slug, name: org.name }
+		return { id: org.id, slug: org.slug, name: org.name, projectType: null }
 	} catch (err) {
 		if (err instanceof ModrinthApiError && err.statusCode === 404) {
 			return `No ${kind} found for \`${raw}\`.`

@@ -41,7 +41,13 @@ import {
 	respondWithTrackedAuthorSearch,
 	respondWithTrackedProjectSearch,
 } from '../utils/autocomplete.js'
-import { buildTrackingHelp, error, success } from '../utils/embeds/index.js'
+import {
+	authorLink,
+	buildTrackingHelp,
+	error,
+	projectLink,
+	success,
+} from '../utils/embeds/index.js'
 import { emojis, withEmoji } from '../utils/emojis.js'
 import { logger } from '../utils/logger.js'
 import { fetchAuthorProjects } from '../utils/tracking/author.js'
@@ -174,22 +180,6 @@ function buildProjectHeaderText(
 	}
 
 	return lines.join('\n')
-}
-
-function authorUrl(kind: string, slug: string): string {
-	return kind === 'organization'
-		? `https://modrinth.com/organization/${slug}`
-		: `https://modrinth.com/user/${slug}`
-}
-
-// Bold, linked, and prefixed with its type icon when the type is known. Used for every mention of a
-// tracked project or author so they all read the same.
-function projectLink(p: { name: string; slug: string }, type?: string): string {
-	return withEmoji(type, `**[${p.name}](https://modrinth.com/project/${p.slug})**`)
-}
-
-function authorLink(a: { name: string; slug: string; kind: string }): string {
-	return withEmoji(a.kind, `**[${a.name}](${authorUrl(a.kind, a.slug)})**`)
 }
 
 function buildAuthorHeaderText(a: TrackedAuthor, projectCount: number): string {

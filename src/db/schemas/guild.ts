@@ -30,6 +30,8 @@ const teamTargetSchema = new Schema(
 		id: { type: String, required: true },
 		slug: { type: String, required: true },
 		name: { type: String, required: true },
+		// Projects only, picks the type icon when the project is mentioned
+		projectType: { type: String, default: null },
 	},
 	{ _id: false },
 )

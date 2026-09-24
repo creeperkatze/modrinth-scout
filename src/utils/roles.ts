@@ -3,7 +3,7 @@ import type { Client, GuildMember } from 'discord.js'
 import { queries } from '../db/queries.js'
 import type { RoleRule } from '../db/schemas/guild.js'
 import { modrinthClient } from './api/modrinth.js'
-import { BADGE_LABELS, resolveBadges, typeLabel } from './embeds/index.js'
+import { authorLink, BADGE_LABELS, projectLink, resolveBadges, typeLabel } from './embeds/index.js'
 import { withEmoji } from './emojis.js'
 import { createModuleLogger } from './logger.js'
 
@@ -125,14 +125,10 @@ export function describeRule(rule: RoleRule): string[] {
 	const lines: string[] = []
 
 	if (rule.project) {
-		lines.push(
-			`Team member of [${rule.project.name}](https://modrinth.com/project/${rule.project.slug})`,
-		)
+		lines.push(`Team member of ${projectLink(rule.project, rule.project.projectType ?? undefined)}`)
 	}
 	if (rule.organization) {
-		lines.push(
-			`Member of [${rule.organization.name}](https://modrinth.com/organization/${rule.organization.slug})`,
-		)
+		lines.push(`Member of ${authorLink({ ...rule.organization, kind: 'organization' })}`)
 	}
 	if (rule.minDownloads != null) lines.push(`At least ${formatCount(rule.minDownloads)} downloads`)
 	if (rule.minProjects != null) {

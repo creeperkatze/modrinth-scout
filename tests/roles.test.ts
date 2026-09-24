@@ -177,7 +177,7 @@ describe('describeRule', () => {
 		const lines = describeRule(rule({ project: sodium, minDownloads: 10000 }))
 
 		expect(lines).toEqual([
-			'Team member of [Sodium](https://modrinth.com/project/sodium)',
+			'Team member of **[Sodium](https://modrinth.com/project/sodium)**',
 			'At least 10,000 downloads',
 		])
 	})

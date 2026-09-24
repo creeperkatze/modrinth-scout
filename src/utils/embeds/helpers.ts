@@ -5,6 +5,20 @@ import { TYPE_LABELS } from './types.js'
 
 const MAX_FIELD_LENGTH = 1024
 
+export function authorUrl(kind: string, slug: string): string {
+	return kind === 'organization'
+		? `https://modrinth.com/organization/${slug}`
+		: `https://modrinth.com/user/${slug}`
+}
+
+export function projectLink(p: { name: string; slug: string }, type?: string): string {
+	return withEmoji(type, `**[${p.name}](https://modrinth.com/project/${p.slug})**`)
+}
+
+export function authorLink(a: { name: string; slug: string; kind: string }): string {
+	return withEmoji(a.kind, `**[${a.name}](${authorUrl(a.kind, a.slug)})**`)
+}
+
 export function topProjectsList(projects: Labrinth.Projects.v3.Project[]): string {
 	const lines = [...projects]
 		.sort((a, b) => b.downloads - a.downloads)

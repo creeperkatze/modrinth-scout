@@ -16,7 +16,7 @@ import { queries } from '../db/queries.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { modrinthClient } from '../utils/api/modrinth.js'
 import { buildAuthorizeUrl } from '../utils/api/modrinthOAuth.js'
-import { info, success } from '../utils/embeds/index.js'
+import { authorLink, info, success } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 import { createModuleLogger } from '../utils/logger.js'
 import { syncMemberAcrossGuilds } from '../utils/roles.js'
@@ -25,6 +25,10 @@ import { formatDiscordDate } from '../utils/time.js'
 const MODRINTH_GREEN = 0x1bd96a
 
 const log = createModuleLogger('link')
+
+function userLink(username: string): string {
+	return authorLink({ name: username, slug: username, kind: 'user' })
+}
 
 async function notifyByDm(client: Client, discordUserId: string, embed: EmbedBuilder) {
 	try {
@@ -43,7 +47,7 @@ export async function handleAccountLinked(
 	displaced: string[],
 ) {
 	const embed = success(
-		`Your Discord account is now linked to [${user.username}](https://modrinth.com/user/${user.username}) on Modrinth.\n\nUse \`/link remove\` to undo this at any time.`,
+		`Your Discord account is now linked to ${userLink(user.username)} on Modrinth.\n\nUse \`/link remove\` to undo this at any time.`,
 	)
 	if (user.avatar_url) embed.setThumbnail(user.avatar_url)
 	await notifyByDm(client, discordUserId, embed)
@@ -93,7 +97,7 @@ async function handleUnlink(interaction: ChatInputCommandInteraction) {
 		interaction.client,
 		interaction.user.id,
 		success(
-			`Your Discord account is no longer linked to [${removed.modrinthUsername}](https://modrinth.com/user/${removed.modrinthUsername}) on Modrinth.`,
+			`Your Discord account is no longer linked to ${userLink(removed.modrinthUsername)} on Modrinth.`,
 		),
 	)
 	await syncMemberAcrossGuilds(interaction.client, interaction.user.id, null)
@@ -114,9 +118,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
 
 	const embed = new EmbedBuilder()
 		.setTitle('Linked Modrinth account')
-		.setDescription(
-			`[${username}](https://modrinth.com/user/${username}) since ${formatDiscordDate(linked.createdAt, 'D')}`,
-		)
+		.setDescription(`${userLink(username)} since ${formatDiscordDate(linked.createdAt, 'D')}`)
 		.setColor(MODRINTH_GREEN)
 	if (user?.avatar_url) embed.setThumbnail(user.avatar_url)
 
