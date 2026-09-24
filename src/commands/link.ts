@@ -59,7 +59,7 @@ export async function handleAccountLinked(
 // Also used by /roles get when the member hasn't linked yet
 export async function buildLinkReply(discordUserId: string) {
 	const state = randomBytes(32).toString('base64url')
-	await queries.createLinkState(state, discordUserId)
+	await queries.createPendingLink(state, discordUserId)
 
 	const button = new ButtonBuilder()
 		.setLabel('Link with Modrinth')
@@ -68,7 +68,7 @@ export async function buildLinkReply(discordUserId: string) {
 	if (emojiRefs['modrinth']) button.setEmoji(emojiRefs['modrinth'])
 
 	return {
-		embeds: [info('Sign in with Modrinth to link your account. The button expires in 10 minutes.')],
+		embeds: [info('Sign in with Modrinth to link your account.')],
 		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
 	}
 }

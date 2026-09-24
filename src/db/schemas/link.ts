@@ -1,13 +1,13 @@
 import { InferSchemaType, model, Schema } from 'mongoose'
 
-const linkedAccountSchema = new Schema(
+const linkSchema = new Schema(
 	{
 		discordUserId: { type: String, required: true, unique: true },
 		modrinthUserId: { type: String, required: true, unique: true },
 		modrinthUsername: { type: String, required: true },
 	},
-	{ collection: 'linked_accounts', timestamps: true },
+	{ collection: 'links', timestamps: true },
 )
 
-export type LinkedAccount = InferSchemaType<typeof linkedAccountSchema>
-export const LinkedAccountModel = model('LinkedAccount', linkedAccountSchema)
+export type Link = InferSchemaType<typeof linkSchema>
+export const LinkModel = model('Link', linkSchema)
