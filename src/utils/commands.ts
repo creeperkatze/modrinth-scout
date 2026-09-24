@@ -2,6 +2,7 @@ import {
 	ActionRowBuilder,
 	ButtonInteraction,
 	ChannelSelectMenuInteraction,
+	ChatInputCommandInteraction,
 	Collection,
 	Interaction,
 	ModalBuilder,
@@ -14,6 +15,7 @@ import {
 	StringSelectMenuInteraction,
 	TextInputBuilder,
 	TextInputStyle,
+	UserContextMenuCommandInteraction,
 } from 'discord.js'
 
 import { buildDonateInfoReply } from '../commands/donate.js'
@@ -48,7 +50,7 @@ import {
 	TRACKING_LIST_ROLE_SELECT_PREFIX,
 } from '../commands/tracking.js'
 import { handleVoteClaimButton, VOTE_CLAIM_BUTTON_ID } from '../commands/vote.js'
-import type { ChatInputCommand } from '../types/index.js'
+import type { ChatInputCommand, CommandMeta, UserContextMenuCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
 import { buildProjectCard } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
@@ -60,10 +62,13 @@ type CooldownKey = `${string}:${string}`
 
 export function createCommandRegistry(
 	commands: ChatInputCommand[],
+	userContextMenuCommands: UserContextMenuCommand[] = [],
 	opts: { defaultCooldownSeconds?: number } = {},
 ) {
 	const { defaultCooldownSeconds = 3 } = opts
 	const map: Map<string, ChatInputCommand> = new Map(commands.map((c) => [c.meta.name, c]))
+	// Separate map, Discord scopes command names per type
+	const userContextMenuMap = new Map(userContextMenuCommands.map((c) => [c.meta.name, c]))
 	const cooldowns = new Collection<CooldownKey, number>()
 
 	function checkCooldown(userId: string, name: string, seconds: number) {
@@ -253,11 +258,21 @@ export function createCommandRegistry(
 			return
 		}
 
+		if (interaction.isUserContextMenuCommand()) {
+			const cmd = userContextMenuMap.get(interaction.commandName)
+			if (cmd) await runCommand(cmd, interaction)
+			return
+		}
+
 		if (!interaction.isChatInputCommand()) return
 
 		const cmd = map.get(interaction.commandName)
-		if (!cmd) return
+		if (cmd) await runCommand(cmd, interaction)
+	}
 
+	async function runCommand<
+		I extends ChatInputCommandInteraction | UserContextMenuCommandInteraction,
+	>(cmd: { meta: CommandMeta; execute: (interaction: I) => Promise<void> | void }, interaction: I) {
 		if (cmd.meta.guildOnly && !interaction.inGuild()) return
 		if (cmd.meta.dmOnly && interaction.inGuild()) return
 
@@ -274,8 +289,9 @@ export function createCommandRegistry(
 					},
 					'Command rate-limited',
 				)
+				const label = interaction.isChatInputCommand() ? `/${cmd.meta.name}` : cmd.meta.name
 				await interaction.reply({
-					content: `Please wait ${remain}s before using /${cmd.meta.name} again.`,
+					content: `Please wait ${remain}s before using ${label} again.`,
 					flags: 'Ephemeral',
 				})
 				return
@@ -329,7 +345,10 @@ export function getSlashCommandsData(commands: ChatInputCommand[]) {
 	})
 }
 
-export async function deployCommands(commands: ChatInputCommand[]) {
+export async function deployCommands(
+	commands: ChatInputCommand[],
+	userContextMenuCommands: UserContextMenuCommand[] = [],
+) {
 	const { DISCORD_CLIENT_ID, DISCORD_TOKEN, DISCORD_GUILD_ID } = process.env
 
 	if (!DISCORD_CLIENT_ID || !DISCORD_TOKEN) {
@@ -337,7 +356,10 @@ export async function deployCommands(commands: ChatInputCommand[]) {
 	}
 
 	const rest = new REST().setToken(DISCORD_TOKEN)
-	const data = getSlashCommandsData(commands)
+	const data = [
+		...getSlashCommandsData(commands),
+		...userContextMenuCommands.map((c) => c.data.toJSON()),
+	]
 	const startedAt = Date.now()
 
 	if (DISCORD_GUILD_ID) {

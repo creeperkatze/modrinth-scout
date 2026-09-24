@@ -1,6 +1,6 @@
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import { usesLinking } from '../config/linking.js'
-import type { ChatInputCommand } from '../types/index.js'
+import type { ChatInputCommand, UserContextMenuCommand } from '../types/index.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { helpCommand } from './help.js'
@@ -9,6 +9,7 @@ import { linkCommand } from './link.js'
 import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
+import { profileContextMenu } from './profile.js'
 import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { rolesCommand } from './roles.js'
@@ -37,3 +38,7 @@ export const commands: ChatInputCommand[] = [
 	voteCommand,
 	helpCommand,
 ]
+
+export const userContextMenuCommands: UserContextMenuCommand[] = usesLinking
+	? [profileContextMenu]
+	: []

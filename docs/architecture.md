@@ -1,7 +1,7 @@
 # Architecture
 
 - `src/index.ts`: entrypoint, Discord client setup, lifecycle events, graceful shutdown
-- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`. `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (author tracking). Deploy commands to a dev guild for instant slash-command updates by setting `DISCORD_GUILD_ID` in `.env`.
+- `src/commands/`: one file per slash command, registered in `src/commands/index.ts`. User context menu commands (right-click a user → Apps) are registered separately in `userContextMenuCommands` and go through the same cooldown, logging, and metrics path. `profile.ts` is "View Modrinth profile", which shows a user's linked account ephemerally. `tracking.ts` covers both `/tracking` (project tracking + the combined `/tracking manage` view) and the `/tracking author` subcommand group (author tracking). Deploy commands to a dev guild for instant slash-command updates by setting `DISCORD_GUILD_ID` in `.env`.
 - `src/utils/api/modrinth.ts`: `modrinthClient`, a `GenericModrinthClient` from `@modrinth/api-client`. Import and call it directly wherever Modrinth data is needed. See [Modrinth API conventions](modrinth-api.md).
 - `src/config/modrinth.ts`: app-level Modrinth constants (`PROJECT_TYPES`, `SORT_OPTIONS`, `ProjectType`, `SearchIndex`) used to build slash command choices
 - `src/utils/embeds/`: builds Discord embed/component payloads (`CardPayload`) from Modrinth API types

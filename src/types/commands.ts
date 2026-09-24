@@ -1,8 +1,10 @@
 import type {
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
+	ContextMenuCommandBuilder,
 	PermissionResolvable,
 	SlashCommandBuilder,
+	UserContextMenuCommandInteraction,
 } from 'discord.js'
 
 export type CommandCategory = 'general' | 'moderation' | 'utility'
@@ -24,6 +26,12 @@ export interface ChatInputCommand {
 	meta: CommandMeta
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void> | void
 	autocomplete?: (interaction: AutocompleteInteraction) => Promise<void> | void
+}
+
+export interface UserContextMenuCommand {
+	data: Pick<ContextMenuCommandBuilder, 'name' | 'toJSON'>
+	meta: CommandMeta
+	execute: (interaction: UserContextMenuCommandInteraction) => Promise<void> | void
 }
 
 export type CommandMap = Map<string, ChatInputCommand>
