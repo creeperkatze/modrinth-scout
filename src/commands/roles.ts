@@ -154,7 +154,7 @@ async function handleAdd(interaction: GuildInteraction) {
 	await interaction.editReply({
 		embeds: [
 			success(
-				`${role} is now given to members whose Modrinth account meets all of:\n${conditions}\n\nIt's given automatically when someone links their account with \`/link add\`. Anyone who joined later, or whose Modrinth stats changed, can refresh their roles with \`/roles get\`. Modrinth Scout manages this role, so members who don't meet the requirements lose it.`,
+				`${role} is now given to members whose Modrinth account meets all of:\n${conditions}`,
 			),
 		],
 	})
