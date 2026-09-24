@@ -1,16 +1,17 @@
-import { usesAccountLinking } from '../config/accountLinking.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
+import { usesLinking } from '../config/linking.js'
 import type { ChatInputCommand } from '../types/index.js'
-import { accountCommand } from './account.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { helpCommand } from './help.js'
 import { identifyCommand } from './identify.js'
+import { linkCommand } from './link.js'
 import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
 import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
+import { rolesCommand } from './roles.js'
 import { searchCommand } from './search.js'
 import { statisticsCommand } from './statistics.js'
 import { trackingCommand } from './tracking.js'
@@ -28,7 +29,7 @@ export const commands: ChatInputCommand[] = [
 	userCommand,
 	organizationCommand,
 	collectionCommand,
-	...(usesAccountLinking ? [accountCommand] : []),
+	...(usesLinking ? [linkCommand, rolesCommand] : []),
 	...(usesDonatorPerks ? [donateCommand] : []),
 	trackingCommand,
 	optionsCommand,

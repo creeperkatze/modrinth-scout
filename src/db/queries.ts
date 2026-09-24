@@ -1,7 +1,7 @@
-import { LINK_STATE_TTL_MS } from '../config/accountLinking.js'
+import { LINK_STATE_TTL_MS } from '../config/linking.js'
 import { VOTE_REWARD_DURATION_MS } from '../config/voteRewards.js'
 import { DonatorModel } from './schemas/donator.js'
-import type { GuildConfig, GuildOption } from './schemas/guild.js'
+import type { GuildConfig, GuildOption, RoleRule } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
 import { LinkedAccountModel } from './schemas/linkedAccount.js'
 import { LinkStateModel } from './schemas/linkState.js'
@@ -13,6 +13,8 @@ export const MAX_TRACKED = 5
 export const MAX_TRACKED_DONATOR = 100
 export const MAX_TRACKED_AUTHORS = 1
 export const MAX_TRACKED_AUTHORS_DONATOR = 10
+export const MAX_ROLES = 5
+export const MAX_ROLES_DONATOR = 50
 
 export function hasActivePerks(
 	config: Pick<GuildConfig, 'isDonator' | 'voteRewardExpiresAt'> | null | undefined,
@@ -311,17 +313,51 @@ export const queries = {
 
 	getLinkedAccount: (discordUserId: string) => LinkedAccountModel.findOne({ discordUserId }).lean(),
 
-	// A Modrinth account can only be linked to one Discord user, whoever proved ownership last wins
-	linkAccount: async (discordUserId: string, modrinthUserId: string, modrinthUsername: string) => {
+	// A Modrinth account can only be linked to one Discord user, whoever proved ownership last wins.
+	// Returns the Discord users who lost the link, so their roles can be revoked
+	linkAccount: async (
+		discordUserId: string,
+		modrinthUserId: string,
+		modrinthUsername: string,
+	): Promise<string[]> => {
+		const displaced = await LinkedAccountModel.find(
+			{ modrinthUserId, discordUserId: { $ne: discordUserId } },
+			{ discordUserId: 1 },
+		).lean()
 		await LinkedAccountModel.deleteMany({ modrinthUserId, discordUserId: { $ne: discordUserId } })
 		await LinkedAccountModel.updateOne(
 			{ discordUserId },
 			{ $set: { modrinthUserId, modrinthUsername } },
 			{ upsert: true },
 		)
+		return displaced.map((d) => d.discordUserId)
 	},
 
 	// Returns the removed link, or null if there was none
 	unlinkAccount: (discordUserId: string) =>
 		LinkedAccountModel.findOneAndDelete({ discordUserId }).lean(),
+
+	// Replaces any existing rule for the same role
+	setRole: async (guildId: string, rule: RoleRule) => {
+		await GuildConfigModel.updateOne(
+			{ _id: guildId },
+			{ $pull: { roles: { roleId: rule.roleId } } },
+			{ upsert: true },
+		)
+		await GuildConfigModel.updateOne({ _id: guildId }, { $push: { roles: rule } })
+	},
+
+	removeRole: async (guildId: string, roleId: string): Promise<boolean> => {
+		// matchedCount, not modifiedCount: timestamps bump updatedAt, so every update "modifies"
+		const { matchedCount } = await GuildConfigModel.updateOne(
+			{ _id: guildId, 'roles.roleId': roleId },
+			{ $pull: { roles: { roleId } } },
+		)
+		return matchedCount > 0
+	},
+
+	getGuildsWithRoles: () =>
+		GuildConfigModel.find({ 'roles.0': { $exists: true } }, { roles: 1 }).lean<
+			{ _id: string; roles: RoleRule[] }[]
+		>(),
 }

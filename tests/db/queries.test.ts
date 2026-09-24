@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { queries } from '../../src/db/queries.js'
+import type { RoleRule } from '../../src/db/schemas/guild.js'
+import { GuildConfigModel } from '../../src/db/schemas/guild.js'
 import { LinkedAccountModel } from '../../src/db/schemas/linkedAccount.js'
 import { LinkStateModel } from '../../src/db/schemas/linkState.js'
 import { TrackingModel } from '../../src/db/schemas/tracking.js'
@@ -20,6 +22,7 @@ afterEach(async () => {
 		TrackingModel.deleteMany({}),
 		LinkedAccountModel.deleteMany({}),
 		LinkStateModel.deleteMany({}),
+		GuildConfigModel.deleteMany({}),
 	])
 })
 
@@ -247,10 +250,55 @@ describe('linked accounts', () => {
 	})
 
 	it('moves a Modrinth account to whichever Discord user linked it last', async () => {
-		await queries.linkAccount('discord-1', 'mr-1', 'alice')
-		await queries.linkAccount('discord-2', 'mr-1', 'alice')
+		expect(await queries.linkAccount('discord-1', 'mr-1', 'alice')).toEqual([])
+		expect(await queries.linkAccount('discord-2', 'mr-1', 'alice')).toEqual(['discord-1'])
 
 		expect(await queries.getLinkedAccount('discord-1')).toBeNull()
 		expect(await queries.getLinkedAccount('discord-2')).toMatchObject({ modrinthUserId: 'mr-1' })
+	})
+})
+
+describe('roles', () => {
+	const rule = (roleId: string, conditions: Partial<RoleRule> = {}): RoleRule => ({
+		roleId,
+		project: null,
+		organization: null,
+		minDownloads: null,
+		minProjects: null,
+		minFollowers: null,
+		projectType: null,
+		badge: null,
+		minAccountAgeDays: null,
+		...conditions,
+	})
+
+	it('replaces the rule when the same role is set again', async () => {
+		await queries.setRole(GUILD, rule('role-1'))
+		await queries.setRole(
+			GUILD,
+			rule('role-1', {
+				project: { id: 'proj-1', slug: 'sodium', name: 'Sodium' },
+				minDownloads: 1000,
+			}),
+		)
+		await queries.setRole(GUILD, rule('role-2'))
+
+		const config = await queries.getGuildConfig(GUILD)
+		expect(config?.roles).toHaveLength(2)
+		expect(config?.roles.find((r) => r.roleId === 'role-1')).toMatchObject({
+			project: { id: 'proj-1' },
+			minDownloads: 1000,
+		})
+	})
+
+	it('removes a rule and lists only guilds that still have rules', async () => {
+		await queries.setRole(GUILD, rule('role-1'))
+		await queries.setRole('guild-2', rule('role-2'))
+
+		expect(await queries.removeRole('guild-2', 'role-2')).toBe(true)
+		expect(await queries.removeRole('guild-2', 'role-2')).toBe(false)
+
+		const guilds = await queries.getGuildsWithRoles()
+		expect(guilds.map((g) => g._id)).toEqual([GUILD])
 	})
 })

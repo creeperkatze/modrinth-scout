@@ -10,20 +10,21 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
-import { usesAccountLinking } from '../config/accountLinking.js'
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
+import { usesLinking } from '../config/linking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
-import { accountCommand } from './account.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { identifyCommand } from './identify.js'
+import { linkCommand } from './link.js'
 import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
 import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
+import { rolesCommand } from './roles.js'
 import { searchCommand } from './search.js'
 import { statisticsCommand } from './statistics.js'
 import { trackingCommand } from './tracking.js'
@@ -112,8 +113,14 @@ const sections: Section[] = [
 		heading: 'Tracking',
 		entries: moveGroupAfter(toSubcommandEntries(trackingCommand), 'tracking remove'),
 	},
-	...(usesAccountLinking
-		? [{ heading: 'Account', entries: toSubcommandEntries(accountCommand) } satisfies Section]
+	...(usesLinking
+		? [
+				{ heading: 'Account', entries: toSubcommandEntries(linkCommand) } satisfies Section,
+				{
+					heading: 'Roles',
+					entries: toSubcommandEntries(rolesCommand),
+				} satisfies Section,
+			]
 		: []),
 	...(usesDonatorPerks
 		? [{ heading: 'Donate', entries: toSubcommandEntries(donateCommand) } satisfies Section]

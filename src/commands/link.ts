@@ -19,11 +19,12 @@ import { buildAuthorizeUrl } from '../utils/api/modrinthOAuth.js'
 import { info, success } from '../utils/embeds/index.js'
 import { emojiRefs } from '../utils/emojis.js'
 import { createModuleLogger } from '../utils/logger.js'
+import { syncMemberAcrossGuilds } from '../utils/roles.js'
 import { formatDiscordDate } from '../utils/time.js'
 
 const MODRINTH_GREEN = 0x1bd96a
 
-const log = createModuleLogger('account')
+const log = createModuleLogger('link')
 
 async function notifyByDm(client: Client, discordUserId: string, embed: EmbedBuilder) {
 	try {
@@ -34,21 +35,27 @@ async function notifyByDm(client: Client, discordUserId: string, embed: EmbedBui
 	}
 }
 
-export function notifyAccountLinked(
+// Runs after the OAuth callback stored the link. `displaced` lost this Modrinth account to the new link
+export async function handleAccountLinked(
 	client: Client,
 	discordUserId: string,
 	user: Labrinth.Users.v3.User,
+	displaced: string[],
 ) {
 	const embed = success(
-		`Your Discord account is now linked to [${user.username}](https://modrinth.com/user/${user.username}) on Modrinth.\n\nUse \`/account unlink\` to undo this at any time.`,
+		`Your Discord account is now linked to [${user.username}](https://modrinth.com/user/${user.username}) on Modrinth.\n\nUse \`/link remove\` to undo this at any time.`,
 	)
 	if (user.avatar_url) embed.setThumbnail(user.avatar_url)
-	return notifyByDm(client, discordUserId, embed)
+	await notifyByDm(client, discordUserId, embed)
+
+	await syncMemberAcrossGuilds(client, discordUserId, user.id)
+	for (const id of displaced) await syncMemberAcrossGuilds(client, id, null)
 }
 
-async function handleLink(interaction: ChatInputCommandInteraction) {
+// Also used by /roles get when the member hasn't linked yet
+export async function buildLinkReply(discordUserId: string) {
 	const state = randomBytes(32).toString('base64url')
-	await queries.createLinkState(state, interaction.user.id)
+	await queries.createLinkState(state, discordUserId)
 
 	const button = new ButtonBuilder()
 		.setLabel('Link with Modrinth')
@@ -56,15 +63,18 @@ async function handleLink(interaction: ChatInputCommandInteraction) {
 		.setStyle(ButtonStyle.Link)
 	if (emojiRefs['modrinth']) button.setEmoji(emojiRefs['modrinth'])
 
-	await interaction.reply({
+	return {
 		embeds: [
 			info(
 				'Click the button below to sign in with Modrinth and link your account. The button expires in 10 minutes.\n\nModrinth Scout only reads your public profile to confirm who you are.',
 			),
 		],
 		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
-		flags: 'Ephemeral',
-	})
+	}
+}
+
+async function handleLink(interaction: ChatInputCommandInteraction) {
+	await interaction.reply({ ...(await buildLinkReply(interaction.user.id)), flags: 'Ephemeral' })
 }
 
 async function handleUnlink(interaction: ChatInputCommandInteraction) {
@@ -86,13 +96,14 @@ async function handleUnlink(interaction: ChatInputCommandInteraction) {
 			`Your Discord account is no longer linked to [${removed.modrinthUsername}](https://modrinth.com/user/${removed.modrinthUsername}) on Modrinth.`,
 		),
 	)
+	await syncMemberAcrossGuilds(interaction.client, interaction.user.id, null)
 }
 
 async function handleStatus(interaction: ChatInputCommandInteraction) {
 	const linked = await queries.getLinkedAccount(interaction.user.id)
 	if (!linked) {
 		await interaction.reply({
-			embeds: [info("You don't have a linked Modrinth account. Use `/account link` to link one.")],
+			embeds: [info("You don't have a linked Modrinth account. Use `/link add` to link one.")],
 			flags: 'Ephemeral',
 		})
 		return
@@ -112,29 +123,29 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
 	await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
 }
 
-export const accountCommand: ChatInputCommand = {
+export const linkCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
-		.setName('account')
+		.setName('link')
 		.setDescription('Manage your linked Modrinth account')
 		.addSubcommand((sub) =>
-			sub.setName('link').setDescription('Link your Modrinth account to your Discord account'),
+			sub.setName('add').setDescription('Link your Modrinth account to your Discord account'),
 		)
-		.addSubcommand((sub) => sub.setName('unlink').setDescription('Unlink your Modrinth account'))
+		.addSubcommand((sub) => sub.setName('remove').setDescription('Unlink your Modrinth account'))
 		.addSubcommand((sub) =>
 			sub.setName('status').setDescription('Show which Modrinth account is linked'),
 		)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
-		name: 'account',
+		name: 'link',
 		description: 'Manage your linked Modrinth account',
 		category: 'general',
 		cooldownSeconds: 5,
 	},
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand()
-		if (sub === 'link') await handleLink(interaction)
-		else if (sub === 'unlink') await handleUnlink(interaction)
+		if (sub === 'add') await handleLink(interaction)
+		else if (sub === 'remove') await handleUnlink(interaction)
 		else await handleStatus(interaction)
 	},
 }

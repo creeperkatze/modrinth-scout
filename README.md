@@ -17,7 +17,7 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 ## 🏁 Geting Started
 
-[**Add the bot**](https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=0), then run `/help` to see all available commands.
+[**Add the bot**](https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=268435456), then run `/help` to see all available commands.
 
 Prefer to run your own instance? See [Self-hosting](#-self-hosting) below.
 
@@ -51,9 +51,18 @@ The `/help` command shows:
 
 ### Account
 
-- `/account link` · Link your Modrinth account to your Discord account
-- `/account unlink` · Unlink your Modrinth account
-- `/account status` · Show which Modrinth account is linked
+- `/link add` · Link your Modrinth account to your Discord account
+- `/link remove` · Unlink your Modrinth account
+- `/link status` · Show which Modrinth account is linked
+
+### Roles
+
+- `/roles add` · Give a role to members whose linked Modrinth account meets optional conditions: project or organization team, downloads, projects, followers, project type, badge, account age
+- `/roles remove` · Stop giving out a role
+- `/roles manage` · Manage this server's roles
+- `/roles list` · Show this server's roles and what they require
+- `/roles get` · Get the roles your Modrinth account qualifies for
+- `/roles help` · Explain how roles, conditions, and syncing work
 
 ### Donate
 

@@ -6,7 +6,7 @@ hero:
   actions:
     - theme: brand
       text: Add to Discord
-      link: https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=0
+      link: https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=268435456
     - theme: brand
       text: Vote
       link: https://top.gg/bot/1496760658732122152/vote

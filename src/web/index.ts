@@ -7,10 +7,10 @@ import type { Client } from 'discord.js'
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 
-import { notifyAccountLinked } from '../commands/account.js'
-import { usesAccountLinking } from '../config/accountLinking.js'
+import { handleAccountLinked } from '../commands/link.js'
 import { usesBetterStack } from '../config/betterstack.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
+import { usesLinking } from '../config/linking.js'
 import { usesVoteRewards } from '../config/voteRewards.js'
 import { queries } from '../db/queries.js'
 import { fetchUserFromCode } from '../utils/api/modrinthOAuth.js'
@@ -166,7 +166,7 @@ export function startWebServer(client: Client) {
 		)
 	}
 
-	if (usesAccountLinking) {
+	if (usesLinking) {
 		app.get('/api/modrinth/callback', async (req, res) => {
 			const { code, state } = req.query
 			if (typeof code !== 'string' || typeof state !== 'string') {
@@ -175,7 +175,7 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Linking cancelled',
-							'No account was linked. Run /account link in Discord to try again.',
+							'No account was linked. Run /link add in Discord to try again.',
 						),
 					)
 				return
@@ -188,7 +188,7 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Link expired',
-							'This link has expired or was already used. Run /account link in Discord to get a new one.',
+							'This link has expired or was already used. Run /link add in Discord to get a new one.',
 						),
 					)
 				return
@@ -204,13 +204,13 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Something went wrong',
-							'Modrinth did not confirm your account. Run /account link in Discord to try again.',
+							'Modrinth did not confirm your account. Run /link add in Discord to try again.',
 						),
 					)
 				return
 			}
 
-			await queries.linkAccount(discordUserId, user.id, user.username)
+			const displaced = await queries.linkAccount(discordUserId, user.id, user.username)
 			req.log.info({ discordUserId, modrinthUserId: user.id }, 'Modrinth account linked')
 			res.send(
 				linkResultPage(
@@ -218,7 +218,7 @@ export function startWebServer(client: Client) {
 					`Your Discord account is now linked to ${user.username} on Modrinth. You can close this tab.`,
 				),
 			)
-			await notifyAccountLinked(client, discordUserId, user)
+			await handleAccountLinked(client, discordUserId, user, displaced)
 		})
 	}
 
@@ -232,7 +232,7 @@ export function startWebServer(client: Client) {
 				port,
 				webhookConfigured: usesDonatorPerks,
 				voteRewardsConfigured: usesVoteRewards,
-				accountLinkingConfigured: usesAccountLinking,
+				linkingConfigured: usesLinking,
 				betterStackConfigured: usesBetterStack,
 				metricsEnabled: Boolean(metricsToken),
 			},

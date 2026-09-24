@@ -13,9 +13,11 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { usesLinking } from '../config/linking.js'
 import { usesVoteRewards } from '../config/voteRewards.js'
 import {
 	hasActivePerks,
+	MAX_ROLES_DONATOR,
 	MAX_TRACKED_AUTHORS_DONATOR,
 	MAX_TRACKED_DONATOR,
 	queries,
@@ -38,6 +40,7 @@ const donatorPerks = () =>
 		`- Track up to ${withEmoji('mod', `**${MAX_TRACKED_DONATOR}**`)} projects`,
 		`- Track up to ${withEmoji('user', `**${MAX_TRACKED_AUTHORS_DONATOR}**`)} authors`,
 		'- Get notified **5x faster** (checks every 1 minute instead of 5)',
+		...(usesLinking ? [`- Create up to **${MAX_ROLES_DONATOR}** roles with \`/roles\``] : []),
 	].join('\n')
 
 export function buildDonateInfoReply() {
