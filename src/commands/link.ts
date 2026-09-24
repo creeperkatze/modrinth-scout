@@ -103,7 +103,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
 	const linked = await queries.getLinkedAccount(interaction.user.id)
 	if (!linked) {
 		await interaction.reply({
-			embeds: [info("You don't have a linked Modrinth account. Use `/link add` to link one.")],
+			embeds: [info("You don't have a linked Modrinth account. Use `/link setup` to link one.")],
 			flags: 'Ephemeral',
 		})
 		return
@@ -126,7 +126,7 @@ export const linkCommand: ChatInputCommand = {
 		.setName('link')
 		.setDescription('Manage your linked Modrinth account')
 		.addSubcommand((sub) =>
-			sub.setName('add').setDescription('Link your Modrinth account to your Discord account'),
+			sub.setName('setup').setDescription('Link your Modrinth account to your Discord account'),
 		)
 		.addSubcommand((sub) => sub.setName('remove').setDescription('Unlink your Modrinth account'))
 		.addSubcommand((sub) =>
@@ -142,7 +142,7 @@ export const linkCommand: ChatInputCommand = {
 	},
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand()
-		if (sub === 'add') await handleLink(interaction)
+		if (sub === 'setup') await handleLink(interaction)
 		else if (sub === 'remove') await handleUnlink(interaction)
 		else await handleStatus(interaction)
 	},

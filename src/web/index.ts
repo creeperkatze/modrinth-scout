@@ -175,7 +175,7 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Linking cancelled',
-							'No account was linked. Run /link add in Discord to try again.',
+							'No account was linked. Run /link setup in Discord to try again.',
 						),
 					)
 				return
@@ -188,7 +188,7 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Link expired',
-							'This link has expired or was already used. Run /link add in Discord to get a new one.',
+							'This link has expired or was already used. Run /link setup in Discord to get a new one.',
 						),
 					)
 				return
@@ -204,7 +204,7 @@ export function startWebServer(client: Client) {
 					.send(
 						linkResultPage(
 							'Something went wrong',
-							'Modrinth did not confirm your account. Run /link add in Discord to try again.',
+							'Modrinth did not confirm your account. Run /link setup in Discord to try again.',
 						),
 					)
 				return

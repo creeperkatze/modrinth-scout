@@ -18,7 +18,7 @@ export function buildRolesHelp(limit: number) {
 				'- `badge`: has that Modrinth badge',
 				'- `min_account_age`: Modrinth account age in days',
 				'### Getting roles',
-				'Members link their account with `/link add`, which updates their roles in every server they share with me. Anyone who joined later, or whose Modrinth stats or teams changed, can run `/roles get` to refresh their roles here. `/roles list` shows what each role requires.',
+				'Members link their account with `/link setup`, which updates their roles in every server they share with me. Anyone who joined later, or whose Modrinth stats or teams changed, can run `/roles get` to refresh their roles here. `/roles list` shows what each role requires.',
 				'### Managed roles',
 				"A role set up here always matches the member's Modrinth account. Anyone who no longer meets its conditions loses it the next time their roles update, and unlinking removes all of them. Roles given out by hand are included, so use a separate role for anything you want to assign yourself.",
 				'### Limits',
