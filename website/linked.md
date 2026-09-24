@@ -1,5 +1,5 @@
 ---
-title: Link your Modrinth account
+title: Account linking
 layout: page
 head:
   - - meta

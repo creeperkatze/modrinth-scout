@@ -8,22 +8,26 @@ const RESULTS: Record<Status, { title: string; message?: string }> = {
 	success: { title: 'Account linked' },
 	cancelled: {
 		title: 'Linking cancelled',
-		message: 'No account was linked. Run /link setup in Discord to try again.',
+		message: 'No account was linked. Run `/link setup` in Discord to try again.',
 	},
 	expired: {
 		title: 'Link expired',
 		message:
-			'This link has expired or was already used. Run /link setup in Discord to get a new one.',
+			'This link has expired or was already used. Run `/link setup` in Discord to get a new one.',
 	},
 	error: {
 		title: 'Something went wrong',
-		message: 'Modrinth did not confirm your account. Run /link setup in Discord to try again.',
+		message: 'Modrinth did not confirm your account. Run `/link setup` in Discord to try again.',
 	},
 }
 
 const status = ref<Status | null>(null)
 const username = ref('')
 const avatarUrl = ref<string | null>(null)
+
+function renderMessage(message: string): string {
+	return message.replace(/`([^`]+)`/g, '<code>$1</code>')
+}
 
 const result = computed(() => (status.value ? RESULTS[status.value] : null))
 const profileUrl = computed(() => `https://modrinth.com/user/${encodeURIComponent(username.value)}`)
@@ -70,7 +74,7 @@ onMounted(async () => {
 				<a :href="profileUrl" target="_blank" rel="noopener">{{ username }}</a>
 				on Modrinth.
 			</p>
-			<p v-else>{{ result.message }}</p>
+			<p v-else v-html="renderMessage(result.message ?? '')"></p>
 
 			<p class="hint">You can close this tab.</p>
 		</article>
@@ -167,6 +171,15 @@ p a {
 	color: var(--vp-c-text-1);
 	font-weight: 700;
 	text-decoration: none;
+}
+
+p :deep(code) {
+	font-size: 0.85em;
+	font-family: var(--vp-font-family-mono);
+	background-color: var(--vp-c-default-soft);
+	border-radius: 4px;
+	padding: 2px 6px;
+	color: var(--vp-c-text-1);
 }
 
 .hint {
