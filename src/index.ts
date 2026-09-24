@@ -1,5 +1,6 @@
+import './env.js'
+
 import { Client, Events, GatewayIntentBits } from 'discord.js'
-import { config } from 'dotenv'
 
 import { commands } from './commands/index.js'
 import { connectDb } from './db/index.js'
@@ -13,8 +14,6 @@ import { donatorGuildCount, guildCount } from './utils/metrics.js'
 import { postTopggStats, startTopggStats } from './utils/topgg.js'
 import { startTracking } from './utils/tracking/index.js'
 import { startWebServer } from './web/index.js'
-
-config({ quiet: true })
 
 const client = new Client({
 	intents: [
@@ -55,7 +54,7 @@ async function main() {
 	donatorGuildCount.set(await queries.countDonatorGuilds())
 
 	startTracking(readyClient)
-	startWebServer()
+	startWebServer(readyClient)
 	startHeartbeat()
 	startTopggStats(readyClient)
 

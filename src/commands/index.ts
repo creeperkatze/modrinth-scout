@@ -1,5 +1,7 @@
+import { usesAccountLinking } from '../config/accountLinking.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
+import { accountCommand } from './account.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { helpCommand } from './help.js'
@@ -26,6 +28,7 @@ export const commands: ChatInputCommand[] = [
 	userCommand,
 	organizationCommand,
 	collectionCommand,
+	...(usesAccountLinking ? [accountCommand] : []),
 	...(usesDonatorPerks ? [donateCommand] : []),
 	trackingCommand,
 	optionsCommand,

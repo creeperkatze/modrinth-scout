@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { queries } from '../../src/db/queries.js'
+import { LinkedAccountModel } from '../../src/db/schemas/linkedAccount.js'
+import { LinkStateModel } from '../../src/db/schemas/linkState.js'
 import { TrackingModel } from '../../src/db/schemas/tracking.js'
 
 let mongod: MongoMemoryServer
@@ -10,11 +12,15 @@ let mongod: MongoMemoryServer
 beforeAll(async () => {
 	mongod = await MongoMemoryServer.create()
 	await mongoose.connect(mongod.getUri())
-	await TrackingModel.init()
+	await Promise.all([TrackingModel.init(), LinkedAccountModel.init(), LinkStateModel.init()])
 }, 60_000)
 
 afterEach(async () => {
-	await TrackingModel.deleteMany({})
+	await Promise.all([
+		TrackingModel.deleteMany({}),
+		LinkedAccountModel.deleteMany({}),
+		LinkStateModel.deleteMany({}),
+	])
 })
 
 afterAll(async () => {
@@ -203,5 +209,48 @@ describe('tracked entry counts', () => {
 
 		expect(await queries.countTrackedProjects(GUILD)).toBe(1)
 		expect(await queries.countProjectsFromAuthor(GUILD, 'author-1')).toBe(2)
+	})
+})
+
+describe('link states', () => {
+	it('resolves a state to its Discord user exactly once', async () => {
+		await queries.createLinkState('state-1', 'discord-1')
+
+		expect(await queries.consumeLinkState('state-1')).toBe('discord-1')
+		expect(await queries.consumeLinkState('state-1')).toBeNull()
+	})
+
+	it('rejects unknown and expired states', async () => {
+		await LinkStateModel.create({
+			state: 'expired',
+			discordUserId: 'discord-1',
+			expiresAt: new Date(Date.now() - 1000),
+		})
+
+		expect(await queries.consumeLinkState('expired')).toBeNull()
+		expect(await queries.consumeLinkState('unknown')).toBeNull()
+	})
+})
+
+describe('linked accounts', () => {
+	it('links, relinks to a different Modrinth account, and unlinks', async () => {
+		await queries.linkAccount('discord-1', 'mr-1', 'alice')
+		await queries.linkAccount('discord-1', 'mr-2', 'bob')
+
+		const linked = await queries.getLinkedAccount('discord-1')
+		expect(linked).toMatchObject({ modrinthUserId: 'mr-2', modrinthUsername: 'bob' })
+		expect(await LinkedAccountModel.countDocuments()).toBe(1)
+
+		expect(await queries.unlinkAccount('discord-1')).toMatchObject({ modrinthUsername: 'bob' })
+		expect(await queries.unlinkAccount('discord-1')).toBeNull()
+		expect(await queries.getLinkedAccount('discord-1')).toBeNull()
+	})
+
+	it('moves a Modrinth account to whichever Discord user linked it last', async () => {
+		await queries.linkAccount('discord-1', 'mr-1', 'alice')
+		await queries.linkAccount('discord-2', 'mr-1', 'alice')
+
+		expect(await queries.getLinkedAccount('discord-1')).toBeNull()
+		expect(await queries.getLinkedAccount('discord-2')).toMatchObject({ modrinthUserId: 'mr-1' })
 	})
 })

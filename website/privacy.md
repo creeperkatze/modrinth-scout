@@ -10,12 +10,13 @@ Modrinth Scout stores minimal data required to provide project update tracking a
 
 - The Modrinth projects, users, and organizations a server chooses to track.
 
+- If you link your Modrinth account, your Discord user identifier, your Modrinth user identifier, and your Modrinth username.
+
 - Ko-fi transaction identifier, email address provided by Ko-fi, and Discord user identifier linked to the Ko-fi account to verify and activate donator perks.
 
 ## What is not collected
 
 - No message content
-- No usernames or profile information
 - No data from users who have not interacted with the bot
 
 ## How data is used
@@ -24,7 +25,7 @@ Server data is used solely to deliver update notifications to the configured cha
 
 ## Data removal
 
-Server configuration and all tracked projects and authors are removed when the bot is removed from a server. Donation records are retained as proof of donation and are not deleted.
+Server configuration and all tracked projects and authors are removed when the bot is removed from a server. A linked Modrinth account is removed when you unlink it. Donation records are retained as proof of donation and are not deleted.
 
 ## Contact
 

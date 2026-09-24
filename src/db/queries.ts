@@ -1,7 +1,10 @@
+import { LINK_STATE_TTL_MS } from '../config/accountLinking.js'
 import { VOTE_REWARD_DURATION_MS } from '../config/voteRewards.js'
 import { DonatorModel } from './schemas/donator.js'
 import type { GuildConfig, GuildOption } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
+import { LinkedAccountModel } from './schemas/linkedAccount.js'
+import { LinkStateModel } from './schemas/linkState.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
 import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
 import { VoteModel } from './schemas/vote.js'
@@ -288,4 +291,37 @@ export const queries = {
 		)
 		return link.guildId
 	},
+
+	createLinkState: (state: string, discordUserId: string) =>
+		LinkStateModel.create({
+			state,
+			discordUserId,
+			expiresAt: new Date(Date.now() + LINK_STATE_TTL_MS),
+		}),
+
+	// Single-use: returns the Discord user who started the flow, or null if unknown/expired/used.
+	// The TTL index only sweeps about once a minute, so expiry is also checked here
+	consumeLinkState: async (state: string): Promise<string | null> => {
+		const doc = await LinkStateModel.findOneAndDelete({
+			state,
+			expiresAt: { $gt: new Date() },
+		}).lean()
+		return doc?.discordUserId ?? null
+	},
+
+	getLinkedAccount: (discordUserId: string) => LinkedAccountModel.findOne({ discordUserId }).lean(),
+
+	// A Modrinth account can only be linked to one Discord user, whoever proved ownership last wins
+	linkAccount: async (discordUserId: string, modrinthUserId: string, modrinthUsername: string) => {
+		await LinkedAccountModel.deleteMany({ modrinthUserId, discordUserId: { $ne: discordUserId } })
+		await LinkedAccountModel.updateOne(
+			{ discordUserId },
+			{ $set: { modrinthUserId, modrinthUsername } },
+			{ upsert: true },
+		)
+	},
+
+	// Returns the removed link, or null if there was none
+	unlinkAccount: (discordUserId: string) =>
+		LinkedAccountModel.findOneAndDelete({ discordUserId }).lean(),
 }

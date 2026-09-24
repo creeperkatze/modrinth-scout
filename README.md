@@ -49,6 +49,12 @@ The `/help` command shows:
 - `/tracking disable` · Disable tracking and remove all tracked projects and authors
 - `/tracking help` · Explain how tracking, overrides, and authors work
 
+### Account
+
+- `/account link` · Link your Modrinth account to your Discord account
+- `/account unlink` · Unlink your Modrinth account
+- `/account status` · Show which Modrinth account is linked
+
 ### Donate
 
 - `/donate info` · Show Ko-fi donation info and perks

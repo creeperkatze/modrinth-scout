@@ -10,10 +10,12 @@ import {
 	SlashCommandBuilder,
 } from 'discord.js'
 
+import { usesAccountLinking } from '../config/accountLinking.js'
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
+import { accountCommand } from './account.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { identifyCommand } from './identify.js'
@@ -110,6 +112,9 @@ const sections: Section[] = [
 		heading: 'Tracking',
 		entries: moveGroupAfter(toSubcommandEntries(trackingCommand), 'tracking remove'),
 	},
+	...(usesAccountLinking
+		? [{ heading: 'Account', entries: toSubcommandEntries(accountCommand) } satisfies Section]
+		: []),
 	...(usesDonatorPerks
 		? [{ heading: 'Donate', entries: toSubcommandEntries(donateCommand) } satisfies Section]
 		: []),
