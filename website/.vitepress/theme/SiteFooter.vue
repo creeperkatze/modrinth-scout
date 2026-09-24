@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import HeartIcon from './icons/heart.svg'
+import { HeartIcon } from '@lucide/vue'
 </script>
 
 <template>
@@ -7,7 +7,7 @@ import HeartIcon from './icons/heart.svg'
 		<div class="footer-inner">
 			<p class="footer-text">
 				Made with
-				<HeartIcon class="heart-icon" />
+				<HeartIcon class="heart-icon" :stroke-width="2.5" />
 				by
 				<a
 					href="https://github.com/creeperkatze"

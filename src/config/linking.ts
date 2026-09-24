@@ -4,5 +4,7 @@ export const usesLinking = Boolean(
 	process.env.MODRINTH_OAUTH_REDIRECT_URI?.trim(),
 )
 
-// How long a /link setup button stays usable before the user has to run the command again
+export const WEBSITE_URL = (process.env.WEBSITE_URL?.trim() ?? '').replace(/\/$/, '')
+
+// How long a link setup stays usable before the user has to run the command again
 export const LINK_STATE_TTL_MS = 10 * 60 * 1000 // 10 minutes

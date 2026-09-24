@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import HeartIcon from './icons/heart.svg'
+import { HeartIcon } from '@lucide/vue'
 </script>
 
 <template>
@@ -10,7 +10,7 @@ import HeartIcon from './icons/heart.svg'
 		class="donate-button"
 		aria-label="Donate on Ko-fi"
 	>
-		<HeartIcon class="heart-icon" />
+		<HeartIcon class="heart-icon" :stroke-width="2.5" />
 		Donate
 	</a>
 </template>

@@ -10,7 +10,7 @@ import { pinoHttp } from 'pino-http'
 import { handleAccountLinked } from '../commands/link.js'
 import { usesBetterStack } from '../config/betterstack.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
-import { usesLinking } from '../config/linking.js'
+import { usesLinking, WEBSITE_URL } from '../config/linking.js'
 import { usesVoteRewards } from '../config/voteRewards.js'
 import { queries } from '../db/queries.js'
 import { fetchUserFromCode } from '../utils/api/modrinthOAuth.js'
@@ -28,18 +28,6 @@ function isAuthorizedMetricsRequest(authHeader: string | undefined, token: strin
 	const provided = Buffer.from(authHeader.slice('Bearer '.length))
 	const expected = Buffer.from(token)
 	return provided.length === expected.length && timingSafeEqual(provided, expected)
-}
-
-function escapeHtml(value: string): string {
-	return value.replace(
-		/[&<>"']/g,
-		(c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-	)
-}
-
-// Shown in the browser tab Modrinth redirects back to
-function linkResultPage(title: string, message: string): string {
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)} | Modrinth Scout</title><style>body{font-family:system-ui,sans-serif;background:#16181c;color:#e6e6e6;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px;box-sizing:border-box;text-align:center}main{max-width:420px}h1{font-size:1.5rem}</style></head><body><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p></main></body></html>`
 }
 
 interface KofiPayload {
@@ -167,30 +155,20 @@ export function startWebServer(client: Client) {
 	}
 
 	if (usesLinking) {
+		// Results are shown on the website
+		const redirectToResult = (res: express.Response, params: Record<string, string>) =>
+			res.redirect(`${WEBSITE_URL}/linked?${new URLSearchParams(params)}`)
+
 		app.get('/api/modrinth/callback', async (req, res) => {
 			const { code, state } = req.query
 			if (typeof code !== 'string' || typeof state !== 'string') {
-				res
-					.status(400)
-					.send(
-						linkResultPage(
-							'Linking cancelled',
-							'No account was linked. Run /link setup in Discord to try again.',
-						),
-					)
+				redirectToResult(res, { status: 'cancelled' })
 				return
 			}
 
 			const discordUserId = await queries.consumeLinkState(state)
 			if (!discordUserId) {
-				res
-					.status(400)
-					.send(
-						linkResultPage(
-							'Link expired',
-							'This link has expired or was already used. Run /link setup in Discord to get a new one.',
-						),
-					)
+				redirectToResult(res, { status: 'expired' })
 				return
 			}
 
@@ -199,25 +177,13 @@ export function startWebServer(client: Client) {
 				user = await fetchUserFromCode(code)
 			} catch (err) {
 				req.log.error({ err, discordUserId }, 'Modrinth OAuth exchange failed')
-				res
-					.status(502)
-					.send(
-						linkResultPage(
-							'Something went wrong',
-							'Modrinth did not confirm your account. Run /link setup in Discord to try again.',
-						),
-					)
+				redirectToResult(res, { status: 'error' })
 				return
 			}
 
 			const displaced = await queries.linkAccount(discordUserId, user.id, user.username)
 			req.log.info({ discordUserId, modrinthUserId: user.id }, 'Modrinth account linked')
-			res.send(
-				linkResultPage(
-					'Account linked',
-					`Your Discord account is now linked to ${user.username} on Modrinth. You can close this tab.`,
-				),
-			)
+			redirectToResult(res, { status: 'success', username: user.username })
 			await handleAccountLinked(client, discordUserId, user, displaced)
 		})
 	}
