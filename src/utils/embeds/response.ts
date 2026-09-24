@@ -9,5 +9,5 @@ export function error(description: string) {
 }
 
 export function info(description: string) {
-	return new EmbedBuilder().setDescription(description).setColor(0xff5e5b)
+	return new EmbedBuilder().setDescription(description).setColor(0x1bd96a)
 }

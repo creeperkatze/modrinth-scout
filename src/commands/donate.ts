@@ -34,6 +34,9 @@ const kofiIcon = new AttachmentBuilder(join(__dirname, '../assets/brand/kofi.png
 })
 
 const KOFI_URL = 'https://ko-fi.com/creeperkatze'
+const KOFI_COLOR = 0xff5e5b
+
+const kofiInfo = (description: string) => info(description).setColor(KOFI_COLOR)
 
 const donatorPerks = () =>
 	[
@@ -54,7 +57,7 @@ export function buildDonateInfoReply() {
 			}`,
 		)
 		.setThumbnail('attachment://kofi.png')
-		.setColor(0xff5e5b)
+		.setColor(KOFI_COLOR)
 
 	const button = new ButtonBuilder()
 		.setLabel('Donate on Ko-fi')
@@ -115,7 +118,7 @@ export const donateCommand: ChatInputCommand = {
 
 			await interaction.reply({
 				embeds: [
-					info(
+					kofiInfo(
 						`### Donations\n${description}\n\nThank you for helping keep Modrinth Scout running! ❤️`,
 					),
 				],
@@ -161,7 +164,7 @@ export const donateCommand: ChatInputCommand = {
 			}
 			if (result === 'already_active') {
 				await interaction.reply({
-					embeds: [info('This server already has **donator perks** active.')],
+					embeds: [kofiInfo('This server already has **donator perks** active.')],
 					flags: 'Ephemeral',
 				})
 				return
@@ -171,7 +174,7 @@ export const donateCommand: ChatInputCommand = {
 
 			await interaction.reply({
 				embeds: [
-					info(
+					kofiInfo(
 						`**Donator perks** activated! This server now has the following perks:\n${donatorPerks()}\n\n${
 							showPublicly
 								? 'You will appear in `/donate list`.'
@@ -190,7 +193,7 @@ export const donateCommand: ChatInputCommand = {
 			if (config?.isDonator) {
 				await interaction.reply({
 					embeds: [
-						info(
+						kofiInfo(
 							`This server has **donator perks**:\n${donatorPerks()}\n\nThank you for your support!`,
 						),
 					],
@@ -203,7 +206,7 @@ export const donateCommand: ChatInputCommand = {
 				const expiresAt = config?.voteRewardExpiresAt
 				await interaction.reply({
 					embeds: [
-						info(
+						kofiInfo(
 							`This server currently has **donator perks** from voting on top.gg:\n${donatorPerks()}\n\n${
 								expiresAt
 									? `They expire ${formatDiscordDate(expiresAt, 'R')} unless someone votes again.`
@@ -218,7 +221,7 @@ export const donateCommand: ChatInputCommand = {
 
 			await interaction.reply({
 				embeds: [
-					info(
+					kofiInfo(
 						`This server doesn't have **donator perks**:\n${donatorPerks()}.\n\nDonate on Ko-fi with \`/donate info\`, or vote on top.gg with \`/vote\` for temporary perks.`,
 					),
 				],
