@@ -47,7 +47,7 @@ export async function handleAccountLinked(
 	displaced: string[],
 ) {
 	const embed = success(
-		`Your Discord account is now linked to ${userLink(user.username)} on Modrinth.\n\nUse \`/link remove\` to undo this at any time.`,
+		`Your Discord account is now linked to ${userLink(user.username)} on Modrinth.`,
 	)
 	if (user.avatar_url) embed.setThumbnail(user.avatar_url)
 	await notifyByDm(client, discordUserId, embed)
@@ -68,11 +68,7 @@ export async function buildLinkReply(discordUserId: string) {
 	if (emojiRefs['modrinth']) button.setEmoji(emojiRefs['modrinth'])
 
 	return {
-		embeds: [
-			info(
-				'Click the button below to sign in with Modrinth and link your account. The button expires in 10 minutes.\n\nModrinth Scout only reads your public profile to confirm who you are.',
-			),
-		],
+		embeds: [info('Sign in with Modrinth to link your account. The button expires in 10 minutes.')],
 		components: [new ActionRowBuilder<ButtonBuilder>().addComponents(button)],
 	}
 }

@@ -113,9 +113,7 @@ async function handleAdd(interaction: GuildInteraction) {
 	if (!role.editable) {
 		await interaction.reply({
 			embeds: [
-				error(
-					`I can't manage ${role}. Give me the **Manage Roles** permission and move my role above it in the server's role list. Roles managed by integrations can't be used.`,
-				),
+				error(`I can't manage ${role}. Give me **Manage Roles** and move my role above it.`),
 			],
 			flags: 'Ephemeral',
 		})
@@ -166,9 +164,7 @@ async function handleRemove(interaction: GuildInteraction) {
 	await interaction.reply({
 		embeds: [
 			removed
-				? success(
-						`${role} was removed from \`/roles\`. Members who already have it keep it until you remove it.`,
-					)
+				? success(`${role} was removed from \`/roles\`.`)
 				: error(`${role} isn't set up with \`/roles\`.`),
 		],
 		flags: 'Ephemeral',
@@ -186,9 +182,7 @@ async function handleList(interaction: GuildInteraction) {
 	const embed = new EmbedBuilder()
 		.setTitle('Roles')
 		.setDescription(
-			lines.length > 0
-				? `${lines.join('\n')}\n\nUse \`/roles get\` to get the roles you qualify for.`
-				: "This server hasn't set up any roles yet.",
+			lines.length > 0 ? lines.join('\n') : "This server hasn't set up any roles yet.",
 		)
 		.setColor(0x1bd96a)
 
@@ -221,13 +215,12 @@ async function handleGet(interaction: GuildInteraction) {
 
 	const { added, removed } = await syncMemberRoles(interaction.member, rules, linked.modrinthUserId)
 
-	const account = `**${linked.modrinthUsername}** on Modrinth`
 	const lines = [...added.map((id) => `+ <@&${id}>`), ...removed.map((id) => `− <@&${id}>`)]
 	await interaction.editReply({
 		embeds: [
 			lines.length > 0
-				? success(`Linked as ${account}. Your roles were updated:\n${lines.join('\n')}`)
-				: info(`Linked as ${account}. Your roles are already up to date.`),
+				? success(`Your roles were updated:\n${lines.join('\n')}`)
+				: info('Your roles are already up to date.'),
 		],
 	})
 }
@@ -248,9 +241,7 @@ function buildManagePayload(guild: Guild, rules: RoleRule[], limit: number, requ
 
 	if (rules.length === 0) {
 		container.addTextDisplayComponents(
-			new TextDisplayBuilder().setContent(
-				'No roles yet. Use `/roles add` to add one.\nMembers link their Modrinth account and get the roles they qualify for.',
-			),
+			new TextDisplayBuilder().setContent('No roles yet. Use `/roles add` to add one.'),
 		)
 		return { components: [container], flags: ['IsComponentsV2'] as const }
 	}
