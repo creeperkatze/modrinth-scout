@@ -15,10 +15,10 @@ import { usesDonatorPerks } from '../config/donatorPerks.js'
 import { usesLinking } from '../config/linking.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { emojiRefs } from '../utils/emojis.js'
+import { accountCommand } from './account.js'
 import { collectionCommand } from './collection.js'
 import { donateCommand } from './donate.js'
 import { identifyCommand } from './identify.js'
-import { linkCommand } from './link.js'
 import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
@@ -115,7 +115,7 @@ const sections: Section[] = [
 	},
 	...(usesLinking
 		? [
-				{ heading: 'Account', entries: toSubcommandEntries(linkCommand) } satisfies Section,
+				{ heading: 'Account', entries: toSubcommandEntries(accountCommand) } satisfies Section,
 				{
 					heading: 'Roles',
 					entries: toSubcommandEntries(rolesCommand),

@@ -8,16 +8,16 @@ const RESULTS: Record<Status, { title: string; message?: string }> = {
 	success: { title: 'Account linked' },
 	cancelled: {
 		title: 'Linking cancelled',
-		message: 'No account was linked. Run `/link setup` in Discord to try again.',
+		message: 'No account was linked. Run `/account link` in Discord to try again.',
 	},
 	expired: {
 		title: 'Link expired',
 		message:
-			'This link has expired or was already used. Run `/link setup` in Discord to get a new one.',
+			'This link has expired or was already used. Run `/account link` in Discord to get a new one.',
 	},
 	error: {
 		title: 'Something went wrong',
-		message: 'Modrinth did not confirm your account. Run `/link setup` in Discord to try again.',
+		message: 'Modrinth did not confirm your account. Run `/account link` in Discord to try again.',
 	},
 }
 

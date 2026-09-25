@@ -51,9 +51,9 @@ The `/help` command shows:
 
 ### Account
 
-- `/link setup` · Link your Modrinth account to your Discord account
-- `/link remove` · Unlink your Modrinth account
-- `/link status` · Show which Modrinth account is linked
+- `/account link` · Link your Modrinth account to your Discord account
+- `/account unlink` · Unlink your Modrinth account
+- `/account status` · Show which Modrinth account is linked
 
 ### Roles
 

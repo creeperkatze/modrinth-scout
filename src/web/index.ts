@@ -7,7 +7,7 @@ import type { Client } from 'discord.js'
 import express from 'express'
 import { pinoHttp } from 'pino-http'
 
-import { handleAccountLinked } from '../commands/link.js'
+import { handleAccountLinked } from '../commands/account.js'
 import { usesBetterStack } from '../config/betterstack.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'
 import { usesLinking, WEBSITE_URL } from '../config/linking.js'

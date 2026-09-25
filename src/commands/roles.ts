@@ -29,7 +29,7 @@ import { BADGE_LABELS, buildRolesHelp, error, info, success } from '../utils/emb
 import { createModuleLogger } from '../utils/logger.js'
 import { describeRule, syncMemberRoles } from '../utils/roles.js'
 import { parseModrinthUrl } from '../utils/url.js'
-import { buildLinkReply } from './link.js'
+import { buildLinkReply } from './account.js'
 
 const log = createModuleLogger('roles')
 

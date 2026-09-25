@@ -1,6 +1,6 @@
 import { InferSchemaType, model, Schema } from 'mongoose'
 
-// /link setup sign-ins in progress, keyed by the `state` param sent to Modrinth.
+// /account link sign-ins in progress, keyed by the `state` param sent to Modrinth.
 // Single-use, expired by TTL index
 const pendingLinkSchema = new Schema(
 	{

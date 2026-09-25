@@ -27,7 +27,7 @@ export const profileContextMenu: UserContextMenuCommand = {
 		if (!linked) {
 			const message =
 				target.id === interaction.user.id
-					? "You don't have a linked Modrinth account. Use `/link setup` to link one."
+					? "You don't have a linked Modrinth account. Use `/account link` to link one."
 					: `${target} hasn't linked a Modrinth account.`
 			await interaction.reply({ embeds: [info(message)], flags: 'Ephemeral' })
 			return

@@ -24,7 +24,7 @@ import { formatDiscordDate } from '../utils/time.js'
 
 const MODRINTH_GREEN = 0x1bd96a
 
-const log = createModuleLogger('link')
+const log = createModuleLogger('account')
 
 function userLink(username: string): string {
 	return authorLink({ name: username, slug: username, kind: 'user' })
@@ -103,7 +103,7 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
 	const linked = await queries.getLinkedAccount(interaction.user.id)
 	if (!linked) {
 		await interaction.reply({
-			embeds: [info("You don't have a linked Modrinth account. Use `/link setup` to link one.")],
+			embeds: [info("You don't have a linked Modrinth account. Use `/account link` to link one.")],
 			flags: 'Ephemeral',
 		})
 		return
@@ -121,29 +121,29 @@ async function handleStatus(interaction: ChatInputCommandInteraction) {
 	await interaction.reply({ embeds: [embed], flags: 'Ephemeral' })
 }
 
-export const linkCommand: ChatInputCommand = {
+export const accountCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
-		.setName('link')
+		.setName('account')
 		.setDescription('Manage your linked Modrinth account')
 		.addSubcommand((sub) =>
-			sub.setName('setup').setDescription('Link your Modrinth account to your Discord account'),
+			sub.setName('link').setDescription('Link your Modrinth account to your Discord account'),
 		)
-		.addSubcommand((sub) => sub.setName('remove').setDescription('Unlink your Modrinth account'))
+		.addSubcommand((sub) => sub.setName('unlink').setDescription('Unlink your Modrinth account'))
 		.addSubcommand((sub) =>
 			sub.setName('status').setDescription('Show which Modrinth account is linked'),
 		)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
-		name: 'link',
+		name: 'account',
 		description: 'Manage your linked Modrinth account',
 		category: 'general',
 		cooldownSeconds: 5,
 	},
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand()
-		if (sub === 'setup') await handleLink(interaction)
-		else if (sub === 'remove') await handleUnlink(interaction)
+		if (sub === 'link') await handleLink(interaction)
+		else if (sub === 'unlink') await handleUnlink(interaction)
 		else await handleStatus(interaction)
 	},
 }
