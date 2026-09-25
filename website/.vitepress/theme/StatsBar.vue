@@ -10,6 +10,13 @@ interface Stats {
 
 const stats = ref<Stats | null>(null)
 
+// Truncate instead of rounding so e.g. 99.996% never displays as 100.00%
+const uptimeFormat = new Intl.NumberFormat('en-US', {
+	minimumFractionDigits: 2,
+	maximumFractionDigits: 2,
+	roundingMode: 'trunc',
+})
+
 onMounted(async () => {
 	try {
 		const res = await fetch('/api/stats')
@@ -28,7 +35,7 @@ const cards = computed(() => {
 		{ label: 'Tracked Authors', value: stats.value.trackedAuthors.toLocaleString() },
 	]
 	if (stats.value.uptime !== null) {
-		list.push({ label: 'Uptime', value: `${stats.value.uptime.toFixed(2)}%` })
+		list.push({ label: 'Uptime', value: `${uptimeFormat.format(stats.value.uptime)}%` })
 	}
 	return list
 })
