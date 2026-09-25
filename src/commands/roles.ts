@@ -193,7 +193,7 @@ async function handleList(interaction: GuildInteraction) {
 async function handleGet(interaction: GuildInteraction) {
 	const [config, linked] = await Promise.all([
 		queries.getGuildConfig(interaction.guildId),
-		queries.getLinkedAccount(interaction.user.id),
+		queries.getAccount(interaction.user.id),
 	])
 
 	// Roles are granted automatically once the OAuth callback stores the link

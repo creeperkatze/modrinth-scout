@@ -23,7 +23,7 @@ export const profileContextMenu: UserContextMenuCommand = {
 
 	async execute(interaction) {
 		const target = interaction.targetUser
-		const linked = await queries.getLinkedAccount(target.id)
+		const linked = await queries.getAccount(target.id)
 		if (!linked) {
 			const message =
 				target.id === interaction.user.id

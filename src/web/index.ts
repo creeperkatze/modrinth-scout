@@ -166,7 +166,7 @@ export function startWebServer(client: Client) {
 				return
 			}
 
-			const discordUserId = await queries.consumePendingLink(state)
+			const discordUserId = await queries.consumePendingAccount(state)
 			if (!discordUserId) {
 				redirectToResult(res, { status: 'expired' })
 				return

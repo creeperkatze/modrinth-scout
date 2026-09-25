@@ -59,7 +59,7 @@ export async function handleAccountLinked(
 // Also used by /roles get when the member hasn't linked yet
 export async function buildLinkReply(discordUserId: string) {
 	const state = randomBytes(32).toString('base64url')
-	await queries.createPendingLink(state, discordUserId)
+	await queries.createPendingAccount(state, discordUserId)
 
 	const button = new ButtonBuilder()
 		.setLabel('Link with Modrinth')
@@ -100,7 +100,7 @@ async function handleUnlink(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleStatus(interaction: ChatInputCommandInteraction) {
-	const linked = await queries.getLinkedAccount(interaction.user.id)
+	const linked = await queries.getAccount(interaction.user.id)
 	if (!linked) {
 		await interaction.reply({
 			embeds: [info("You don't have a linked Modrinth account. Use `/account link` to link one.")],

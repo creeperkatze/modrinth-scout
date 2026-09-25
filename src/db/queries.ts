@@ -1,10 +1,10 @@
-import { PENDING_LINK_TTL_MS } from '../config/linking.js'
+import { PENDING_ACCOUNT_TTL_MS } from '../config/linking.js'
 import { VOTE_REWARD_DURATION_MS } from '../config/voteRewards.js'
+import { AccountModel } from './schemas/account.js'
 import { DonatorModel } from './schemas/donator.js'
 import type { GuildConfig, GuildOption, RoleRule } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
-import { LinkModel } from './schemas/link.js'
-import { PendingLinkModel } from './schemas/pendingLink.js'
+import { PendingAccountModel } from './schemas/pendingAccount.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
 import { AUTHOR_KINDS, TrackingModel } from './schemas/tracking.js'
 import { VoteModel } from './schemas/vote.js'
@@ -294,24 +294,24 @@ export const queries = {
 		return link.guildId
 	},
 
-	createPendingLink: (state: string, discordUserId: string) =>
-		PendingLinkModel.create({
+	createPendingAccount: (state: string, discordUserId: string) =>
+		PendingAccountModel.create({
 			state,
 			discordUserId,
-			expiresAt: new Date(Date.now() + PENDING_LINK_TTL_MS),
+			expiresAt: new Date(Date.now() + PENDING_ACCOUNT_TTL_MS),
 		}),
 
 	// Single-use: returns the Discord user who started the flow, or null if unknown/expired/used.
 	// The TTL index only sweeps about once a minute, so expiry is also checked here
-	consumePendingLink: async (state: string): Promise<string | null> => {
-		const doc = await PendingLinkModel.findOneAndDelete({
+	consumePendingAccount: async (state: string): Promise<string | null> => {
+		const doc = await PendingAccountModel.findOneAndDelete({
 			state,
 			expiresAt: { $gt: new Date() },
 		}).lean()
 		return doc?.discordUserId ?? null
 	},
 
-	getLinkedAccount: (discordUserId: string) => LinkModel.findOne({ discordUserId }).lean(),
+	getAccount: (discordUserId: string) => AccountModel.findOne({ discordUserId }).lean(),
 
 	// A Modrinth account can only be linked to one Discord user, whoever proved ownership last wins.
 	// Returns the Discord users who lost the link, so their roles can be revoked
@@ -320,12 +320,12 @@ export const queries = {
 		modrinthUserId: string,
 		modrinthUsername: string,
 	): Promise<string[]> => {
-		const displaced = await LinkModel.find(
+		const displaced = await AccountModel.find(
 			{ modrinthUserId, discordUserId: { $ne: discordUserId } },
 			{ discordUserId: 1 },
 		).lean()
-		await LinkModel.deleteMany({ modrinthUserId, discordUserId: { $ne: discordUserId } })
-		await LinkModel.updateOne(
+		await AccountModel.deleteMany({ modrinthUserId, discordUserId: { $ne: discordUserId } })
+		await AccountModel.updateOne(
 			{ discordUserId },
 			{ $set: { modrinthUserId, modrinthUsername } },
 			{ upsert: true },
@@ -334,7 +334,7 @@ export const queries = {
 	},
 
 	// Returns the removed link, or null if there was none
-	unlinkAccount: (discordUserId: string) => LinkModel.findOneAndDelete({ discordUserId }).lean(),
+	unlinkAccount: (discordUserId: string) => AccountModel.findOneAndDelete({ discordUserId }).lean(),
 
 	// Replaces any existing rule for the same role
 	setRole: async (guildId: string, rule: RoleRule) => {

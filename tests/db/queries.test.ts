@@ -3,10 +3,10 @@ import mongoose from 'mongoose'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { queries } from '../../src/db/queries.js'
+import { AccountModel } from '../../src/db/schemas/account.js'
 import type { RoleRule } from '../../src/db/schemas/guild.js'
 import { GuildConfigModel } from '../../src/db/schemas/guild.js'
-import { LinkModel } from '../../src/db/schemas/link.js'
-import { PendingLinkModel } from '../../src/db/schemas/pendingLink.js'
+import { PendingAccountModel } from '../../src/db/schemas/pendingAccount.js'
 import { TrackingModel } from '../../src/db/schemas/tracking.js'
 
 let mongod: MongoMemoryServer
@@ -14,14 +14,14 @@ let mongod: MongoMemoryServer
 beforeAll(async () => {
 	mongod = await MongoMemoryServer.create()
 	await mongoose.connect(mongod.getUri())
-	await Promise.all([TrackingModel.init(), LinkModel.init(), PendingLinkModel.init()])
+	await Promise.all([TrackingModel.init(), AccountModel.init(), PendingAccountModel.init()])
 }, 60_000)
 
 afterEach(async () => {
 	await Promise.all([
 		TrackingModel.deleteMany({}),
-		LinkModel.deleteMany({}),
-		PendingLinkModel.deleteMany({}),
+		AccountModel.deleteMany({}),
+		PendingAccountModel.deleteMany({}),
 		GuildConfigModel.deleteMany({}),
 	])
 })
@@ -217,21 +217,21 @@ describe('tracked entry counts', () => {
 
 describe('link states', () => {
 	it('resolves a state to its Discord user exactly once', async () => {
-		await queries.createPendingLink('state-1', 'discord-1')
+		await queries.createPendingAccount('state-1', 'discord-1')
 
-		expect(await queries.consumePendingLink('state-1')).toBe('discord-1')
-		expect(await queries.consumePendingLink('state-1')).toBeNull()
+		expect(await queries.consumePendingAccount('state-1')).toBe('discord-1')
+		expect(await queries.consumePendingAccount('state-1')).toBeNull()
 	})
 
 	it('rejects unknown and expired states', async () => {
-		await PendingLinkModel.create({
+		await PendingAccountModel.create({
 			state: 'expired',
 			discordUserId: 'discord-1',
 			expiresAt: new Date(Date.now() - 1000),
 		})
 
-		expect(await queries.consumePendingLink('expired')).toBeNull()
-		expect(await queries.consumePendingLink('unknown')).toBeNull()
+		expect(await queries.consumePendingAccount('expired')).toBeNull()
+		expect(await queries.consumePendingAccount('unknown')).toBeNull()
 	})
 })
 
@@ -240,21 +240,21 @@ describe('linked accounts', () => {
 		await queries.linkAccount('discord-1', 'mr-1', 'alice')
 		await queries.linkAccount('discord-1', 'mr-2', 'bob')
 
-		const linked = await queries.getLinkedAccount('discord-1')
+		const linked = await queries.getAccount('discord-1')
 		expect(linked).toMatchObject({ modrinthUserId: 'mr-2', modrinthUsername: 'bob' })
-		expect(await LinkModel.countDocuments()).toBe(1)
+		expect(await AccountModel.countDocuments()).toBe(1)
 
 		expect(await queries.unlinkAccount('discord-1')).toMatchObject({ modrinthUsername: 'bob' })
 		expect(await queries.unlinkAccount('discord-1')).toBeNull()
-		expect(await queries.getLinkedAccount('discord-1')).toBeNull()
+		expect(await queries.getAccount('discord-1')).toBeNull()
 	})
 
 	it('moves a Modrinth account to whichever Discord user linked it last', async () => {
 		expect(await queries.linkAccount('discord-1', 'mr-1', 'alice')).toEqual([])
 		expect(await queries.linkAccount('discord-2', 'mr-1', 'alice')).toEqual(['discord-1'])
 
-		expect(await queries.getLinkedAccount('discord-1')).toBeNull()
-		expect(await queries.getLinkedAccount('discord-2')).toMatchObject({ modrinthUserId: 'mr-1' })
+		expect(await queries.getAccount('discord-1')).toBeNull()
+		expect(await queries.getAccount('discord-2')).toMatchObject({ modrinthUserId: 'mr-1' })
 	})
 })
 
