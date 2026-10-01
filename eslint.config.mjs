@@ -44,6 +44,7 @@ export default tseslint.config(
 				document: 'readonly',
 				localStorage: 'readonly',
 				navigator: 'readonly',
+				KeyboardEvent: 'readonly',
 			},
 		},
 	},

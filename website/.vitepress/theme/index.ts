@@ -1,28 +1,34 @@
 /* eslint-disable simple-import-sort/imports */
 
-import { h } from 'vue'
-import DefaultTheme from 'vitepress/theme'
+import { createTheme, messagesFromGlob } from '../shared/theme'
 
-import DonateButton from './DonateButton.vue'
-import HeroLogo from './HeroLogo.vue'
-import Showcase from './Showcase.vue'
-import SiteFooter from './SiteFooter.vue'
-import StatsBar from './StatsBar.vue'
+import Logo from './icons/logo.svg?skipsvgo'
+import { loadStats } from './stats'
 import VersionLabel from './VersionLabel.vue'
+// Must come after the theme so the brand colors win
 import './custom.css'
 
-export default {
-	extends: DefaultTheme,
-	Layout() {
-		return h(DefaultTheme.Layout, null, {
-			'nav-bar-content-after': () => h(DonateButton),
-			'home-hero-info-before': () => h(HeroLogo),
-			'home-features-before': () => h(StatsBar),
-			'home-features-after': () => h(Showcase),
-			'layout-bottom': () => h(SiteFooter),
-		})
-	},
+export default createTheme({
+	messages: messagesFromGlob(
+		import.meta.glob('../../src/locales/*.json', { eager: true, import: 'default' }),
+	),
+	logo: Logo,
+	stats: loadStats,
+	showcase: [
+		{ key: 'project', image: '/screenshots/project.png' },
+		{ key: 'user', image: '/screenshots/user.png' },
+		{ key: 'organization', image: '/screenshots/organization.png' },
+		{ key: 'tracking', image: '/screenshots/tracking.png' },
+		{ key: 'identify', image: '/screenshots/identify.png' },
+		{ key: 'options', image: '/screenshots/options.png' },
+		{ key: 'donate', image: '/screenshots/donate.png' },
+	],
+	showcaseFit: 'contain',
+	footerLinks: [
+		{ key: 'footer.privacy', link: '/privacy' },
+		{ key: 'footer.terms', link: '/terms' },
+	],
 	enhanceApp({ app }) {
 		app.component('VersionLabel', VersionLabel)
 	},
-}
+})

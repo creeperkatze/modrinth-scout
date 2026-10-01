@@ -1,0 +1,49 @@
+{
+	"meta": {
+		"summary": "A Discord bot for discovering, exploring, and tracking projects on Modrinth.",
+		"feature": {
+			"project": {
+				"title": "Every project detail, right in Discord",
+				"description": "`/project` brings up downloads, followers, versions, loaders, and categories, with buttons straight to the source, wiki, issues, and Discord."
+			},
+			"user": {
+				"title": "Look up any creator",
+				"description": "`/user` shows a profile, badges, and top projects at a glance, so you never have to leave Discord to check who made something."
+			},
+			"organization": {
+				"title": "Or the whole team behind it",
+				"description": "`/organization` does the same for teams, with combined download counts and their most popular projects."
+			},
+			"tracking": {
+				"title": "One dashboard for everything you track",
+				"description": "`/tracking manage` lets you pause notifications, set the channel and ping role, and track whole authors, so every new project they publish gets picked up automatically."
+			},
+			"identify": {
+				"title": "Identify a mod by its file",
+				"description": "Drop a .jar into `/identify` and get back the exact Modrinth project and version it came from."
+			},
+			"options": {
+				"title": "Turn features on or off, per server",
+				"description": "`/options` controls auto-embeds for plain Modrinth links, jar identification in chat, and changelog summaries."
+			},
+			"donate": {
+				"title": "Support development, unlock perks",
+				"description": "Modrinth Scout is free to use. Donating on Ko-fi raises your tracking limits and speeds up update checks."
+			}
+		}
+	},
+	"nav": {
+		"status": "Status"
+	},
+	"stats": {
+		"servers": "Servers",
+		"trackedProjects": "Tracked Projects",
+		"trackedAuthors": "Tracked Authors",
+		"uptime": "Uptime"
+	},
+	"footer": {
+		"notAffiliated": "Not affiliated with Modrinth",
+		"privacy": "Privacy",
+		"terms": "Terms"
+	}
+}

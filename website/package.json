@@ -10,7 +10,9 @@
     },
     "dependencies": {
         "@lucide/vue": "^1.47.0",
-        "vue": "^3.5.42"
+        "intl-messageformat": "^12.1.2",
+        "vue": "^3.5.42",
+        "vue-i18n": "^11.4.12"
     },
     "devDependencies": {
         "vite-svg-loader": "^5.1.3",
