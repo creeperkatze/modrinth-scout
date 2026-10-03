@@ -5,7 +5,7 @@
 
     handle {
         root * /srv
-        try_files {path}.html {path} /index.html
+        try_files {path}.html {path}/index.html {path} /index.html
         file_server
     }
 }
