@@ -19,7 +19,7 @@ A Discord bot for discovering, exploring and tracking projects on Modrinth.
 
 [**Add the bot**](https://discord.com/oauth2/authorize?client_id=1496760658732122152&scope=bot%20applications.commands&permissions=268435456), then run `/help` to see all available commands.
 
-Prefer to run your own instance? See [Self-hosting](#-self-hosting) below.
+Prefer to run your own instance? See [🚀 Self-hosting](#-self-hosting) below.
 
 ## ✨ Commands
 
