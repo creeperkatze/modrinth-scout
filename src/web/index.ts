@@ -5,6 +5,7 @@ import type { VoteCreatePayload } from '@top-gg/sdk'
 import { Webhook } from '@top-gg/sdk'
 import type { Client } from 'discord.js'
 import express from 'express'
+import { rateLimit } from 'express-rate-limit'
 import { pinoHttp } from 'pino-http'
 
 import { handleAccountLinked } from '../commands/account.js'
@@ -45,6 +46,8 @@ interface KofiPayload {
 export function startWebServer(client: Client) {
 	const app = express()
 	app.disable('x-powered-by')
+	// Behind Caddy on the Docker network, so trust it for the client IP
+	app.set('trust proxy', 'loopback, uniquelocal')
 	app.use(
 		pinoHttp({
 			logger: log,
@@ -59,7 +62,16 @@ export function startWebServer(client: Client) {
 	const port = parseInt(process.env.PORT ?? '3000')
 	const metricsToken = process.env.METRICS_TOKEN
 
-	app.get('/api/metrics', async (req, res) => {
+	// Webhooks are left out, top.gg and Ko-fi can burst from a single IP
+	const limiter = rateLimit({
+		windowMs: 60_000,
+		limit: 30,
+		standardHeaders: 'draft-8',
+		legacyHeaders: false,
+		message: { error: 'rate_limited' },
+	})
+
+	app.get('/api/metrics', limiter, async (req, res) => {
 		if (!metricsToken || !isAuthorizedMetricsRequest(req.headers.authorization, metricsToken)) {
 			res.status(401).json({ error: 'unauthorized' })
 			return
@@ -68,7 +80,7 @@ export function startWebServer(client: Client) {
 		res.end(await register.metrics())
 	})
 
-	app.get('/api/stats', async (_req, res) => {
+	app.get('/api/stats', limiter, async (_req, res) => {
 		const [guilds, trackedProjects, trackedAuthors, uptime] = await Promise.all([
 			queries.countConfiguredGuilds(),
 			queries.countAllTrackedProjects(),
@@ -159,7 +171,7 @@ export function startWebServer(client: Client) {
 		const redirectToResult = (res: express.Response, params: Record<string, string>) =>
 			res.redirect(`${WEBSITE_URL}/linked?${new URLSearchParams(params)}`)
 
-		app.get('/api/modrinth/callback', async (req, res) => {
+		app.get('/api/modrinth/callback', limiter, async (req, res) => {
 			const { code, state } = req.query
 			if (typeof code !== 'string' || typeof state !== 'string') {
 				redirectToResult(res, { status: 'cancelled' })
