@@ -29,7 +29,13 @@ export const randomCommand: ChatInputCommand = {
 			o
 				.setName('type')
 				.setDescription('Filter by project type')
-				.addChoices(PROJECT_TYPES.map((t) => ({ name: t.name, value: t.value }))),
+				// The endpoint returns nothing for servers
+				.addChoices(
+					PROJECT_TYPES.filter((t) => t.value !== 'minecraft_java_server').map((t) => ({
+						name: t.name,
+						value: t.value,
+					})),
+				),
 		)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
