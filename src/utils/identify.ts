@@ -2,7 +2,15 @@ import { createHash } from 'node:crypto'
 
 import { modrinthClient } from './api/modrinth.js'
 
-export const MAX_JAR_FILE_BYTES = 100 * 1024 * 1024 // 100 mb
+export const MAX_IDENTIFY_FILE_BYTES = 100 * 1024 * 1024 // 100 mb
+
+// Mods and plugins ship as .jar, resource packs, data packs and shaders as .zip, modpacks as .mrpack.
+export const IDENTIFIABLE_EXTENSIONS = ['.jar', '.zip', '.mrpack'] as const
+
+export function isIdentifiableFile(name: string): boolean {
+	const lower = name.toLowerCase()
+	return IDENTIFIABLE_EXTENSIONS.some((ext) => lower.endsWith(ext))
+}
 
 export async function hashAttachment(url: string): Promise<string> {
 	const response = await fetch(url)

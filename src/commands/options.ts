@@ -41,8 +41,8 @@ const TOGGLES: Toggle[] = [
 	},
 	{
 		option: 'jarIdentify',
-		label: '🔍 Jar Identify',
-		description: 'Identify `.jar` files posted in chat, same as the `/identify` command.',
+		label: '🔍 File Identify',
+		description: 'Identify project files posted in chat, same as the `/identify` command.',
 	},
 	{
 		option: 'changelogSummaries',

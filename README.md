@@ -34,7 +34,7 @@ The `/help` command shows:
 - `/user` · Look up a Modrinth user
 - `/organization` · Look up a Modrinth organization
 - `/collection` · Look up a Modrinth collection
-- `/identify` · Identify a mod file by uploading it
+- `/identify` · Identify a project file by uploading it
 
 ### Tracking
 

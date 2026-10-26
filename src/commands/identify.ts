@@ -3,25 +3,33 @@ import { ApplicationCommandType, ContextMenuCommandBuilder, SlashCommandBuilder 
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import type { ChatInputCommand, MessageContextMenuCommand } from '../types/index.js'
-import { jarAttachmentsOf, resolveJarCards } from '../utils/autoEmbeds.js'
+import { identifiableAttachmentsOf, resolveFileCards } from '../utils/autoEmbeds.js'
 import { buildVersionNotification, error, info } from '../utils/embeds/index.js'
-import { hashAttachment, identifyByHash, MAX_JAR_FILE_BYTES } from '../utils/identify.js'
+import {
+	hashAttachment,
+	IDENTIFIABLE_EXTENSIONS,
+	identifyByHash,
+	isIdentifiableFile,
+	MAX_IDENTIFY_FILE_BYTES,
+} from '../utils/identify.js'
 import { createModuleLogger } from '../utils/logger.js'
 
 const log = createModuleLogger('identify')
 
+const EXTENSION_LIST = IDENTIFIABLE_EXTENSIONS.map((ext) => `\`${ext}\``).join(', ')
+
 export const identifyCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
 		.setName('identify')
-		.setDescription('Identify a mod file by uploading it')
+		.setDescription('Identify a project file by uploading it')
 		.addAttachmentOption((o) =>
-			o.setName('file').setDescription('The mod file to identify').setRequired(true),
+			o.setName('file').setDescription('The file to identify').setRequired(true),
 		)
 		.setContexts(ANYWHERE_CONTEXTS)
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'identify',
-		description: 'Identify a mod file by uploading it',
+		description: 'Identify a project file by uploading it',
 		category: 'utility',
 		cooldownSeconds: 10,
 	},
@@ -29,18 +37,20 @@ export const identifyCommand: ChatInputCommand = {
 	async execute(interaction) {
 		const attachment = interaction.options.getAttachment('file', true)
 
-		if (!attachment.name.toLowerCase().endsWith('.jar')) {
+		if (!isIdentifiableFile(attachment.name)) {
 			await interaction.reply({
-				embeds: [error('Attach a `.jar` mod file.')],
+				embeds: [error(`Attach a ${EXTENSION_LIST} file.`)],
 				flags: 'Ephemeral',
 			})
 			return
 		}
 
-		if (attachment.size > MAX_JAR_FILE_BYTES) {
+		if (attachment.size > MAX_IDENTIFY_FILE_BYTES) {
 			await interaction.reply({
 				embeds: [
-					error(`That file is too large. The limit is ${MAX_JAR_FILE_BYTES / 1024 / 1024} MB.`),
+					error(
+						`That file is too large. The limit is ${MAX_IDENTIFY_FILE_BYTES / 1024 / 1024} MB.`,
+					),
 				],
 				flags: 'Ephemeral',
 			})
@@ -87,16 +97,16 @@ export const identifyContextMenu: MessageContextMenuCommand = {
 		.setIntegrationTypes(ANYWHERE_INTEGRATION_TYPES),
 	meta: {
 		name: 'Identify',
-		description: "Identify a message's mod files",
+		description: "Identify a message's project files",
 		category: 'utility',
 		cooldownSeconds: 10,
 	},
 
 	async execute(interaction) {
-		const attachments = jarAttachmentsOf(interaction.targetMessage)
+		const attachments = identifiableAttachmentsOf(interaction.targetMessage)
 		if (attachments.length === 0) {
 			await interaction.reply({
-				embeds: [info('That message has no `.jar` files.')],
+				embeds: [info(`That message has no ${EXTENSION_LIST} files.`)],
 				flags: 'Ephemeral',
 			})
 			return
@@ -104,7 +114,7 @@ export const identifyContextMenu: MessageContextMenuCommand = {
 
 		await interaction.deferReply()
 
-		const cards = await resolveJarCards(attachments)
+		const cards = await resolveFileCards(attachments)
 		if (cards.length === 0) {
 			const message =
 				attachments.length === 1
