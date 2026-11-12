@@ -21,7 +21,6 @@ import {
 
 import { buildDonateInfoReply } from '../commands/donate.js'
 import { HELP_DONATE_BUTTON_ID } from '../commands/help.js'
-import { handleOptionsButton, OPTIONS_BUTTON_PREFIX } from '../commands/options.js'
 import {
 	handleRolesManagePageButton,
 	handleRolesManageRemoveButton,
@@ -34,6 +33,7 @@ import {
 	parseSearchId,
 	SEARCH_LIMIT,
 } from '../commands/search.js'
+import { handleSettingsButton, SETTINGS_BUTTON_PREFIX } from '../commands/settings.js'
 import {
 	handleTrackingListAuthorPageButton,
 	handleTrackingListAuthorRemoveButton,
@@ -107,8 +107,8 @@ export function createCommandRegistry(
 			return
 		}
 
-		if (customId.startsWith(OPTIONS_BUTTON_PREFIX)) {
-			await handleOptionsButton(interaction)
+		if (customId.startsWith(SETTINGS_BUTTON_PREFIX)) {
+			await handleSettingsButton(interaction)
 			return
 		}
 

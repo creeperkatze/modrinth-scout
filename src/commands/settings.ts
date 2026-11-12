@@ -14,59 +14,59 @@ import {
 } from 'discord.js'
 
 import { queries } from '../db/queries.js'
-import type { GuildConfig, GuildOption } from '../db/schemas/guild.js'
-import { isOptionEnabled } from '../db/schemas/guild.js'
+import type { GuildConfig, GuildSetting } from '../db/schemas/guild.js'
+import { isSettingEnabled } from '../db/schemas/guild.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error } from '../utils/embeds/index.js'
 import { createModuleLogger } from '../utils/logger.js'
 
-const log = createModuleLogger('options')
+const log = createModuleLogger('settings')
 
-export const OPTIONS_BUTTON_PREFIX = 'options:'
+export const SETTINGS_BUTTON_PREFIX = 'settings:'
 
-type ServerConfig = Pick<GuildConfig, 'options'> | null
+type ServerConfig = Pick<GuildConfig, 'settings'> | null
 
 type Toggle = {
-	option: GuildOption
+	setting: GuildSetting
 	label: string
 	description: string
 }
 
 const TOGGLES: Toggle[] = [
 	{
-		option: 'groupVersions',
+		setting: 'groupVersions',
 		label: '📦 Group Versions',
 		description:
 			'Combine builds of one release for different loaders and game versions into a single tracking notification.',
 	},
 	{
-		option: 'autoEmbeds',
+		setting: 'autoEmbeds',
 		label: '⚡ Auto Embeds',
 		description: 'Replace plain Modrinth links posted in chat with rich embeds.',
 	},
 	{
-		option: 'jarIdentify',
+		setting: 'jarIdentify',
 		label: '🔍 File Identify',
 		description: 'Identify project files posted in chat, same as the `/identify` command.',
 	},
 ]
 
-function isEnabled(config: ServerConfig, option: GuildOption): boolean {
-	return isOptionEnabled(config?.options, option)
+function isEnabled(config: ServerConfig, setting: GuildSetting): boolean {
+	return isSettingEnabled(config?.settings, setting)
 }
 
-function buildOptionsPayload(config: ServerConfig) {
+function buildSettingsPayload(config: ServerConfig) {
 	const toggles = TOGGLES
 
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
-		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Options'))
+		.addTextDisplayComponents(new TextDisplayBuilder().setContent('## Settings'))
 
 	toggles.forEach((toggle, i) => {
-		const enabled = isEnabled(config, toggle.option)
+		const enabled = isEnabled(config, toggle.setting)
 
 		const button = new ButtonBuilder()
-			.setCustomId(`${OPTIONS_BUTTON_PREFIX}${toggle.option}`)
+			.setCustomId(`${SETTINGS_BUTTON_PREFIX}${toggle.setting}`)
 			.setLabel(enabled ? 'Enabled' : 'Disabled')
 			.setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
 
@@ -91,7 +91,7 @@ function buildOptionsPayload(config: ServerConfig) {
 	}
 }
 
-export async function handleOptionsButton(interaction: ButtonInteraction) {
+export async function handleSettingsButton(interaction: ButtonInteraction) {
 	if (!interaction.inGuild()) return
 
 	if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
@@ -102,33 +102,33 @@ export async function handleOptionsButton(interaction: ButtonInteraction) {
 		return
 	}
 
-	const option = interaction.customId.slice(OPTIONS_BUTTON_PREFIX.length)
-	const toggle = TOGGLES.find((t) => t.option === option)
+	const setting = interaction.customId.slice(SETTINGS_BUTTON_PREFIX.length)
+	const toggle = TOGGLES.find((t) => t.setting === setting)
 	if (!toggle) return
 
 	const guildId = interaction.guildId
 	const config = await queries.getGuildConfig(guildId)
-	const enabled = !isEnabled(config, toggle.option)
+	const enabled = !isEnabled(config, toggle.setting)
 
-	await queries.setOption(guildId, toggle.option, enabled)
+	await queries.setSetting(guildId, toggle.setting, enabled)
 	log.info(
-		{ guildId, option: toggle.option, enabled, userId: interaction.user.id },
-		'Option toggled',
+		{ guildId, setting: toggle.setting, enabled, userId: interaction.user.id },
+		'Setting toggled',
 	)
 
 	const updated = await queries.getGuildConfig(guildId)
-	await interaction.update(buildOptionsPayload(updated))
+	await interaction.update(buildSettingsPayload(updated))
 }
 
-export const optionsCommand: ChatInputCommand = {
+export const settingsCommand: ChatInputCommand = {
 	data: new SlashCommandBuilder()
-		.setName('options')
-		.setDescription('Manage server bot options')
+		.setName('settings')
+		.setDescription('Manage server bot settings')
 		.setContexts(InteractionContextType.Guild)
 		.setIntegrationTypes(ApplicationIntegrationType.GuildInstall),
 	meta: {
-		name: 'options',
-		description: 'Manage server bot options',
+		name: 'settings',
+		description: 'Manage server bot settings',
 		category: 'utility',
 		guildOnly: true,
 		defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
@@ -137,7 +137,7 @@ export const optionsCommand: ChatInputCommand = {
 	async execute(interaction) {
 		const guildId = interaction.guildId!
 		const config = await queries.getGuildConfig(guildId)
-		const payload = buildOptionsPayload(config)
+		const payload = buildSettingsPayload(config)
 		await interaction.reply({ ...payload, flags: [...payload.flags, 'Ephemeral'] })
 	},
 }

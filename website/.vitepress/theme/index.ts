@@ -19,7 +19,7 @@ export default createTheme({
 		{ key: 'organization', image: '/screenshots/organization.png' },
 		{ key: 'tracking', image: '/screenshots/tracking.png' },
 		{ key: 'identify', image: '/screenshots/identify.png' },
-		{ key: 'options', image: '/screenshots/options.png' },
+		{ key: 'settings', image: '/screenshots/settings.png' },
 		{ key: 'donate', image: '/screenshots/donate.png' },
 	],
 	showcaseFit: 'contain',

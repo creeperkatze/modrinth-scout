@@ -7,7 +7,6 @@ import { donateCommand } from './donate.js'
 import { helpCommand } from './help.js'
 import { identifyCommand, identifyContextMenu } from './identify.js'
 import { lookupContextMenu } from './lookup.js'
-import { optionsCommand } from './options.js'
 import { organizationCommand } from './organization.js'
 import { pingCommand } from './ping.js'
 import { profileContextMenu } from './profile.js'
@@ -15,6 +14,7 @@ import { projectCommand } from './project.js'
 import { randomCommand } from './random.js'
 import { rolesCommand } from './roles.js'
 import { searchCommand } from './search.js'
+import { settingsCommand } from './settings.js'
 import { statisticsCommand } from './statistics.js'
 import { trackingCommand } from './tracking.js'
 import { userCommand } from './user.js'
@@ -34,7 +34,7 @@ export const commands: ChatInputCommand[] = [
 	...(usesLinking ? [accountCommand, rolesCommand] : []),
 	...(usesDonatorPerks ? [donateCommand] : []),
 	trackingCommand,
-	optionsCommand,
+	settingsCommand,
 	statisticsCommand,
 	voteCommand,
 	helpCommand,

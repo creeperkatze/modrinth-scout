@@ -22,9 +22,9 @@
 				"title": "Identify a project by its file",
 				"description": "Drop a .jar, .zip or .mrpack into `/identify` and get back the exact Modrinth project and version it came from."
 			},
-			"options": {
+			"settings": {
 				"title": "Turn features on or off, per server",
-				"description": "`/options` controls auto-embeds for plain Modrinth links, jar identification in chat, and grouping of multi-loader releases into one tracking notification."
+				"description": "`/settings` controls auto-embeds for plain Modrinth links, jar identification in chat, and grouping of multi-loader releases into one tracking notification."
 			},
 			"donate": {
 				"title": "Support development, unlock perks",

@@ -73,7 +73,7 @@ The `/help` command shows:
 
 ### Miscellaneous
 
-- `/options` · Manage server bot options
+- `/settings` · Manage server bot settings
 - `/statistics` · Show Modrinth and bot statistics
 - `/vote` · Vote for the bot on top.gg
 - `/ping` · Replies with Pong!

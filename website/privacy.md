@@ -4,7 +4,7 @@ Modrinth Scout stores minimal data required to provide project update tracking a
 
 ## What is collected
 
-- Discord server identifier and metadata, as well as the bot options for the server.
+- Discord server identifier and metadata, as well as the bot settings for the server.
 
 - Notification channel identifier, optional ping role identifier, and the tracking settings chosen for a server, to deliver project tracking notifications.
 

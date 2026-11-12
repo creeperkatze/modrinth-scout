@@ -161,11 +161,11 @@ export async function handleMessageCreate(message: Message) {
 	const config = await queries.getGuildConfig(message.guildId)
 	if (!config) return
 
-	if (fileAttachments.length > 0 && config.options?.jarIdentify) {
+	if (fileAttachments.length > 0 && config.settings?.jarIdentify) {
 		await handleFileIdentify(message, fileAttachments)
 	}
 
-	if (hasModrinthLink && config.options?.autoEmbeds) {
+	if (hasModrinthLink && config.settings?.autoEmbeds) {
 		await handleAutoEmbeds(message)
 	}
 }

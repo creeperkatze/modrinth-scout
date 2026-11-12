@@ -13,28 +13,28 @@ const trackingDefaultsSchema = new Schema(
 	{ _id: false },
 )
 
-export const GUILD_OPTIONS = ['autoEmbeds', 'jarIdentify', 'groupVersions'] as const
-export type GuildOption = (typeof GUILD_OPTIONS)[number]
+export const GUILD_SETTINGS = ['autoEmbeds', 'jarIdentify', 'groupVersions'] as const
+export type GuildSetting = (typeof GUILD_SETTINGS)[number]
 
-export const GUILD_OPTION_DEFAULTS: Record<GuildOption, boolean> = {
+export const GUILD_SETTING_DEFAULTS: Record<GuildSetting, boolean> = {
 	autoEmbeds: false,
 	jarIdentify: false,
 	groupVersions: true,
 }
 
-// Lean reads skip schema defaults, so unset options fall back here
-export function isOptionEnabled(
-	options: Partial<Record<GuildOption, boolean | null>> | null | undefined,
-	option: GuildOption,
+// Lean reads skip schema defaults, so unset settings fall back here
+export function isSettingEnabled(
+	settings: Partial<Record<GuildSetting, boolean | null>> | null | undefined,
+	setting: GuildSetting,
 ): boolean {
-	return options?.[option] ?? GUILD_OPTION_DEFAULTS[option]
+	return settings?.[setting] ?? GUILD_SETTING_DEFAULTS[setting]
 }
 
-const optionsSchema = new Schema(
+const settingsSchema = new Schema(
 	{
-		autoEmbeds: { type: Boolean, default: GUILD_OPTION_DEFAULTS.autoEmbeds },
-		jarIdentify: { type: Boolean, default: GUILD_OPTION_DEFAULTS.jarIdentify },
-		groupVersions: { type: Boolean, default: GUILD_OPTION_DEFAULTS.groupVersions },
+		autoEmbeds: { type: Boolean, default: GUILD_SETTING_DEFAULTS.autoEmbeds },
+		jarIdentify: { type: Boolean, default: GUILD_SETTING_DEFAULTS.jarIdentify },
+		groupVersions: { type: Boolean, default: GUILD_SETTING_DEFAULTS.groupVersions },
 	},
 	{ _id: false },
 )
@@ -78,7 +78,7 @@ const guildSchema = new Schema(
 		isDonator: { type: Boolean, default: false },
 		voteRewardExpiresAt: { type: Date, default: null },
 		tracking: { type: trackingDefaultsSchema, default: () => ({}) },
-		options: { type: optionsSchema, default: () => ({}) },
+		settings: { type: settingsSchema, default: () => ({}) },
 		roles: { type: [roleRuleSchema], default: () => [] },
 	},
 	{ collection: 'guilds', timestamps: true },

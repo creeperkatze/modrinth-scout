@@ -2,7 +2,7 @@ import { PENDING_ACCOUNT_TTL_MS } from '../config/linking.js'
 import { VOTE_REWARD_DURATION_MS } from '../config/voteRewards.js'
 import { AccountModel } from './schemas/account.js'
 import { DonatorModel } from './schemas/donator.js'
-import type { GuildConfig, GuildOption, RoleRule } from './schemas/guild.js'
+import type { GuildConfig, GuildSetting, RoleRule } from './schemas/guild.js'
 import { GuildConfigModel } from './schemas/guild.js'
 import { PendingAccountModel } from './schemas/pendingAccount.js'
 import type { AuthorKind, TrackingEntry, TrackingOverrides } from './schemas/tracking.js'
@@ -30,7 +30,7 @@ const PROJECT_KIND_FILTER = { kind: 'project' as const }
 export type TrackingCandidateGuild = {
 	_id: string
 	tracking: GuildConfig['tracking']
-	options: GuildConfig['options']
+	settings: GuildConfig['settings']
 }
 
 export type TrackingCandidates = {
@@ -198,7 +198,7 @@ export const queries = {
 			'tracking.paused': { $ne: true },
 			...perksFilter,
 		})
-			.select('_id tracking options')
+			.select('_id tracking settings')
 			.lean<TrackingCandidateGuild[]>()
 
 		if (guilds.length === 0) return { guilds: [], entries: [] }
@@ -271,10 +271,10 @@ export const queries = {
 		return 'ok'
 	},
 
-	setOption: (guildId: string, option: GuildOption, enabled: boolean) =>
+	setSetting: (guildId: string, setting: GuildSetting, enabled: boolean) =>
 		GuildConfigModel.updateOne(
 			{ _id: guildId },
-			{ $set: { [`options.${option}`]: enabled } },
+			{ $set: { [`settings.${setting}`]: enabled } },
 			{ upsert: true },
 		),
 
