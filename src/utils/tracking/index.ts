@@ -10,7 +10,7 @@ import { trackProjectUpdates } from './project.js'
 
 const log = createModuleLogger('tracking')
 
-const TRACKING_INTERVAL_MS = 1 * 10 * 1000 // 5 minutes
+const TRACKING_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 const DONATOR_TRACKING_INTERVAL_MS = 60 * 1000 // 1 minute
 
 // 'all' is the single-runner case, when donator perks are switched off entirely
