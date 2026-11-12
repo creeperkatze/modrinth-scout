@@ -16,6 +16,7 @@ import {
 import { aiSummariesEnabled } from '../config/ai.js'
 import { queries } from '../db/queries.js'
 import type { GuildConfig, GuildOption } from '../db/schemas/guild.js'
+import { isOptionEnabled } from '../db/schemas/guild.js'
 import type { ChatInputCommand } from '../types/index.js'
 import { error } from '../utils/embeds/index.js'
 import { createModuleLogger } from '../utils/logger.js'
@@ -50,6 +51,12 @@ const TOGGLES: Toggle[] = [
 		description: 'Add a short AI-generated summary above changelogs in tracking notifications.',
 		available: aiSummariesEnabled,
 	},
+	{
+		option: 'groupVersions',
+		label: '📦 Group Versions',
+		description:
+			'Combine builds of one release for different loaders and game versions into a single tracking notification.',
+	},
 ]
 
 function availableToggles() {
@@ -57,7 +64,7 @@ function availableToggles() {
 }
 
 function isEnabled(config: ServerConfig, option: GuildOption): boolean {
-	return Boolean(config?.options?.[option])
+	return isOptionEnabled(config?.options, option)
 }
 
 function buildOptionsPayload(config: ServerConfig) {

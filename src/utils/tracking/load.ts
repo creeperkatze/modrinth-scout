@@ -1,4 +1,5 @@
 import { queries } from '../../db/queries.js'
+import { isOptionEnabled } from '../../db/schemas/guild.js'
 import type { TrackingKind, TrackingOverrides } from '../../db/schemas/tracking.js'
 import { isAuthorKind } from '../../db/schemas/tracking.js'
 import type { TrackingSettings } from './settings.js'
@@ -11,6 +12,7 @@ export type TrackingSubscription = {
 	notifiedThrough: Date
 	knownProjectIds: string[]
 	changelogSummaries: boolean
+	groupVersions: boolean
 	settings: TrackingSettings & { channelId: string }
 }
 
@@ -66,7 +68,8 @@ export async function loadTrackingBatch(donatorOnly?: boolean): Promise<Tracking
 			guildId: entry.guildId,
 			notifiedThrough: entry.notifiedThrough,
 			knownProjectIds: entry.knownProjectIds ?? [],
-			changelogSummaries: Boolean(guild.options?.changelogSummaries),
+			changelogSummaries: isOptionEnabled(guild.options, 'changelogSummaries'),
+			groupVersions: isOptionEnabled(guild.options, 'groupVersions'),
 			settings: { ...settings, channelId: settings.channelId },
 		}
 		entryCount += 1

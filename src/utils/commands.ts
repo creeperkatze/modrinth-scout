@@ -53,7 +53,7 @@ import {
 import { handleVoteClaimButton, VOTE_CLAIM_BUTTON_ID } from '../commands/vote.js'
 import type { ChatInputCommand, CommandMeta, ContextMenuCommand } from '../types/index.js'
 import { modrinthClient } from './api/modrinth.js'
-import { buildProjectCard } from './embeds/index.js'
+import { buildProjectCard, buildVersionNotification } from './embeds/index.js'
 import { createModuleLogger } from './logger.js'
 import { commandDurationSeconds, commandsTotal } from './metrics.js'
 
@@ -185,12 +185,25 @@ export function createCommandRegistry(
 			await showProjectCard(interaction, customId.slice(colon + 1))
 	}
 
+	async function showVersionCard(interaction: StringSelectMenuInteraction, id: string) {
+		await interaction.deferReply({ flags: 'Ephemeral' })
+		try {
+			const version = await modrinthClient.labrinth.versions_v3.getVersion(id)
+			const project = await modrinthClient.labrinth.projects_v3.get(version.project_id)
+			await interaction.editReply(await buildVersionNotification(project, version))
+		} catch {
+			await interaction.editReply({ content: `No version found for \`${id}\`.` })
+		}
+	}
+
 	async function handleSelectMenu(interaction: StringSelectMenuInteraction) {
 		const value = interaction.values[0]
 		const colon = value.indexOf(':')
 		if (colon === -1) return
-		if (value.slice(0, colon) === 'project')
-			await showProjectCard(interaction, value.slice(colon + 1))
+		const kind = value.slice(0, colon)
+		const id = value.slice(colon + 1)
+		if (kind === 'project') await showProjectCard(interaction, id)
+		if (kind === 'version') await showVersionCard(interaction, id)
 	}
 
 	async function handleChannelSelectMenu(interaction: ChannelSelectMenuInteraction) {

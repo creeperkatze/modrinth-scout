@@ -24,7 +24,7 @@
 			},
 			"options": {
 				"title": "Turn features on or off, per server",
-				"description": "`/options` controls auto-embeds for plain Modrinth links, jar identification in chat, and changelog summaries."
+				"description": "`/options` controls auto-embeds for plain Modrinth links, jar identification in chat, changelog summaries, and grouping of multi-loader releases into one tracking notification."
 			},
 			"donate": {
 				"title": "Support development, unlock perks",

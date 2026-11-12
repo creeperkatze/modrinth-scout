@@ -5,9 +5,10 @@ import { aiSummariesEnabled } from '../../config/ai.js'
 import { queries } from '../../db/queries.js'
 import { summarizeChangelog } from '../ai/summary.js'
 import { modrinthClient } from '../api/modrinth.js'
-import { buildVersionNotification } from '../embeds/index.js'
+import { buildVersionGroupNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
 import { trackingNotificationsTotal, trackingRunDurationSeconds } from '../metrics.js'
+import { awaitingMoreUploads, groupVersions } from '../versionGroups.js'
 import { deliver } from './deliver.js'
 import type { TrackingTarget } from './load.js'
 
@@ -88,6 +89,13 @@ export async function trackProjectUpdates(
 					'Versions fetched',
 				)
 
+				const cursor = oldestCursor(target)
+				const settling = awaitingMoreUploads(
+					versions.map((v) => new Date(v.date_published)).filter((date) => date > cursor),
+				)
+				if (settling)
+					log.debug({ projectId: project.id, slug: project.slug }, 'Waiting for more uploads')
+
 				// Computed at most once per version per tick, and only if a subscriber wants them
 				const summaries = new Map<string, Promise<string | null>>()
 				const summaryFor = (version: Labrinth.Versions.v3.Version) => {
@@ -101,6 +109,7 @@ export async function trackProjectUpdates(
 
 				for (const subscription of target.subscriptions) {
 					if (updatedAt <= subscription.notifiedThrough) continue
+					if (settling && subscription.groupVersions) continue
 
 					const newVersions = versions
 						.filter((v) => new Date(v.date_published) > subscription.notifiedThrough)
@@ -114,13 +123,15 @@ export async function trackProjectUpdates(
 					newVersionsFound += newVersions.length
 
 					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummaries
+					const groups = subscription.groupVersions
+						? groupVersions(newVersions)
+						: newVersions.map((version) => [version])
 					const payloads = await Promise.all(
-						newVersions.map(async (version) =>
-							buildVersionNotification(
+						groups.map(async (group) =>
+							buildVersionGroupNotification(
 								project,
-								version,
-								undefined,
-								wantsSummaries ? await summaryFor(version) : null,
+								group,
+								wantsSummaries ? await summaryFor(group[group.length - 1]) : null,
 							),
 						),
 					)

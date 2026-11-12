@@ -1,8 +1,8 @@
-import type { ActionRowBuilder, ButtonBuilder, EmbedBuilder } from 'discord.js'
+import type { ActionRowBuilder, EmbedBuilder, MessageActionRowComponentBuilder } from 'discord.js'
 
 export interface CardPayload {
 	embeds: EmbedBuilder[]
-	components: ActionRowBuilder<ButtonBuilder>[]
+	components: ActionRowBuilder<MessageActionRowComponentBuilder>[]
 }
 
 export const TYPE_LABELS: Record<string, string> = {

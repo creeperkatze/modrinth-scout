@@ -13,14 +13,35 @@ const trackingDefaultsSchema = new Schema(
 	{ _id: false },
 )
 
-export const GUILD_OPTIONS = ['autoEmbeds', 'jarIdentify', 'changelogSummaries'] as const
+export const GUILD_OPTIONS = [
+	'autoEmbeds',
+	'jarIdentify',
+	'changelogSummaries',
+	'groupVersions',
+] as const
 export type GuildOption = (typeof GUILD_OPTIONS)[number]
+
+export const GUILD_OPTION_DEFAULTS: Record<GuildOption, boolean> = {
+	autoEmbeds: false,
+	jarIdentify: false,
+	changelogSummaries: false,
+	groupVersions: true,
+}
+
+// Lean reads skip schema defaults, so unset options fall back here
+export function isOptionEnabled(
+	options: Partial<Record<GuildOption, boolean | null>> | null | undefined,
+	option: GuildOption,
+): boolean {
+	return options?.[option] ?? GUILD_OPTION_DEFAULTS[option]
+}
 
 const optionsSchema = new Schema(
 	{
-		autoEmbeds: { type: Boolean, default: false },
-		jarIdentify: { type: Boolean, default: false },
-		changelogSummaries: { type: Boolean, default: false },
+		autoEmbeds: { type: Boolean, default: GUILD_OPTION_DEFAULTS.autoEmbeds },
+		jarIdentify: { type: Boolean, default: GUILD_OPTION_DEFAULTS.jarIdentify },
+		changelogSummaries: { type: Boolean, default: GUILD_OPTION_DEFAULTS.changelogSummaries },
+		groupVersions: { type: Boolean, default: GUILD_OPTION_DEFAULTS.groupVersions },
 	},
 	{ _id: false },
 )
