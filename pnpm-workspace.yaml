@@ -1,5 +1,4 @@
 allowBuilds:
-  '@openrouter/sdk': true
   esbuild: true
   mongodb-memory-server: true
 

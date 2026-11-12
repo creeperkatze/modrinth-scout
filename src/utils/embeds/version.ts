@@ -55,12 +55,7 @@ function typeValueOf(version: Version): string {
 	return withEmoji(version.version_type, label)
 }
 
-async function baseEmbed(
-	project: Project,
-	version: Version,
-	title: string,
-	summary: string | null | undefined,
-): Promise<EmbedBuilder> {
+async function baseEmbed(project: Project, version: Version, title: string): Promise<EmbedBuilder> {
 	let changelog = version.changelog?.trim() ?? null
 	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
 		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
@@ -72,9 +67,7 @@ async function baseEmbed(
 		.setColor(project.color ?? 0x1bd96a)
 		.setFooter({ text: author?.name ?? 'Unknown', iconURL: author?.avatarUrl })
 
-	const summaryBlock = summary ? `> ✨ **Summary:** ${summary}` : null
-	const description = [summaryBlock, changelog].filter(Boolean).join('\n\n')
-	if (description) embed.setDescription(description)
+	if (changelog) embed.setDescription(changelog)
 	if (project.icon_url) embed.setThumbnail(project.icon_url)
 
 	return embed
@@ -90,19 +83,13 @@ export async function buildVersionNotification(
 	project: Project,
 	version: Version,
 	versionLabel = 'View Version',
-	summary?: string | null,
 ): Promise<CardPayload> {
 	const projectUrl = projectUrlOf(project)
 	const versionUrl = `${projectUrl}/version/${version.id}`
 	const primaryFile = version.files.find((file) => file.primary) ?? version.files[0]
 	const loaders = displayLoaders(version)
 
-	const embed = await baseEmbed(
-		project,
-		version,
-		`${project.name} ${version.version_number}`,
-		summary,
-	)
+	const embed = await baseEmbed(project, version, `${project.name} ${version.version_number}`)
 
 	if (version.game_versions.length > 0)
 		embed.addFields({
@@ -198,10 +185,8 @@ function formatBuilds(
 export async function buildVersionGroupNotification(
 	project: Project,
 	versions: Version[],
-	summary?: string | null,
 ): Promise<CardPayload> {
-	if (versions.length === 1)
-		return buildVersionNotification(project, versions[0], undefined, summary)
+	if (versions.length === 1) return buildVersionNotification(project, versions[0])
 
 	const projectUrl = projectUrlOf(project)
 	const newest = versions[versions.length - 1]
@@ -209,7 +194,7 @@ export async function buildVersionGroupNotification(
 	const number = sharedReleaseNumber(versions)
 	const title = number ? `${project.name} ${number}` : project.name
 
-	const embed = (await baseEmbed(project, newest, title, summary))
+	const embed = (await baseEmbed(project, newest, title))
 		.setURL(projectUrl)
 		.setTimestamp(new Date(newest.date_published))
 		.addFields({

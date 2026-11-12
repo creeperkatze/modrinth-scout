@@ -11,7 +11,6 @@ export type TrackingSubscription = {
 	guildId: string
 	notifiedThrough: Date
 	knownProjectIds: string[]
-	changelogSummaries: boolean
 	groupVersions: boolean
 	settings: TrackingSettings & { channelId: string }
 }
@@ -68,7 +67,6 @@ export async function loadTrackingBatch(donatorOnly?: boolean): Promise<Tracking
 			guildId: entry.guildId,
 			notifiedThrough: entry.notifiedThrough,
 			knownProjectIds: entry.knownProjectIds ?? [],
-			changelogSummaries: isOptionEnabled(guild.options, 'changelogSummaries'),
 			groupVersions: isOptionEnabled(guild.options, 'groupVersions'),
 			settings: { ...settings, channelId: settings.channelId },
 		}

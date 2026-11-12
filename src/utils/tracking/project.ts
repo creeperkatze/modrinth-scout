@@ -1,9 +1,7 @@
 import type { Labrinth } from '@modrinth/api-client'
 import { type Client } from 'discord.js'
 
-import { aiSummariesEnabled } from '../../config/ai.js'
 import { queries } from '../../db/queries.js'
-import { summarizeChangelog } from '../ai/summary.js'
 import { modrinthClient } from '../api/modrinth.js'
 import { buildVersionGroupNotification } from '../embeds/index.js'
 import { createModuleLogger } from '../logger.js'
@@ -96,17 +94,6 @@ export async function trackProjectUpdates(
 				if (settling)
 					log.debug({ projectId: project.id, slug: project.slug }, 'Waiting for more uploads')
 
-				// Computed at most once per version per tick, and only if a subscriber wants them
-				const summaries = new Map<string, Promise<string | null>>()
-				const summaryFor = (version: Labrinth.Versions.v3.Version) => {
-					let summary = summaries.get(version.id)
-					if (!summary) {
-						summary = summarizeChangelog(project, version)
-						summaries.set(version.id, summary)
-					}
-					return summary
-				}
-
 				for (const subscription of target.subscriptions) {
 					if (updatedAt <= subscription.notifiedThrough) continue
 					if (settling && subscription.groupVersions) continue
@@ -122,18 +109,11 @@ export async function trackProjectUpdates(
 					}
 					newVersionsFound += newVersions.length
 
-					const wantsSummaries = aiSummariesEnabled && subscription.changelogSummaries
 					const groups = subscription.groupVersions
 						? groupVersions(newVersions)
 						: newVersions.map((version) => [version])
 					const payloads = await Promise.all(
-						groups.map(async (group) =>
-							buildVersionGroupNotification(
-								project,
-								group,
-								wantsSummaries ? await summaryFor(group[group.length - 1]) : null,
-							),
-						),
+						groups.map((group) => buildVersionGroupNotification(project, group)),
 					)
 
 					const outcome = await deliver(client, subscription, payloads, {

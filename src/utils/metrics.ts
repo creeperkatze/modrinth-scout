@@ -83,20 +83,6 @@ export const trackingEntries = new client.Gauge({
 	registers: [register],
 })
 
-export const aiSummaryRequestsTotal = new client.Counter({
-	name: `${PREFIX}ai_summary_requests_total`,
-	help: 'Total number of changelog summary requests to the AI provider',
-	labelNames: ['status'] as const,
-	registers: [register],
-})
-
-export const aiSummaryDurationSeconds = new client.Histogram({
-	name: `${PREFIX}ai_summary_duration_seconds`,
-	help: 'Changelog summary request duration in seconds',
-	buckets: [0.25, 0.5, 1, 2, 5, 10],
-	registers: [register],
-})
-
 const upstreamApiRequestsTotal = new client.Counter({
 	name: `${PREFIX}upstream_api_requests_total`,
 	help: 'Total Modrinth API requests',

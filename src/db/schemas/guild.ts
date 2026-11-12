@@ -13,18 +13,12 @@ const trackingDefaultsSchema = new Schema(
 	{ _id: false },
 )
 
-export const GUILD_OPTIONS = [
-	'autoEmbeds',
-	'jarIdentify',
-	'changelogSummaries',
-	'groupVersions',
-] as const
+export const GUILD_OPTIONS = ['autoEmbeds', 'jarIdentify', 'groupVersions'] as const
 export type GuildOption = (typeof GUILD_OPTIONS)[number]
 
 export const GUILD_OPTION_DEFAULTS: Record<GuildOption, boolean> = {
 	autoEmbeds: false,
 	jarIdentify: false,
-	changelogSummaries: false,
 	groupVersions: true,
 }
 
@@ -40,7 +34,6 @@ const optionsSchema = new Schema(
 	{
 		autoEmbeds: { type: Boolean, default: GUILD_OPTION_DEFAULTS.autoEmbeds },
 		jarIdentify: { type: Boolean, default: GUILD_OPTION_DEFAULTS.jarIdentify },
-		changelogSummaries: { type: Boolean, default: GUILD_OPTION_DEFAULTS.changelogSummaries },
 		groupVersions: { type: Boolean, default: GUILD_OPTION_DEFAULTS.groupVersions },
 	},
 	{ _id: false },

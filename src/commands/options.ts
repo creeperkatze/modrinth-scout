@@ -13,7 +13,6 @@ import {
 	TextDisplayBuilder,
 } from 'discord.js'
 
-import { aiSummariesEnabled } from '../config/ai.js'
 import { queries } from '../db/queries.js'
 import type { GuildConfig, GuildOption } from '../db/schemas/guild.js'
 import { isOptionEnabled } from '../db/schemas/guild.js'
@@ -31,7 +30,6 @@ type Toggle = {
 	option: GuildOption
 	label: string
 	description: string
-	available?: boolean
 }
 
 const TOGGLES: Toggle[] = [
@@ -46,12 +44,6 @@ const TOGGLES: Toggle[] = [
 		description: 'Identify project files posted in chat, same as the `/identify` command.',
 	},
 	{
-		option: 'changelogSummaries',
-		label: '✨ Changelog Summaries',
-		description: 'Add a short AI-generated summary above changelogs in tracking notifications.',
-		available: aiSummariesEnabled,
-	},
-	{
 		option: 'groupVersions',
 		label: '📦 Group Versions',
 		description:
@@ -59,16 +51,12 @@ const TOGGLES: Toggle[] = [
 	},
 ]
 
-function availableToggles() {
-	return TOGGLES.filter((t) => t.available !== false)
-}
-
 function isEnabled(config: ServerConfig, option: GuildOption): boolean {
 	return isOptionEnabled(config?.options, option)
 }
 
 function buildOptionsPayload(config: ServerConfig) {
-	const toggles = availableToggles()
+	const toggles = TOGGLES
 
 	const container = new ContainerBuilder()
 		.setAccentColor(0x1bd96a)
@@ -115,7 +103,7 @@ export async function handleOptionsButton(interaction: ButtonInteraction) {
 	}
 
 	const option = interaction.customId.slice(OPTIONS_BUTTON_PREFIX.length)
-	const toggle = availableToggles().find((t) => t.option === option)
+	const toggle = TOGGLES.find((t) => t.option === option)
 	if (!toggle) return
 
 	const guildId = interaction.guildId
