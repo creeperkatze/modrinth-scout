@@ -195,7 +195,6 @@ export async function buildVersionGroupNotification(
 	const title = number ? `${project.name} ${number}` : project.name
 
 	const embed = (await baseEmbed(project, newest, title))
-		.setURL(projectUrl)
 		.setTimestamp(new Date(newest.date_published))
 		.addFields({
 			name: 'Versions',
@@ -204,7 +203,15 @@ export async function buildVersionGroupNotification(
 	if (newest.version_type !== 'release')
 		embed.addFields({ name: 'Type', value: typeValueOf(newest), inline: true })
 
-	return { embeds: [embed], components: [buildVersionSelect(versions, !number)] }
+	return {
+		embeds: [embed],
+		components: [
+			buildVersionSelect(versions, !number),
+			new ActionRowBuilder<ButtonBuilder>().addComponents(
+				linkButton('View Project', projectUrl, 'modrinth'),
+			),
+		],
+	}
 }
 
 const MAX_SELECT_OPTIONS = 25
