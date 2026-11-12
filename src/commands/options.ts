@@ -34,6 +34,12 @@ type Toggle = {
 
 const TOGGLES: Toggle[] = [
 	{
+		option: 'groupVersions',
+		label: '📦 Group Versions',
+		description:
+			'Combine builds of one release for different loaders and game versions into a single tracking notification.',
+	},
+	{
 		option: 'autoEmbeds',
 		label: '⚡ Auto Embeds',
 		description: 'Replace plain Modrinth links posted in chat with rich embeds.',
@@ -42,12 +48,6 @@ const TOGGLES: Toggle[] = [
 		option: 'jarIdentify',
 		label: '🔍 File Identify',
 		description: 'Identify project files posted in chat, same as the `/identify` command.',
-	},
-	{
-		option: 'groupVersions',
-		label: '📦 Group Versions',
-		description:
-			'Combine builds of one release for different loaders and game versions into a single tracking notification.',
 	},
 ]
 
