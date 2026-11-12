@@ -386,7 +386,9 @@ async function resolveAuthor(raw: string): Promise<ResolvedAuthor> {
 }
 
 type TrackingListInteraction =
-	ButtonInteraction | ChannelSelectMenuInteraction | RoleSelectMenuInteraction
+	| ButtonInteraction
+	| ChannelSelectMenuInteraction
+	| RoleSelectMenuInteraction
 
 async function requireManageGuild(interaction: TrackingListInteraction): Promise<boolean> {
 	if (!interaction.inGuild()) return false

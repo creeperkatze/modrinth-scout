@@ -10,13 +10,15 @@ Package manager: **pnpm**.
 pnpm dev # Run with tsx in watch mode, no build step needed
 pnpm build # Compile with tsc to dist/
 pnpm start # Run the compiled bot from dist/
-pnpm lint # Lint
+pnpm lint # Lint with oxlint
 pnpm lint:fix # Lint and auto-fix fixable issues
+pnpm fmt # Format with oxfmt
+pnpm fmt:check # Check formatting
 pnpm test # Run tests with vitest
 pnpm test:coverage  # Run tests with coverage
 ```
 
-Run `pnpm lint:fix` after making changes. Style (tabs, single quotes, no semicolons, trailing commas, 100-char lines, LF) is enforced by `.prettierrc`, not by convention docs.
+Run `pnpm lint:fix` and `pnpm fmt` after making changes. Style (tabs, single quotes, no semicolons, trailing commas, 100-char lines, sorted imports) is enforced by `.oxfmtrc.json`, not by convention docs.
 
 ## Further reading
 

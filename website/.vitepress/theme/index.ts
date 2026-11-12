@@ -1,7 +1,6 @@
 /* eslint-disable simple-import-sort/imports */
 
 import { createTheme, messagesFromGlob } from '../shared/theme'
-
 import Logo from './icons/logo.svg?skipsvgo'
 import { loadStats } from './stats'
 import VersionLabel from './VersionLabel.vue'

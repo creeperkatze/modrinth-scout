@@ -1,8 +1,7 @@
+import { Resvg } from '@resvg/resvg-js'
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-import { Resvg } from '@resvg/resvg-js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SVG_DIR = join(__dirname, 'svgs')

@@ -1,6 +1,3 @@
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import {
 	ActionRowBuilder,
 	ApplicationIntegrationType,
@@ -12,6 +9,8 @@ import {
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { usesLinking } from '../config/linking.js'
 import { usesVoteRewards } from '../config/voteRewards.js'

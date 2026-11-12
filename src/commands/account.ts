@@ -1,5 +1,3 @@
-import { randomBytes } from 'node:crypto'
-
 import type { Labrinth } from '@modrinth/api-client'
 import {
 	ActionRowBuilder,
@@ -10,6 +8,7 @@ import {
 	EmbedBuilder,
 	SlashCommandBuilder,
 } from 'discord.js'
+import { randomBytes } from 'node:crypto'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { queries } from '../db/queries.js'

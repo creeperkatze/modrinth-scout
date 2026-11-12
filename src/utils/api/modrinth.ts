@@ -1,6 +1,5 @@
-import { createRequire } from 'node:module'
-
 import { GenericModrinthClient } from '@modrinth/api-client'
+import { createRequire } from 'node:module'
 
 import { MetricsFeature } from '../metrics.js'
 

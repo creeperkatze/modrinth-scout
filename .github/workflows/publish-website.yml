@@ -5,9 +5,9 @@ on:
   push:
     branches: [main]
     paths:
-      - "website/**"
-      - "package.json"
-      - ".github/workflows/publish-website.yml"
+      - 'website/**'
+      - 'package.json'
+      - '.github/workflows/publish-website.yml'
 
 jobs:
   publish:

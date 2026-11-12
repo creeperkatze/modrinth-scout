@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module'
-
 import {
 	ActionRowBuilder,
 	ApplicationCommandOptionType,
@@ -9,6 +7,7 @@ import {
 	InteractionContextType,
 	SlashCommandBuilder,
 } from 'discord.js'
+import { createRequire } from 'node:module'
 
 import { ANYWHERE_CONTEXTS, ANYWHERE_INTEGRATION_TYPES } from '../config/discord.js'
 import { usesDonatorPerks } from '../config/donatorPerks.js'

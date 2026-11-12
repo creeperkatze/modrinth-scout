@@ -1,8 +1,7 @@
+import type { Client } from 'discord.js'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-import type { Client } from 'discord.js'
 
 import { logger } from './logger.js'
 

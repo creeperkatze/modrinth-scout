@@ -1,11 +1,10 @@
-import { timingSafeEqual } from 'node:crypto'
-import { createRequire } from 'node:module'
-
 import type { VoteCreatePayload } from '@top-gg/sdk'
 import { Webhook } from '@top-gg/sdk'
 import type { Client } from 'discord.js'
 import express from 'express'
 import { rateLimit } from 'express-rate-limit'
+import { timingSafeEqual } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { pinoHttp } from 'pino-http'
 
 import { handleAccountLinked } from '../commands/account.js'
