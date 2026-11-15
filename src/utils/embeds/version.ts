@@ -9,6 +9,7 @@ import {
 } from 'discord.js'
 
 import { modrinthClient } from '../api/modrinth.js'
+import { normalizeChangelog, truncateChangelog } from '../changelog.js'
 import { emojiRefs, emojis, withEmoji } from '../emojis.js'
 import { createModuleLogger } from '../logger.js'
 import { formatPlainTags, formatTagsLimited } from '../tags.js'
@@ -56,9 +57,9 @@ function typeValueOf(version: Version): string {
 }
 
 async function baseEmbed(project: Project, version: Version, title: string): Promise<EmbedBuilder> {
-	let changelog = version.changelog?.trim() ?? null
-	if (changelog && changelog.length > MAX_CHANGELOG_LENGTH)
-		changelog = changelog.slice(0, MAX_CHANGELOG_LENGTH) + '\n...'
+	const changelog = version.changelog
+		? truncateChangelog(normalizeChangelog(version.changelog), MAX_CHANGELOG_LENGTH)
+		: null
 
 	const author = await getAuthor(version.author_id, project.organization)
 

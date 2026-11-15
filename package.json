@@ -31,15 +31,21 @@
         "dotenv": "^18.0.10",
         "express": "^5.3.0",
         "express-rate-limit": "^8.7.4",
+        "mdast-util-from-markdown": "^2.1.0",
+        "mdast-util-gfm": "^3.1.0",
+        "mdast-util-to-markdown": "^2.2.3",
+        "micromark-extension-gfm": "^3.0.0",
         "migrate-mongo": "^14.0.7",
         "mongoose": "^9.12.1",
         "pino": "^10.4.0",
         "pino-http": "^11.0.0",
-        "pino-pretty": "^13.2.0"
+        "pino-pretty": "^13.2.0",
+        "unist-util-visit": "^5.2.0"
     },
     "devDependencies": {
         "@resvg/resvg-js": "^2.6.2",
         "@types/express": "^5.0.6",
+        "@types/mdast": "^4.0.4",
         "@types/migrate-mongo": "^14.0.0",
         "@types/node": "^26.6.6",
         "@vitest/coverage-v8": "^5.1.0",
