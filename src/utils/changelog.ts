@@ -1,7 +1,17 @@
-import type { Html, Link, Nodes, Parents, PhrasingContent, Root } from 'mdast'
+import type {
+	Definition,
+	Heading,
+	Html,
+	Link,
+	Nodes,
+	Parents,
+	PhrasingContent,
+	Root,
+	Text,
+} from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown, gfmToMarkdown } from 'mdast-util-gfm'
-import { defaultHandlers, toMarkdown, type Join } from 'mdast-util-to-markdown'
+import { toMarkdown, type Info, type Join, type State } from 'mdast-util-to-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { SKIP, visit } from 'unist-util-visit'
 
@@ -32,6 +42,10 @@ function htmlToText(html: string): string {
 		.replace(BLOCK_END, '\n')
 		.replace(KNOWN_TAG, '')
 		.replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (entity) => ENTITIES[entity])
+		.replace(/&#(x[0-9a-f]+|\d+);/gi, (entity, code: string) => {
+			const point = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : Number(code)
+			return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity
+		})
 		.split('\n')
 		.map((line) => line.trim())
 		.join('\n')
@@ -39,19 +53,58 @@ function htmlToText(html: string): string {
 		.trim()
 }
 
-function imageText(alt: string | null | undefined, url: string): string {
-	return alt?.trim() || url
+function imageToPhrasing(
+	alt: string | null | undefined,
+	url: string,
+	parent: Parents,
+): Link | Text {
+	const text: Text = { type: 'text', value: alt?.trim() || url }
+	return parent.type === 'link' || parent.type === 'linkReference'
+		? text
+		: { type: 'link', url, children: [text] }
+}
+
+function spansLines(node: Heading): boolean {
+	let found = false
+	visit(node, (child) => {
+		if (child.type === 'break' || (child.type === 'text' && child.value.includes('\n')))
+			found = true
+	})
+	return found
 }
 
 function transform(tree: Root, source: string): void {
+	const definitions = new Map<string, Definition>()
+	visit(tree, 'definition', (node) => {
+		definitions.set(node.identifier, node)
+	})
+
 	visit(tree, (node: Nodes, index, parent: Parents | undefined) => {
 		if (node.type === 'heading') node.depth = Math.min(node.depth, 3) as 1 | 2 | 3
 		if (node.type === 'list' || node.type === 'listItem') node.spread = false
 		if (!parent || index === undefined) return
 
-		if (node.type === 'thematicBreak') {
+		// Multi-line setext headings are usually text above a `---` divider and Discord can't render them
+		if (node.type === 'heading' && spansLines(node)) {
+			parent.children[index] = { type: 'paragraph', children: node.children }
+			return
+		}
+
+		if (node.type === 'thematicBreak' || node.type === 'definition') {
 			parent.children.splice(index, 1)
 			return [SKIP, index]
+		}
+
+		// Discord has no reference links, so inline the definition's url
+		if (node.type === 'linkReference') {
+			const url = definitions.get(node.identifier)?.url ?? ''
+			parent.children[index] = { type: 'link', url, children: node.children }
+			return
+		}
+		if (node.type === 'imageReference') {
+			const url = definitions.get(node.identifier)?.url ?? ''
+			parent.children[index] = imageToPhrasing(node.alt, url, parent)
+			return SKIP
 		}
 
 		if (node.type === 'html') {
@@ -69,9 +122,7 @@ function transform(tree: Root, source: string): void {
 		}
 
 		if (node.type === 'image') {
-			const text = { type: 'text', value: imageText(node.alt, node.url) } as const
-			parent.children[index] =
-				parent.type === 'link' ? text : { type: 'link', url: node.url, children: [text] }
+			parent.children[index] = imageToPhrasing(node.alt, node.url, parent)
 			return SKIP
 		}
 
@@ -80,6 +131,23 @@ function transform(tree: Root, source: string): void {
 			parent.children[index] = { type: 'code', value }
 			return SKIP
 		}
+	})
+
+	// Whitespace at a line edge would be written as `&#x20;`, which Discord shows literally
+	visit(tree, 'text', (node, index, parent) => {
+		if (!parent || index === undefined) return
+		if (parent.type !== 'paragraph' && parent.type !== 'heading') return
+		const prev = parent.children[index - 1]
+		const next = parent.children[index + 1]
+		if (!next || next.type === 'break') node.value = node.value.trimEnd()
+		if (!prev || prev.type === 'break') node.value = node.value.trimStart()
+	})
+
+	visit(tree, 'paragraph', (node, index, parent) => {
+		if (!parent || index === undefined) return
+		if (node.children.some((child) => child.type !== 'text' || child.value !== '')) return
+		parent.children.splice(index, 1)
+		return [SKIP, index]
 	})
 }
 
@@ -91,6 +159,25 @@ function isBareLink(node: Link): boolean {
 		!node.title &&
 		(child.value === node.url || `mailto:${child.value}` === node.url)
 	)
+}
+
+// Discord does not unescape link urls, so write them raw and only percent-encode what ends the link
+function link(node: Link, _: Parents | undefined, state: State, info: Info): string {
+	if (isBareLink(node)) return node.url
+	const exitLink = state.enter('link')
+	const exitLabel = state.enter('label')
+	const tracker = state.createTracker(info)
+	let value = tracker.move('[')
+	value += tracker.move(
+		state.containerPhrasing(node, { before: value, after: '](', ...tracker.current() }),
+	)
+	exitLabel()
+	exitLink()
+	const url = node.url.replace(
+		/[\s()<>]/g,
+		(char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`,
+	)
+	return `${value}](${url})`
 }
 
 // Discord renders blank lines literally and headings already carry their own spacing
@@ -114,12 +201,14 @@ export function normalizeChangelog(changelog: string): string {
 			extensions: [gfmToMarkdown()],
 			bullet: '-',
 			rule: '-',
+			// Discord reads `__` as underline, so keep `*` free for bold
+			emphasis: '_',
+			strong: '*',
 			fences: true,
 			join,
 			handlers: {
 				break: () => '\n',
-				link: (node: Link, parent, state, info) =>
-					isBareLink(node) ? node.url : defaultHandlers.link(node, parent, state, info),
+				link,
 			},
 		}).trim()
 	} catch (err) {

@@ -36,6 +36,20 @@ describe('normalizeChangelog', () => {
 		expect(normalizeChangelog('#### Fixes\n\n- Crash')).toBe('### Fixes\n- Crash')
 	})
 
+	it('never writes bold as underscores', () => {
+		expect(normalizeChangelog('*__Note:__ Looking for addons*')).toBe(
+			'_**Note:** Looking for addons_',
+		)
+		expect(normalizeChangelog('__bold__ and *em*')).toBe('**bold** and _em_')
+	})
+
+	it('turns multi-line setext headings back into text', () => {
+		expect(normalizeChangelog('New mods:\nCant Breathe\n------------\nMore')).toBe(
+			'New mods:\nCant Breathe\n\nMore',
+		)
+		expect(normalizeChangelog('Title\n=====\n- Item')).toBe('# Title\n- Item')
+	})
+
 	it('removes thematic breaks', () => {
 		expect(normalizeChangelog('## Added\n- One\n\n---\n\n## Fixed\n- Two')).toBe(
 			'## Added\n- One\n## Fixed\n- Two',
@@ -48,6 +62,21 @@ describe('normalizeChangelog', () => {
 		)
 		expect(normalizeChangelog('[![Discord](https://img.shields.io/x)](https://discord.gg/x)')).toBe(
 			'[Discord](https://discord.gg/x)',
+		)
+	})
+
+	it('writes link urls without escapes', () => {
+		expect(normalizeChangelog('[Picture](https://cdn.example.com/a.png?ex=1&is=2&)')).toBe(
+			'[Picture](https://cdn.example.com/a.png?ex=1&is=2&)',
+		)
+		expect(normalizeChangelog('[Wiki](<https://example.com/Foo (bar)>)')).toBe(
+			'[Wiki](https://example.com/Foo%20%28bar%29)',
+		)
+	})
+
+	it('inlines reference links', () => {
+		expect(normalizeChangelog('See [the docs][docs].\n\n[docs]: https://example.com/docs')).toBe(
+			'See [the docs](https://example.com/docs).',
 		)
 	})
 
@@ -71,6 +100,14 @@ describe('normalizeChangelog', () => {
 
 	it('turns inline br into a newline', () => {
 		expect(normalizeChangelog('Line one<br>Line two')).toBe('Line one\nLine two')
+	})
+
+	it('never writes whitespace as character references', () => {
+		expect(normalizeChangelog('Updated textures \n<br>\nMore')).toBe('Updated textures\nMore')
+		expect(normalizeChangelog('<p>&#9888;&#65039; Before you update</p>')).toBe(
+			'⚠️ Before you update',
+		)
+		expect(normalizeChangelog('First\n\n \n\n#### **Added:**')).toBe('First\n### **Added:**')
 	})
 
 	it('wraps tables in a code block', () => {
