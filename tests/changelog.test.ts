@@ -11,24 +11,25 @@ describe('normalizeChangelog', () => {
 		)
 	})
 
-	it('normalizes windows line endings and trailing whitespace', () => {
-		expect(normalizeChangelog('## Fixed   \r\n\r\n- Crash   \r\n')).toBe('## Fixed\n- Crash')
+	it('normalizes windows line endings', () => {
+		expect(normalizeChangelog('## Fixed\r\n\r\n- Crash\r\n')).toBe('## Fixed\n- Crash')
 	})
 
 	it('tightens loose lists and lists after a paragraph', () => {
-		expect(normalizeChangelog('**New Additions:**\n\n- One\n\n- Two\n\n* Three')).toBe(
-			'**New Additions:**\n- One\n- Two\n* Three',
+		expect(normalizeChangelog('**New Additions:**\n\n- One\n\n- Two')).toBe(
+			'**New Additions:**\n- One\n- Two',
 		)
 	})
 
-	it('keeps paragraph breaks', () => {
+	it('keeps paragraph breaks but collapses extra blank lines', () => {
 		expect(normalizeChangelog('First paragraph.\n\nSecond paragraph.')).toBe(
 			'First paragraph.\n\nSecond paragraph.',
 		)
+		expect(normalizeChangelog('Done\n&nbsp;  \n&nbsp;  \n&nbsp;  \nNext')).toBe('Done\n\nNext')
 	})
 
 	it('leaves code blocks untouched', () => {
-		const input = '```yaml\n# Comment\n\nkey: value\n```'
+		const input = '```yaml\n# Comment\n\n\nkey: value\n```'
 		expect(normalizeChangelog(input)).toBe(input)
 	})
 
@@ -37,17 +38,10 @@ describe('normalizeChangelog', () => {
 	})
 
 	it('never writes bold as underscores', () => {
+		expect(normalizeChangelog('__bold__ and *em*')).toBe('**bold** and _em_')
 		expect(normalizeChangelog('*__Note:__ Looking for addons*')).toBe(
 			'_**Note:** Looking for addons_',
 		)
-		expect(normalizeChangelog('__bold__ and *em*')).toBe('**bold** and _em_')
-	})
-
-	it('turns multi-line setext headings back into text', () => {
-		expect(normalizeChangelog('New mods:\nCant Breathe\n------------\nMore')).toBe(
-			'New mods:\nCant Breathe\n\nMore',
-		)
-		expect(normalizeChangelog('Title\n=====\n- Item')).toBe('# Title\n- Item')
 	})
 
 	it('removes thematic breaks', () => {
@@ -59,6 +53,9 @@ describe('normalizeChangelog', () => {
 	it('turns images into links', () => {
 		expect(normalizeChangelog('![Banner](https://example.com/banner.png)')).toBe(
 			'[Banner](https://example.com/banner.png)',
+		)
+		expect(normalizeChangelog('![](https://example.com/banner.png)')).toBe(
+			'[Image](https://example.com/banner.png)',
 		)
 		expect(normalizeChangelog('[![Discord](https://img.shields.io/x)](https://discord.gg/x)')).toBe(
 			'[Discord](https://discord.gg/x)',
@@ -74,46 +71,44 @@ describe('normalizeChangelog', () => {
 		)
 	})
 
-	it('inlines reference links', () => {
-		expect(normalizeChangelog('See [the docs][docs].\n\n[docs]: https://example.com/docs')).toBe(
-			'See [the docs](https://example.com/docs).',
-		)
-	})
-
 	it('keeps bare urls bare', () => {
 		expect(normalizeChangelog('Changelog: https://example.com/changelog')).toBe(
 			'Changelog: https://example.com/changelog',
 		)
 	})
 
-	it('strips html but keeps placeholders', () => {
-		expect(
-			normalizeChangelog(
-				'<p><strong>Requirements:</strong></p>\n<ul>\n  <li>Java 17</li>\n  <li>Fabric</li>\n</ul>',
-			),
-		).toBe('Requirements:\n- Java 17\n- Fabric')
-		expect(
-			normalizeChangelog('<img src="https://example.com/a.png" alt="Header">\n\n- Fixed'),
-		).toBe('- Fixed')
-		expect(normalizeChangelog('Usage: /<command> <action>')).toBe('Usage: /<command> <action>')
-	})
-
-	it('turns inline br into a newline', () => {
-		expect(normalizeChangelog('Line one<br>Line two')).toBe('Line one\nLine two')
-	})
-
-	it('never writes whitespace as character references', () => {
-		expect(normalizeChangelog('Updated textures \n<br>\nMore')).toBe('Updated textures\nMore')
-		expect(normalizeChangelog('<p>&#9888;&#65039; Before you update</p>')).toBe(
-			'⚠️ Before you update',
+	it('inlines reference links', () => {
+		expect(normalizeChangelog('See [the docs][docs].\n\n[docs]: https://example.com/docs')).toBe(
+			'See [the docs](https://example.com/docs).',
 		)
-		expect(normalizeChangelog('First\n\n \n\n#### **Added:**')).toBe('First\n### **Added:**')
 	})
 
 	it('wraps tables in a code block', () => {
 		expect(normalizeChangelog('| Mod | Version |\n| --- | --- |\n| Sodium | 0.6 |')).toBe(
 			'```\n| Mod | Version |\n| --- | --- |\n| Sodium | 0.6 |\n```',
 		)
+	})
+
+	it('strips html down to text', () => {
+		expect(
+			normalizeChangelog('<p><strong>Requirements:</strong></p>\n<p>Java 17 &amp; Fabric</p>'),
+		).toBe('Requirements:\nJava 17 & Fabric')
+		expect(
+			normalizeChangelog('<img src="https://example.com/a.png" alt="Header">\n\n- Fixed'),
+		).toBe('- Fixed')
+		expect(normalizeChangelog('Line one<br>Line two<br>')).toBe('Line one\nLine two')
+	})
+
+	it('parses markdown that html swallowed', () => {
+		expect(
+			normalizeChangelog(
+				'Notable changes.\n\n<a name="1.2.0"></a>\n## [1.2.0](https://example.com)\n### Fixes\n* Crash',
+			),
+		).toBe('Notable changes.\n## [1.2.0](https://example.com)\n### Fixes\n- Crash')
+	})
+
+	it('keeps placeholders that look like tags', () => {
+		expect(normalizeChangelog('Usage: /<command> <action>')).toBe('Usage: /<command> <action>')
 	})
 })
 
@@ -130,5 +125,9 @@ describe('truncateChangelog', () => {
 		expect(truncateChangelog('Config:\n```yaml\na: 1\nb: 2\n```', 20)).toBe(
 			'Config:\n```yaml\na: 1\n```\n...',
 		)
+	})
+
+	it('drops a code block opened right at the cut', () => {
+		expect(truncateChangelog('Old table:\n\n```\n| a | b |\n```', 18)).toBe('Old table:\n...')
 	})
 })

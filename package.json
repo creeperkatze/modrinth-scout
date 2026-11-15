@@ -37,6 +37,7 @@
         "micromark-extension-gfm": "^3.0.0",
         "migrate-mongo": "^14.0.7",
         "mongoose": "^9.12.1",
+        "parse-entities": "^4.0.2",
         "pino": "^10.4.0",
         "pino-http": "^11.0.0",
         "pino-pretty": "^13.2.0",

@@ -1,76 +1,43 @@
-import type {
-	Definition,
-	Heading,
-	Html,
-	Link,
-	Nodes,
-	Parents,
-	PhrasingContent,
-	Root,
-	Text,
-} from 'mdast'
+import type { Definition, Link, Nodes, Parents, PhrasingContent, Root, Text } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfmFromMarkdown, gfmToMarkdown } from 'mdast-util-gfm'
 import { toMarkdown, type Info, type Join, type State } from 'mdast-util-to-markdown'
 import { gfm } from 'micromark-extension-gfm'
+import { parseEntities } from 'parse-entities'
 import { SKIP, visit } from 'unist-util-visit'
 
 import { createModuleLogger } from './logger.js'
 
 const log = createModuleLogger('changelog')
 
-const FENCE = /^\s*(```|~~~)/
-const KNOWN_TAG =
-	/<\/?(a|abbr|b|big|blockquote|br|center|code|del|details|div|em|font|h[1-6]|hr|i|iframe|img|ins|kbd|li|mark|ol|p|picture|pre|s|small|source|span|strike|strong|sub|summary|sup|table|tbody|td|tfoot|th|thead|tr|u|ul|video)\b[^>]*>/gi
-const BLOCK_END =
-	/<\/(blockquote|details|div|h[1-6]|li|ol|p|pre|summary|table|tr|ul)>|<br\s*\/?>|<hr\b[^>]*>/gi
-const ENTITIES: Record<string, string> = {
-	'&amp;': '&',
-	'&lt;': '<',
-	'&gt;': '>',
-	'&quot;': '"',
-	'&#39;': "'",
-	'&nbsp;': ' ',
+// Code blocks can also open inside list items or quotes
+const FENCE = /^[\s>]*(?:(?:[-*+]|\d+[.)])\s+)?```/
+// Only real tags are stripped, so placeholders like `<player>` survive
+const HTML_TAG =
+	/<\/?(a|b|br|center|code|details|div|em|font|h[1-6]|hr|i|iframe|img|li|ol|p|pre|span|strong|summary|table|tbody|td|th|thead|tr|u|ul)\b[^>]*>/gi
+const HTML_BREAK = /<br\s*\/?>|<\/(div|h[1-6]|li|p|tr)>/gi
+
+function parse(markdown: string): Root {
+	return fromMarkdown(markdown, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] })
 }
 
-// Strips real HTML down to its text, leaving placeholders like `<player>` alone
 function htmlToText(html: string): string {
-	return html
-		.replace(/<!--[\s\S]*?(-->|$)/g, '')
-		.replace(/<(iframe|video)\b[\s\S]*?<\/\1>/gi, '')
-		.replace(/<li\b[^>]*>\s*/gi, '- ')
-		.replace(BLOCK_END, '\n')
-		.replace(KNOWN_TAG, '')
-		.replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (entity) => ENTITIES[entity])
-		.replace(/&#(x[0-9a-f]+|\d+);/gi, (entity, code: string) => {
-			const point = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : Number(code)
-			return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : entity
-		})
+	const text = html
+		.replace(/<!--[\s\S]*?-->/g, '')
+		.replace(HTML_BREAK, '\n')
+		.replace(HTML_TAG, '')
+	return parseEntities(text, { nonTerminated: false })
 		.split('\n')
 		.map((line) => line.trim())
+		.filter(Boolean)
 		.join('\n')
-		.replace(/\n{2,}/g, '\n')
-		.trim()
 }
 
-function imageToPhrasing(
-	alt: string | null | undefined,
-	url: string,
-	parent: Parents,
-): Link | Text {
-	const text: Text = { type: 'text', value: alt?.trim() || url }
+function imageToLink(alt: string | null | undefined, url: string, parent: Parents): Link | Text {
+	const text: Text = { type: 'text', value: alt?.trim() || 'Image' }
 	return parent.type === 'link' || parent.type === 'linkReference'
 		? text
 		: { type: 'link', url, children: [text] }
-}
-
-function spansLines(node: Heading): boolean {
-	let found = false
-	visit(node, (child) => {
-		if (child.type === 'break' || (child.type === 'text' && child.value.includes('\n')))
-			found = true
-	})
-	return found
 }
 
 function transform(tree: Root, source: string): void {
@@ -80,90 +47,78 @@ function transform(tree: Root, source: string): void {
 	})
 
 	visit(tree, (node: Nodes, index, parent: Parents | undefined) => {
+		// Discord only has h1-h3 and tight lists
 		if (node.type === 'heading') node.depth = Math.min(node.depth, 3) as 1 | 2 | 3
 		if (node.type === 'list' || node.type === 'listItem') node.spread = false
 		if (!parent || index === undefined) return
 
-		// Multi-line setext headings are usually text above a `---` divider and Discord can't render them
-		if (node.type === 'heading' && spansLines(node)) {
-			parent.children[index] = { type: 'paragraph', children: node.children }
-			return
-		}
-
-		if (node.type === 'thematicBreak' || node.type === 'definition') {
-			parent.children.splice(index, 1)
-			return [SKIP, index]
-		}
-
-		// Discord has no reference links, so inline the definition's url
-		if (node.type === 'linkReference') {
-			const url = definitions.get(node.identifier)?.url ?? ''
-			parent.children[index] = { type: 'link', url, children: node.children }
-			return
-		}
-		if (node.type === 'imageReference') {
-			const url = definitions.get(node.identifier)?.url ?? ''
-			parent.children[index] = imageToPhrasing(node.alt, url, parent)
-			return SKIP
-		}
-
-		if (node.type === 'html') {
-			if (/^<br\s*\/?>$/i.test(node.value.trim()) && parent.type !== 'root') {
-				parent.children[index] = { type: 'break' }
+		switch (node.type) {
+			case 'thematicBreak':
+			case 'definition':
+				parent.children.splice(index, 1)
+				return [SKIP, index]
+			case 'linkReference':
+				parent.children[index] = {
+					type: 'link',
+					url: definitions.get(node.identifier)?.url ?? '',
+					children: node.children,
+				}
+				return
+			case 'imageReference':
+				parent.children[index] = imageToLink(
+					node.alt,
+					definitions.get(node.identifier)?.url ?? '',
+					parent,
+				)
+				return SKIP
+			case 'image':
+				parent.children[index] = imageToLink(node.alt, node.url, parent)
+				return SKIP
+			case 'table':
+				parent.children[index] = {
+					type: 'code',
+					value: source.slice(node.position?.start.offset, node.position?.end.offset),
+				}
+				return SKIP
+			case 'html': {
+				if (/^<br\s*\/?>$/i.test(node.value.trim()) && parent.type === 'paragraph') {
+					parent.children[index] = { type: 'break' }
+					return SKIP
+				}
+				const value = htmlToText(node.value)
+				if (!value) {
+					parent.children.splice(index, 1)
+					return [SKIP, index]
+				}
+				// Block HTML swallows following Markdown like headings, so parse what is left once the tags are gone
+				if (
+					value !== node.value &&
+					(parent.type === 'root' || parent.type === 'listItem' || parent.type === 'blockquote')
+				) {
+					parent.children.splice(index, 1, ...(parse(value).children as typeof parent.children))
+					return index
+				}
+				node.value = value
 				return SKIP
 			}
-			const value = htmlToText(node.value)
-			if (value) {
-				;(node as Html).value = value
-				return SKIP
-			}
-			parent.children.splice(index, 1)
-			return [SKIP, index]
-		}
-
-		if (node.type === 'image') {
-			parent.children[index] = imageToPhrasing(node.alt, node.url, parent)
-			return SKIP
-		}
-
-		if (node.type === 'table' && node.position) {
-			const value = source.slice(node.position.start.offset, node.position.end.offset)
-			parent.children[index] = { type: 'code', value }
-			return SKIP
 		}
 	})
 
-	// Whitespace at a line edge would be written as `&#x20;`, which Discord shows literally
-	visit(tree, 'text', (node, index, parent) => {
-		if (!parent || index === undefined) return
-		if (parent.type !== 'paragraph' && parent.type !== 'heading') return
-		const prev = parent.children[index - 1]
-		const next = parent.children[index + 1]
-		if (!next || next.type === 'break') node.value = node.value.trimEnd()
-		if (!prev || prev.type === 'break') node.value = node.value.trimStart()
-	})
-
+	// Trailing `<br>`s and paragraphs emptied by stripped HTML would add extra blank lines
 	visit(tree, 'paragraph', (node, index, parent) => {
-		if (!parent || index === undefined) return
-		if (node.children.some((child) => child.type !== 'text' || child.value !== '')) return
+		while (node.children.at(-1)?.type === 'break') node.children.pop()
+		if (node.children.length > 0 || !parent || index === undefined) return
 		parent.children.splice(index, 1)
 		return [SKIP, index]
 	})
 }
 
-function isBareLink(node: Link): boolean {
-	const [child] = node.children as PhrasingContent[]
-	return (
-		node.children.length === 1 &&
-		child.type === 'text' &&
-		!node.title &&
-		(child.value === node.url || `mailto:${child.value}` === node.url)
-	)
-}
-
 // Discord does not unescape link urls, so write them raw and only percent-encode what ends the link
 function link(node: Link, _: Parents | undefined, state: State, info: Info): string {
-	if (isBareLink(node)) return node.url
+	const [child] = node.children as PhrasingContent[]
+	if (node.children.length === 1 && child.type === 'text' && child.value === node.url)
+		return node.url
+
 	const exitLink = state.enter('link')
 	const exitLabel = state.enter('label')
 	const tracker = state.createTracker(info)
@@ -175,7 +130,7 @@ function link(node: Link, _: Parents | undefined, state: State, info: Info): str
 	exitLink()
 	const url = node.url.replace(
 		/[\s()<>]/g,
-		(char) => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`,
+		(char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`,
 	)
 	return `${value}](${url})`
 }
@@ -189,28 +144,49 @@ const join: Join[] = [
 	},
 ]
 
+// Outside code: decode the `&#x..;` the serializer writes next to `*` and collapse repeated blank lines
+function cleanUp(markdown: string): string {
+	let inFence = false
+	const decoded = markdown
+		.split('\n')
+		.map((line) => {
+			if (FENCE.test(line)) inFence = !inFence
+			else if (!inFence)
+				return line.replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
+					String.fromCodePoint(parseInt(hex, 16)),
+				)
+			return line
+		})
+		.join('\n')
+
+	inFence = false
+	const lines: string[] = []
+	for (const line of decoded.split('\n')) {
+		if (FENCE.test(line)) inFence = !inFence
+		const blank = !inFence && line.trim() === ''
+		if (blank && lines.at(-1) === '') continue
+		lines.push(blank ? '' : line)
+	}
+	return lines.join('\n').trim()
+}
+
 export function normalizeChangelog(changelog: string): string {
 	try {
 		const source = changelog.replace(/\r\n?/g, '\n')
-		const tree = fromMarkdown(source, {
-			extensions: [gfm()],
-			mdastExtensions: [gfmFromMarkdown()],
-		})
+		const tree = parse(source)
 		transform(tree, source)
-		return toMarkdown(tree, {
-			extensions: [gfmToMarkdown()],
-			bullet: '-',
-			rule: '-',
-			// Discord reads `__` as underline, so keep `*` free for bold
-			emphasis: '_',
-			strong: '*',
-			fences: true,
-			join,
-			handlers: {
-				break: () => '\n',
-				link,
-			},
-		}).trim()
+		return cleanUp(
+			toMarkdown(tree, {
+				extensions: [gfmToMarkdown()],
+				bullet: '-',
+				// Discord reads `__` as underline, so keep `*` free for bold
+				emphasis: '_',
+				strong: '*',
+				fences: true,
+				join,
+				handlers: { break: () => '\n', link },
+			}),
+		)
 	} catch (err) {
 		log.warn({ err }, 'Failed to normalize changelog')
 		return changelog.trim()
@@ -220,12 +196,16 @@ export function normalizeChangelog(changelog: string): string {
 export function truncateChangelog(changelog: string, maxLength: number): string {
 	if (changelog.length <= maxLength) return changelog
 	const cut = changelog.lastIndexOf('\n', maxLength)
-	let truncated = changelog.slice(0, cut > 0 ? cut : maxLength).trimEnd()
-	let openFence: string | undefined
-	for (const line of truncated.split('\n')) {
-		const marker = FENCE.exec(line)?.[1]
-		if (marker) openFence = openFence ? undefined : marker
+	const lines = changelog
+		.slice(0, cut > 0 ? cut : maxLength)
+		.trimEnd()
+		.split('\n')
+	let inFence = false
+	for (const line of lines) if (FENCE.test(line)) inFence = !inFence
+	// Drop a fence opened on the last line instead of leaving an empty code block
+	if (inFence && FENCE.test(lines.at(-1) ?? '')) {
+		lines.pop()
+		inFence = false
 	}
-	if (openFence) truncated += `\n${openFence}`
-	return truncated + '\n...'
+	return `${lines.join('\n').trimEnd()}${inFence ? '\n```' : ''}\n...`
 }
